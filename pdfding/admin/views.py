@@ -1,7 +1,9 @@
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.http import Http404
 from django.shortcuts import render
 from django.views import View
+from pdf.models.pdf_models import Pdf
 
 
 class Information(View):  # pragma: no cover
@@ -13,10 +15,9 @@ class Information(View):  # pragma: no cover
 
     def get(self, request):
         self.test_func(request)
-        try:
-            version = settings.VERSION
-        except AttributeError:
-            version = 'unknown'
-
-        context = {'version': version}
+        context = {
+            'current_version': getattr(settings, 'VERSION', 'unknown'),
+            'number_of_users': User.objects.count(),
+            'number_of_pdfs': Pdf.objects.count(),
+        }
         return render(request, 'information.html', context=context)
