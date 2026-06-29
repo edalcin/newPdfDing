@@ -13,7 +13,6 @@ license-files = ["LICENSE"]
 [tool.poetry.dependencies]
 python = ">=3.11 <4.0"
 django = "==5.2.14"
-django-allauth = { extras = ["mfa", "socialaccount"], version = "==65.18.0" }
 django-htmx = "==1.27.0"
 gunicorn = "==26.0.0"
 huey = "==3.0.1"
@@ -24,7 +23,6 @@ psycopg2-binary = "==2.9.12"
 pypdfium2 = "==5.8.0"
 pypdf = "==6.13.3"
 python-magic = "==0.4.27"
-qrcode = { extras = ["pil"], version = "==8.2" }
 RapidFuzz = "==3.14.5"
 supervisor = "==4.3.0"
 whitenoise = { extras = ["brotli"], version = "==6.12.0" }

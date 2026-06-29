@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
-from allauth.account.models import EmailAddress
 from backup import tasks
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -132,9 +131,6 @@ class TestSqliteBackup(TestCase):
         for i in range(1, 4):
             user = User.objects.create_user(username=i, password='password', email=f'{i}@a.com')
 
-            EmailAddress.objects.get_primary(user)
-            # save in order to add email
-            user.save()
 
             for j in range(1, i + 1):
                 pdf = Pdf.objects.create(name=f'pdf_{j}', collection=user.profile.current_collection)

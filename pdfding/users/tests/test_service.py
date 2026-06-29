@@ -1,7 +1,5 @@
-from unittest.mock import patch
 
 import users.service as service
-from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 
 
@@ -45,17 +43,3 @@ class TestUserServices(TestCase):
         self.assertEqual(generated_color, '76 37 24')
         self.assertEqual(generated_theme, 'dark')
 
-    def test_get_demo_pdf(self):
-        demo_pdf = service.get_demo_pdf()
-
-        self.assertEqual(demo_pdf.size, 29451)
-
-    @patch('users.service.PdfProcessingServices.process_with_pypdfium')
-    def test_create_demo_user(self, mock_process_with_pypdfium):
-        email = 'demo@pdfding.com'
-        user = service.create_demo_user(email, 'password')
-
-        self.assertEqual(user.profile.current_pdfs.count(), 4)
-        self.assertEqual(user.profile.tags.count(), 5)
-        self.assertEqual(mock_process_with_pypdfium.call_count, 4)
-        self.assertEqual(user.email, email)

@@ -1,4 +1,3 @@
-from allauth.account.models import EmailAddress
 from django.contrib.auth.models import User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import Client
@@ -15,11 +14,7 @@ class PdfDingE2ETestCase(StaticLiveServerTestCase):
         self.client = Client()
         self.user = User.objects.create_user(username=self.username, password=self.password, email=self.email)
 
-        # set email address to verified
-        self.user.save()  # this will create email address object if not yet existing
-        email_address = EmailAddress.objects.get_primary(self.user)
-        email_address.verified = True
-        email_address.save()
+        self.client.force_login(self.user)
 
         self.user.profile.tags_open = True
         self.user.profile.save()

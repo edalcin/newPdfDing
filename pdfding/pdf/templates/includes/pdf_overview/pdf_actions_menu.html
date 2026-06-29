@@ -11,10 +11,6 @@
         {% include 'includes/svg/detail.html' %}
         {% trans 'Details' %}
     </a>
-    <a href="{% url 'share_pdf' pdf.id %}">
-        {% include 'includes/svg/share.html' %}
-        {% trans 'Share' %}
-    </a>
     <a id="star-{{ loop_id }}" class="cursor-pointer"
        hx-post="{% url 'star' pdf.id %}"
        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>

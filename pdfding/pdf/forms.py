@@ -11,7 +11,9 @@ from pdf.models.collection_models import Collection
 from pdf.models.pdf_models import Pdf
 from pdf.models.shared_models import SharedCollection, SharedPdf
 from pdf.models.workspace_models import Workspace
+from pdf.services.pdf_services import compute_file_sha256
 from pdf.services.workspace_services import (
+    check_if_pdf_with_hash_exists,
     check_if_pdf_with_name_exists,
     get_shared_collections_of_workspace,
     get_shared_pdfs_of_workspace,
@@ -95,9 +97,15 @@ class AddForm(AddFormNoFile):
         fields.append('file')
 
     def clean_file(self) -> File:  # pragma: no cover
-        """Clean the submitted pdf file. Checks if the file is a pdf."""
-
-        return CleanHelpers.clean_file(self.cleaned_data['file'])
+        """Clean the submitted pdf file. Checks if the file is a pdf and not a duplicate."""
+        file = CleanHelpers.clean_file(self.cleaned_data['file'])
+        sha256 = compute_file_sha256(file)
+        existing = check_if_pdf_with_hash_exists(sha256, self.profile.current_workspace)
+        if existing:
+            raise forms.ValidationError(
+                _('This PDF already exists in your library (as \'%(name)s\').') % {'name': existing.name}
+            )
+        return file
 
 
 class MultipleFileInput(forms.ClearableFileInput):  # pragma: no cover

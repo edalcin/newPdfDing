@@ -1,36 +1,29 @@
 import json
 from datetime import datetime, timezone
-from random import randint
-from uuid import uuid4
 
-from allauth.account.internal.flows.email_verification import send_verification_email_for_user
-from allauth.account.views import LoginView, LogoutView, PasswordResetDoneView, PasswordResetView, SignupView
-from allauth.socialaccount.providers.openid_connect.views import callback, login
 from django.conf import settings as django_settings
 from django.contrib import messages
+from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.models import User
-from django.db.utils import IntegrityError
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django_htmx.http import HttpResponseClientRefresh
 from pdf.services.workspace_services import check_if_collection_part_of_workspace
 from users import forms
 from users.models import Profile
-from users.service import create_demo_user, get_secondary_color
+from users.service import get_secondary_color
 
 
 def account_settings(request):
     """View for the account settings page"""
 
-    uses_social = request.user.socialaccount_set.exists()
-
-    # pragma: no cover
-    return render(request, 'account_settings.html', {'uses_social': uses_social})
+    return render(request, 'account_settings.html', {})
 
 
 def ui_settings(request):  # pragma: no cover
@@ -112,9 +105,6 @@ class ChangeSetting(View):
                     messages.warning(request, f'{email} is already in use.')
                     return redirect('account_settings')
                 form.save()
-
-                # Then send confirmation email
-                send_verification_email_for_user(request, request.user)
             elif field_name == 'custom_theme_color':
                 form.save()
 
@@ -191,27 +181,6 @@ class ChangeTreeMode(View):
             return HttpResponseClientRefresh()
 
         return redirect('account_settings')
-
-
-class ChangeWorkspace(View):
-    """View for changing the current workspace."""
-
-    def post(self, request: HttpRequest, workspace_id: str):
-        """Change the current workspace."""
-
-        if request.htmx:
-            user_profile = request.user.profile
-
-            if user_profile.has_access_to_workspace(workspace_id):
-                user_profile.current_workspace_id = workspace_id
-                user_profile.current_collection_id = 'all'
-                user_profile.save()
-
-                return HttpResponseClientRefresh()
-            else:
-                raise Http404('Workspace not found for user!')
-
-        return redirect('pdf_overview')
 
 
 class ChangeCollection(View):
@@ -320,102 +289,23 @@ class Delete(View):
         return redirect('home')
 
 
-@method_decorator(login_not_required, name="dispatch")
-class CreateDemoUser(View):
-    """View for creating demo users"""
+@method_decorator(login_not_required, name='dispatch')
+class AdminLoginView(View):
+    """Single-admin password login view."""
 
-    def post(self, request: HttpRequest):
-        """Create a demo user."""
+    def get(self, request):
+        from users.forms import AdminLoginForm
+        return render(request, 'login.html', {'form': AdminLoginForm()})
 
-        if request.htmx and django_settings.DEMO_MODE:
-            password = 'demo'  # nosec
-            max_user_number = django_settings.DEMO_MAX_USERS
-
-            if User.objects.all().count() < max_user_number:
-                email = f'{str(uuid4())[:8]}@pdfding.com'
-
-                try:
-                    user = create_demo_user(email, password)
-                # if for some reason the email is already used, return the user instead of creating it.
-                except IntegrityError:
-                    user = User.objects.get(email=email)
-            # don't create new users if there are too many already
-            else:
-                user = User.objects.get(id=randint(1, max_user_number))  # nosec
-
-            return render(request, 'partials/demo_user.html', {'email': user.email, 'password': password})
-
-        return redirect('pdf_overview')
-
-
-@method_decorator(login_not_required, name="dispatch")
-class PdfDingLoginView(LoginView):
-    """
-    Overwrite allauths login to be accessed without being logged in
-    """
-
-    @login_not_required
-    def dispatch(self, request, *args, **kwargs):
-        return super(PdfDingLoginView, self).dispatch(request, *args, **kwargs)
-
-
-@method_decorator(login_not_required, name="dispatch")
-class PdfDingLogoutView(LogoutView):
-    """
-    Overwrite allauths login to be accessed without being logged in
-    """
-
-    @login_not_required
-    def dispatch(self, request, *args, **kwargs):  # pragma: no cover
-        return super(PdfDingLogoutView, self).dispatch(request, *args, **kwargs)
-
-
-@method_decorator(login_not_required, name="dispatch")
-class PdfDingSignupView(SignupView):
-    """
-    Overwrite allauths signup to be accessed without being logged in
-    """
-
-    @login_not_required
-    def dispatch(self, request, *args, **kwargs):
-        return super(PdfDingSignupView, self).dispatch(request, *args, **kwargs)
-
-
-@method_decorator(login_not_required, name="dispatch")
-class PdfDingPasswordResetView(PasswordResetView):
-    """
-    Overwrite allauths password reset to be accessed without being logged in
-    """
-
-    @login_not_required
-    def dispatch(self, request, *args, **kwargs):
-        return super(PdfDingPasswordResetView, self).dispatch(request, *args, **kwargs)
-
-
-@method_decorator(login_not_required, name="dispatch")
-class PdfDingPasswordResetDoneView(PasswordResetDoneView):
-    """
-    Overwrite allauths password reset done to be accessed without being logged in
-    """
-
-    @login_not_required
-    def dispatch(self, request, *args, **kwargs):
-        return super(PdfDingPasswordResetDoneView, self).dispatch(request, *args, **kwargs)
-
-
-@login_not_required
-def pdfding_oidc_login(request: HttpRequest):  # pragma: no cover
-    """
-    Overwrite allauths oidc login to be accessed without being logged in
-    """
-
-    return login(request, 'oidc')
-
-
-@login_not_required
-def pdfding_oidc_callback(request: HttpRequest):  # pragma: no cover
-    """
-    Overwrite allauths oidc callback to be accessed without being logged in
-    """
-
-    return callback(request, 'oidc')
+    def post(self, request):
+        from users.forms import AdminLoginForm
+        form = AdminLoginForm(request.POST)
+        if form.is_valid():
+            password = form.cleaned_data['password']
+            user = User.objects.filter(email=django_settings.ADMIN_EMAIL).first()
+            if not user:
+                user = User.objects.filter(is_superuser=True).order_by('id').first()
+            if user and user.check_password(password):
+                auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                return redirect(django_settings.LOGIN_REDIRECT_URL)
+        return render(request, 'login.html', {'form': form, 'error': _('Invalid password')})

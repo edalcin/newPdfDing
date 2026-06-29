@@ -1,9 +1,7 @@
 from datetime import datetime, timezone
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth.models import User
-from django.db.utils import IntegrityError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from pdf.models.pdf_models import Pdf
@@ -18,45 +16,13 @@ class TestAuthRelated(TestCase):
     def test_login_required(self):
         response = self.client.get(reverse('pdf_overview'))
 
-        self.assertRedirects(response, f'/accountlogin/?next={reverse('pdf_overview')}', status_code=302)
+        self.assertRedirects(response, f'/login/?next={reverse("pdf_overview")}', status_code=302)
 
     def test_login(self):
         response = self.client.get(reverse('login'))
 
         self.assertEqual(response.status_code, 200)
 
-    def test_signup(self):
-        response = self.client.get(reverse('signup'))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'account/signup.html')
-
-    @override_settings(SIGNUP_CLOSED=True)
-    def test_signup_closed(self):
-        response = self.client.get(reverse('signup'))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'account/signup_closed.html')
-
-    def test_password_reset(self):
-        response = self.client.get(reverse('password_reset'))
-
-        self.assertEqual(response.status_code, 200)
-
-    def test_password_reset_done(self):
-        response = self.client.get(reverse('password_reset_done'))
-
-        self.assertEqual(response.status_code, 200)
-
-    def test_oidc_login(self):
-        response = self.client.get(reverse('oidc_login'))
-
-        self.assertEqual(response.status_code, 200)
-
-    def test_oidc_callback(self):
-        response = self.client.get(reverse('oidc_callback'))
-
-        self.assertEqual(response.status_code, 401)
 
 
 class BaseProfileView(TestCase):
@@ -71,16 +37,9 @@ class BaseProfileView(TestCase):
 
 class TestProfileSettingsViews(BaseProfileView):
     def test_settings(self):
-        # test without social account
         response = self.client.get(reverse('account_settings'))
-        self.assertEqual(response.context['uses_social'], False)
+        self.assertEqual(response.status_code, 200)
 
-        # test with social account
-        social_account = SocialAccount.objects.create(user=self.user)
-        self.user.socialaccount_set.set([social_account])
-
-        response = self.client.get(reverse('account_settings'))
-        self.assertEqual(response.context['uses_social'], True)
 
     def test_change_settings_get_no_htmx(self):
         response = self.client.get(reverse('profile-setting-change', kwargs={'field_name': 'email'}))
@@ -155,13 +114,11 @@ class TestProfileSettingsViews(BaseProfileView):
         self.assertEqual(message.message, 'a@b.com is already in use.')
         self.assertEqual(message.tags, 'warning')
 
-    @patch('users.views.send_verification_email_for_user')
-    def test_change_settings_email_post_correct(self, mock_send):
+    def test_change_settings_email_post_correct(self):
         self.client.post(reverse('profile-setting-change', kwargs={'field_name': 'email'}), data={'email': 'a@c.com'})
 
         # get the user and check if email was changed
         user = User.objects.get(username=self.username)
-        mock_send.assert_called()
         self.assertEqual(user.email, 'a@c.com')
 
     def test_change_settings_custom_theme_color(self):
@@ -327,27 +284,6 @@ class TestProfileSettingsViews(BaseProfileView):
         changed_user = User.objects.get(id=self.user.id)
         self.assertEqual(changed_user.profile.annotation_sorting, Profile.AnnotationsSortingChoice.OLDEST)
 
-    def test_change_workspace_no_htmx(self):
-        response = self.client.post(reverse('change_workspace', kwargs={'workspace_id': '1'}))
-
-        self.assertRedirects(response, reverse('pdf_overview'), status_code=302)
-
-    @patch('users.models.Profile.has_access_to_workspace', return_value=True)
-    def test_change_workspace_post_access(self, mock_has_access_to_workspace):
-        self.assertEqual(self.user.profile.current_workspace_id, str(self.user.id))
-
-        other_ws = create_workspace('other_ws', self.user)
-        headers = {'HTTP_HX-Request': 'true'}
-        self.client.post(reverse('change_workspace', kwargs={'workspace_id': other_ws.id}), **headers)
-
-        changed_user = User.objects.get(id=self.user.id)
-        self.assertEqual(changed_user.profile.current_workspace_id, other_ws.id)
-
-    @patch('users.models.Profile.has_access_to_workspace', return_value=False)
-    def test_change_workspace_post_no_access(self, mock_has_access_to_workspace):
-        headers = {'HTTP_HX-Request': 'true'}
-        response = self.client.post(reverse('change_workspace', kwargs={'workspace_id': '4'}), **headers)
-        self.assertEqual(response.status_code, 404)
 
     def test_change_collection_no_htmx(self):
         response = self.client.post(reverse('change_collection', kwargs={'collection_id': '1'}))
@@ -432,85 +368,3 @@ class TestProfileOtherViews(BaseProfileView):
         self.assertEqual(changed_user.profile.signatures, {'old_2': 'old2', 'new': 'something_new'})
 
 
-class TestDemoViews(TestCase):
-    def test_create_demo_user_post_no_htmx(self):
-        response = self.client.post(reverse('create_demo_user'))
-
-        # target_status_code=302 because the '/' will redirect to the pdf overview
-        self.assertRedirects(response, reverse('pdf_overview'), status_code=302, target_status_code=302)
-
-    @override_settings(DEMO_MODE=False)
-    def test_create_demo_user_post_normal_mode(self):
-        # in normal mode user creation is not allowed.
-        headers = {'HTTP_HX-Request': 'true'}
-        response = self.client.post(reverse('create_demo_user'), **headers)
-
-        # target_status_code=302 because the '/' will redirect to the pdf overview
-        self.assertRedirects(response, reverse('pdf_overview'), status_code=302, target_status_code=302)
-
-    @patch('users.views.create_demo_user')
-    @patch('users.views.uuid4', return_value='123456789')
-    @override_settings(DEMO_MODE=True)
-    def test_create_demo_user_post_demo_mode(self, mock_uuid4, mock_create_demo_user):
-        email = '12345678@pdfding.com'
-        mock_user = Mock()
-        mock_user.email = email
-        mock_create_demo_user.return_value = mock_user
-
-        self.assertEqual(User.objects.all().count(), 0)
-
-        headers = {'HTTP_HX-Request': 'true'}
-        response = self.client.post(reverse('create_demo_user'), **headers)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'partials/demo_user.html')
-        mock_create_demo_user.assert_called_once_with(email, 'demo')
-        self.assertEqual(response.context['email'], email)
-        self.assertEqual(response.context['password'], 'demo')
-
-    @patch('users.views.User.objects.get')
-    @patch('users.views.create_demo_user', side_effect=IntegrityError)
-    @patch('users.views.uuid4', return_value='123456789')
-    @override_settings(DEMO_MODE=True)
-    def test_create_demo_user_post_demo_mode_exception(self, mock_uuid4, mock_create_demo_user, mock_get):
-        email = '12345678@pdfding.com'
-        mock_user = Mock()
-        mock_user.email = email
-        mock_get.return_value = mock_user
-
-        headers = {'HTTP_HX-Request': 'true'}
-        response = self.client.post(reverse('create_demo_user'), **headers)
-        mock_create_demo_user.assert_called_once_with(email, 'demo')
-        mock_get.assert_called_once_with(email=email)
-        self.assertTemplateUsed(response, 'partials/demo_user.html')
-        self.assertEqual(response.context['email'], email)
-        self.assertEqual(response.context['password'], 'demo')
-
-    @patch('users.views.randint')
-    @patch('users.views.User.objects.get')
-    @patch('users.views.create_demo_user')
-    @patch('users.views.uuid4', return_value='123456789')
-    @override_settings(DEMO_MAX_USERS=5)
-    @override_settings(DEMO_MODE=True)
-    def test_create_demo_user_post_demo_mode_too_many_users(
-        self, mock_uuid4, mock_create_demo_user, mock_get, mock_randint
-    ):
-        for i in range(5):
-            User.objects.create_user(username=f'user_{i}', password='password')
-
-        email = '12345678@pdfding.com'
-        mock_user = Mock()
-        mock_user.email = email
-        mock_get.return_value = mock_user
-        mock_randint.return_value = 3
-
-        headers = {'HTTP_HX-Request': 'true'}
-        response = self.client.post(reverse('create_demo_user'), **headers)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'partials/demo_user.html')
-        mock_randint.assert_called_once_with(1, 5)
-        mock_get.assert_called_once_with(id=3)
-
-        self.assertEqual(response.context['email'], email)
-        self.assertEqual(response.context['password'], 'demo')

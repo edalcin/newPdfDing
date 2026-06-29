@@ -222,18 +222,6 @@ class Profile(models.Model):
         return workspace.collections
 
     @property
-    def mfa_activated(self) -> bool:
-        """Check if multi factor authentication is activated"""
-
-        try:
-            if self.user.authenticator_set.count():
-                return True
-            else:
-                return False
-        except AttributeError:  # pragma: no cover
-            return False
-
-    @property
     def items_per_page(self) -> int:  # pragma: no cover
         """Get the number of items of overview paginations"""
 

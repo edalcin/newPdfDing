@@ -1,8 +1,5 @@
-from allauth.account.models import EmailAddress
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.core.files import File
-from pdf.services.pdf_services import PdfProcessingServices
 from users.models import Profile
 
 
@@ -70,61 +67,9 @@ def get_viewer_theme_and_color(user_profile: Profile | None = None) -> tuple[str
 
 
 def get_demo_pdf():
-    """Get the pdf file used in the demo mode."""
-
+    """Get the PDF file used for testing."""
     file_path = settings.BASE_DIR / 'users' / 'demo_data' / 'demo.pdf'
-    demo_pdf = File(file=open(file_path, 'rb'), name=file_path.name)
-
-    return demo_pdf
-
-
-def create_demo_user(email: str, password: str):
-    """Create a demo user"""
-
-    pdf_names = [
-        'The best self-hosted applications',
-        'My favorite book',
-        'User Manual',
-        'Self-hosting Guide',
-    ]
-    descriptions = [
-        '',
-        'This is the best book I have ever read.',
-        'Everyone will understand this guide!',
-        'A guide about getting starting with self-hosting apps on k8s',
-    ]
-    tag_strings = ['self-hosted/apps', 'books', 'guide', 'self-hosted k8s']
-
-    user = User.objects.create_user(username=email, password=password, email=email)  # nosec
-
-    # set email address to verified
-    user.save()  # this will create email address object if not yet existing
-    email_address = EmailAddress.objects.get_primary(user)
-    email_address.verified = True
-    email_address.save()
-
-    user.profile.tags_open = True
-    user.profile.save()
-
-    for pdf_name, description, tag_string in zip(pdf_names, descriptions, tag_strings):
-        pdf_file = get_demo_pdf()
-
-        if pdf_name == 'Self-hosting Guide':
-            notes = get_example_notes()
-        else:
-            notes = ''
-
-        PdfProcessingServices.create_pdf(
-            name=pdf_name,
-            collection=user.profile.current_collection,
-            pdf_file=pdf_file,
-            description=description,
-            tag_string=tag_string,
-            notes=notes,
-        )
-
-    return user
-
+    return File(file=open(file_path, 'rb'), name=file_path.name)
 
 def get_example_notes():  # pragma: no cover
     """

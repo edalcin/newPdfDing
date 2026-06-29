@@ -130,25 +130,6 @@ input[name="remember"] {
 .alert-success { @apply bg-secondary }
 .alert-warning { @apply bg-red-500 }
 .alert-danger { @apply bg-red-500 }
-form[action="/accountsignup/"] ul {
-    @apply hidden
-}
-form[action="/accountsignup/"] ul.errorlist {
-    @apply block
-}
-form[action="/accountpassword/change/"] ul {
-    @apply hidden
-}
-form[action="/accountpassword/change/"] ul.errorlist {
-    @apply block
-}
-.allauth .helptext {
-    @apply block mt-4
-}
-
-.allauth content a:hover {
-    @apply text-primary
-}
 
 .markdown {
     & p,

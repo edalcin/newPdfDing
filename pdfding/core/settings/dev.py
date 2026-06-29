@@ -1,27 +1,11 @@
 from .base import *  # noqa: F401 F403
 
 try:
-    # set the minio acces and secret key and the SOCIALACCOUNT_PROVIDERS in dev_secrets
     from .dev_secrets import *  # noqa: F401 F403
 except ModuleNotFoundError:  # pragma: no cover
-    # dummy SOCIALACCOUNT_PROVIDERS for tests
-    SOCIALACCOUNT_PROVIDERS = {
-        "openid_connect": {
-            'EMAIL_AUTHENTICATION': True,
-            "OAUTH_PKCE_ENABLED": True,
-            "APPS": [
-                {
-                    "provider_id": "oidc",
-                    'name': 'OIDC',
-                    "client_id": "dummy_id",
-                    "secret": "dummy_secret",  # nosec B105
-                    "settings": {
-                        "server_url": "dummy_url",
-                    },
-                }
-            ],
-        }
-    }
+    pass
+
+# No social auth in single-admin mode
 
 # Turn on debug mode
 DEBUG = True
@@ -32,19 +16,7 @@ INTERNAL_IPS = ['127.0.0.1']
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'some_key'  # nosec B105
 
-ACCOUNT_EMAIL_VERIFICATION = 'optional'
-
 DEFAULT_FROM_EMAIL = 'info@localhost'
-SIGNUP_CLOSED = False
-
-OIDC_GROUPS_CLAIM = 'groups'
-OIDC_ADMIN_GROUP = 'admins'
-
-# MFA
-MFA_ALLOW_UNVERIFIED_EMAIL = True
-MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = True
-MFA_TRUST_ENABLED = False
-MFA_SUPPORTED_TYPES = ['recovery_codes', 'totp', 'webauthn']
 
 # BACKUP
 BACKUP_ENABLED = True
@@ -77,7 +49,5 @@ if 'BACKUP_ENCRYPTION_PASSWORD' not in locals():
 DEFAULT_THEME = 'dark'
 DEFAULT_THEME_COLOR = 'Green'
 
-# demo mode
-DEMO_MODE = False
-DEMO_MAX_USERS = 10
-DEMO_MODE_RESTART_INTERVAL = 60
+ADMIN_EMAIL = 'admin@example.com'
+ADMIN_PASSWORD = 'changeme'

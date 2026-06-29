@@ -34,11 +34,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.openid_connect',
-    'allauth.mfa',
     'django_htmx',
     'huey.contrib.djhuey',
     'admin',
@@ -63,13 +58,11 @@ MIDDLEWARE = [
     'core.middleware.PdfDingLocaleMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'allauth.account.middleware.AccountMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
 ]
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -167,20 +160,11 @@ MEDIA_ROOT = DATA_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_CHANGE_EMAIL = True  # users are limited to one email address. this address can be changed.
-ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
-ACCOUNT_LOGOUT_REDIRECT_URL = '/accountlogin/'
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_ADAPTER = 'users.adapters.DisableSignupAccountAdapter'
-SOCIALACCOUNT_ADAPTER = 'users.adapters.HandleAdminNewUserAdapter'
-
 LOGIN_REDIRECT_URL = '/pdf'
-LOGIN_URL = '/accountlogin/'
+LOGIN_URL = '/login/'
 
-SOCIALACCOUNT_OPENID_CONNECT_URL_PREFIX = ''
+ADMIN_EMAIL = environ.get('ADMIN_EMAIL', '')
+ADMIN_PASSWORD = environ.get('ADMIN_PASSWORD', '')
 
 # Huey task queue
 HUEY = {

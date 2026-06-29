@@ -49,21 +49,6 @@ if environ.get('SECURE_SSL_REDIRECT') in ['TRUE', 'True']:
 if environ.get('SECURE_HSTS_SECONDS'):
     SECURE_HSTS_SECONDS = environ.get('SECURE_HSTS_SECONDS')
 
-# MFA settings
-MFA_SUPPORTED_TYPES = ['totp']
-if environ.get('MFA_USE_RECOVERY_CODES', 'TRUE') in ['TRUE', 'True']:
-    MFA_SUPPORTED_TYPES.append('recovery_codes')
-    MFA_RECOVERY_CODE_COUNT = environ.get('MFA_RECOVERY_CODE_COUNT', 10)
-if environ.get('MFA_USE_WEBAUTHN', 'TRUE') in ['TRUE', 'True']:
-    MFA_SUPPORTED_TYPES.append('webauthn')
-if environ.get('MFA_TRUST_ENABLED', 'FALSE') in ['TRUE', 'True']:
-    MFA_TRUST_ENABLED = True
-    MFA_TRUST_COOKIE_AGE = environ.get('MFA_TRUST_COOKIE_AGE', 14)
-if environ.get('MFA_ALLOW_UNVERIFIED_EMAIL', 'FALSE') in ['TRUE', 'True']:
-    MFA_ALLOW_UNVERIFIED_EMAIL = True
-if environ.get('MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN', 'FALSE') in ['TRUE', 'True']:
-    MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = True
-
 # backup settings
 if environ.get('BACKUP_ENABLE') in ['TRUE', 'True']:
     # without a dummy value, huey will not start
@@ -106,80 +91,6 @@ else:
     CONSUME_SKIP_EXISTING = False
     CONSUME_SCHEDULE = '*/5 * * * *'
 
-# mail settings
-if environ.get('EMAIL_BACKEND') == 'SMTP':
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = environ.get('SMTP_HOST')
-    EMAIL_PORT = environ.get('SMTP_PORT', 587)
-    EMAIL_HOST_USER = environ.get('SMTP_USER')
-    EMAIL_HOST_PASSWORD = environ.get('SMTP_PASSWORD')
-    if environ.get('SMTP_USE_TLS') in ['TRUE', 'True']:
-        EMAIL_USE_TLS = True
-    if environ.get('SMTP_USE_SSL') in ['TRUE', 'True']:
-        EMAIL_USE_SSL = True
-
-if environ.get('EMAIL_ADDRESS'):
-    DEFAULT_FROM_EMAIL = environ.get('EMAIL_ADDRESS')
-else:
-    try:
-        DEFAULT_FROM_EMAIL = f'info@{ALLOWED_HOSTS[0]}'
-    except IndexError:
-        DEFAULT_FROM_EMAIL = 'info@pdfding'
-
-# authentication settings
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = environ.get('ACCOUNT_DEFAULT_HTTP_PROTOCOL', 'https')
-if environ.get('ACCOUNT_EMAIL_VERIFICATION') in ['TRUE', 'True']:
-    ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-else:
-    ACCOUNT_EMAIL_VERIFICATION = 'optional'
-
-if environ.get('DISABLE_USER_SIGNUP') in ['TRUE', 'True']:
-    SIGNUP_CLOSED = True
-else:
-    SIGNUP_CLOSED = False
-
-# configure the oidc provider
-if environ.get('OIDC_ENABLE') in ['TRUE', 'True']:
-    # enable social logins only
-    if environ.get('OIDC_ONLY') in ['TRUE', 'True']:
-        SOCIALACCOUNT_ONLY = True
-        ACCOUNT_EMAIL_VERIFICATION = 'none'
-
-        # need to remove mfa as not compatible with this setting
-        INSTALLED_APPS.remove('allauth.mfa')  # noqa: F405
-
-    OIDC_GROUPS_CLAIM = environ.get('OIDC_GROUPS_CLAIM', 'groups')
-    OIDC_ADMIN_GROUP = environ.get('OIDC_ADMIN_GROUP', '')
-    OIDC_EXTRA_SCOPE = environ.get('OIDC_EXTRA_SCOPE', '')
-    OIDC_SCOPE = ['openid', 'profile', 'email']
-    if OIDC_EXTRA_SCOPE and OIDC_EXTRA_SCOPE not in OIDC_SCOPE:
-        OIDC_SCOPE.append(OIDC_EXTRA_SCOPE)
-
-    SOCIALACCOUNT_PROVIDERS = {
-        'openid_connect': {
-            'EMAIL_AUTHENTICATION': True,
-            # Optional PKCE defaults to False, but may be required by your provider
-            # Applies to all APPS.
-            'OAUTH_PKCE_ENABLED': True,
-            'APPS': [
-                {
-                    'provider_id': 'oidc',
-                    'name': environ.get('OIDC_PROVIDER_NAME', 'OIDC').upper(),
-                    'client_id': environ['OIDC_CLIENT_ID'],
-                    'secret': environ['OIDC_CLIENT_SECRET'],
-                    'settings': {
-                        'server_url': environ['OIDC_AUTH_URL'],
-                        # Optional token endpoint authentication method.
-                        # May be one of 'client_secret_basic', 'client_secret_post'
-                        # If omitted, a method from the server's
-                        # token auth methods list is used
-                        # 'token_auth_method': 'client_secret_basic',
-                    },
-                }
-            ],
-            'SCOPE': OIDC_SCOPE,
-        }
-    }
 
 # themes
 theme_colors = ['green', 'blue', 'gray', 'red', 'pink', 'orange', 'brown']
@@ -212,10 +123,3 @@ if environ.get('ALLOW_PDF_SUB_DIRECTORIES', 'FALSE') in ['TRUE', 'True']:
 else:
     ALLOW_PDF_SUB_DIRECTORIES = False
 
-# demo mode
-if environ.get('DEMO_MODE', 'FALSE') in ['TRUE', 'True']:
-    DEMO_MODE = True
-    DEMO_MODE_RESTART_INTERVAL = int(environ.get('DEMO_MODE_RESTART_INTERVAL', 60))  # in minutes
-    DEMO_MAX_USERS = int(environ.get('DEMO_MAX_USERS', 500))
-else:
-    DEMO_MODE = False

@@ -23,6 +23,7 @@ fi
 HOST_PORT="${HOST_PORT:-8000}"
 
 python manage.py migrate
+python manage.py ensure_admin
 python manage.py clean_up
 
 WORKER_TIMEOUT="${WORKER_TIMEOUT:-30}"

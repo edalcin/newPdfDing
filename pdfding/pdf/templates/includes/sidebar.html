@@ -2,7 +2,6 @@
 {% load i18n %}
 {% block sidebar_content %}
 <div class="flex flex-row md:flex-col w-full md:pb-3 gap-2 md:border-b border-slate-300 dark:border-slate-600">
-  {% include 'partials/workspace_dropdown.html' with page='overview' %}
   {% if current_collection_id %}
   {% include 'partials/collection_dropdown.html' %}
   {% endif %}
@@ -16,12 +15,6 @@
           <a href="{% url 'pdf_overview' %}">
               {% include 'includes/svg/document.html' %}
               <span class="hidden md:block">{% translate 'PDFs' %}</span>
-          </a>
-      </div>
-      <div>
-          <a href="{% url 'shared_pdf_overview' %}">
-              {% include 'includes/svg/share.html' %}
-              <span class="hidden md:block">{% translate 'Shared' %}</span>
           </a>
       </div>
       <div {% if page == 'pdf_overview_starred' %} class="bg-slate-200 md:bg-slate-100 dark:bg-slate-800" {% endif %}>

@@ -56,3 +56,10 @@ def clean_hex_color(color: str) -> str:
         raise forms.ValidationError(_('Only valid hex colors are allowed! E.g.: #ffa385.'))
 
     return str.lower(color)
+
+class AdminLoginForm(forms.Form):
+    """Form for single-admin password login."""
+
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'placeholder': 'Password', 'autofocus': True})
+    )

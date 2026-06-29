@@ -17,13 +17,30 @@
         <div id="open-user-dropdown" x-data="{ dropdownOpen: false }" class="relative flex flex-row grow justify-end items-center">
             {% if page == 'pdf_overview' or page == 'pdf_overview_archived' or page == 'pdf_overview_starred' %}
             {% include 'includes/pdf_overview/header_extra.html' %}
-            {% elif page == 'shared_pdf_overview' or page == 'shared_collection_overview' %}
-            {% include 'includes/shared_overview/header_extra.html' %}
-            {% elif page == 'user_overview' %}
-            {% include 'includes/user_header_extra.html' %}
             {% elif page == 'pdf_highlight_overview' or page == 'pdf_comment_overview' or page == 'pdf_details_comments' or page == 'pdf_details_highlights'%}
             {% include 'includes/pdf_annotation_overview/header_extra.html' %}
             {% endif %}
+            <button id="theme-toggle"
+                    class="cursor-pointer rounded-sm py-1 px-2 text-primary hover:bg-slate-200 dark:hover:bg-slate-800"
+                    onclick="toggleTheme()"
+                    title="Toggle theme">
+              <i class='bx bx-sun dark:hidden text-xl'></i>
+              <i class='bx bx-moon hidden dark:inline text-xl'></i>
+            </button>
+            <script>
+            function toggleTheme() {
+              var html = document.documentElement;
+              var isDark = html.classList.contains('dark');
+              html.classList.toggle('dark', !isDark);
+              html.classList.toggle('light', isDark);
+              localStorage.setItem('theme', isDark ? 'light' : 'dark');
+              fetch('{% url "profile-setting-change" "theme" %}', {
+                method: 'POST',
+                headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'dark_mode=' + (isDark ? 'Light' : 'Dark')
+              });
+            }
+            </script>
             <a id="add_pdf" class="cursor-pointer rounded-sm py-1 md:px-2 md:-ml-1! group relative
                       hover:bg-slate-200 dark:hover:bg-slate-800"
                href="{% url 'add_pdf' %}">
@@ -69,7 +86,7 @@
                         {% trans 'Settings' %}
                     </a>
                     {% if request.user.is_superuser and request.user.is_staff %}
-                    <a href="{% url 'user_overview' %}">
+                    <a href="{% url 'instance_info' %}">
                         <svg class="w-5 h-5" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <!-- source: https://www.svgrepo.com/svg/535465/key-skeleton -->
                             <!-- license: PD License-->
@@ -79,7 +96,7 @@
                     </a>
                     {% endif %}
                     <div class="my-1 border-b border-slate-300 dark:border-slate-600"></div>
-                    <a href="{% url 'account_logout' %}">
+                    <a href="{% url 'logout' %}">
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <!-- source: https://www.svgrepo.com/svg/471638/log-out-01 -->
                             <!-- license: CC0 License-->
@@ -93,9 +110,6 @@
         {% else %}
         <div class="flex flex-row items-center font-semibold gap-x-4 [&>a]:py-1 [&>a]:px-3 [&>a]:text-primary [&>a]:hover:text-secondary">
             <a href="{% url 'login' %}">Sign in</a>
-            {% if not SOCIALACCOUNT_ONLY and not SIGNUP_CLOSED %}
-            <a class="rounded-md border-1 border-primary hover:border-secondary" href="{% url 'signup' %}">Sign up</a>
-            {% endif %}
         </div>
         {% endif %}
     </div>

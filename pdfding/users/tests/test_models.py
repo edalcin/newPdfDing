@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-from allauth.mfa.models import Authenticator
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from pdf.models.collection_models import Collection
@@ -196,13 +195,6 @@ class TestProfile(TestCase):
 
         self.assertEqual('All', self.user.profile.current_collection_name)
 
-    def test_mfa_activated(self):
-        Authenticator.objects.create(user=self.user, type='totp', data={})
-
-        assert self.user.profile.mfa_activated
-
-    def test_mfa_deactivated(self):
-        assert not self.user.profile.mfa_activated
 
     def test_has_access_to_workspace(self):
         profile = self.user.profile

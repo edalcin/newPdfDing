@@ -40,8 +40,8 @@ docker run \
   -e 'DATABASE_TYPE'='SQLITE' \
   -e 'DEFAULT_THEME'='light' \
   -e 'DEFAULT_THEME_COLOR'='blue' \
-  -e 'ACCOUNT_EMAIL_VERIFICATION'='FALSE' \
-  -e 'DISABLE_USER_SIGNUP'='TRUE' \
+  -e 'ADMIN_EMAIL'='admin@example.com' \
+  -e 'ADMIN_PASSWORD'='changeme' \
   -l net.unraid.docker.managed=dockerman \
   -l net.unraid.docker.webui='https://pdfding.dalc.in' \
   -l net.unraid.docker.icon='https://web.dalc.in/infra/pdfdingIcon.png' \

@@ -109,32 +109,6 @@ class TestAddPDFMixin(TestCase):
         mock_process_with_pypdfium.assert_called_once_with(pdf)
         mock_set_highlights_and_comments.assert_called_once_with(pdf)
 
-    @mock.patch('pdf.views.pdf_views.PdfProcessingServices.set_highlights_and_comments')
-    @mock.patch('pdf.views.pdf_views.PdfProcessingServices.process_with_pypdfium')
-    @override_settings(DEMO_MODE=True)
-    def test_obj_save_demo_mode(self, mock_process_with_pypdfium, mock_set_highlights_and_comments):
-        # do a dummy request so we can get a request object
-        response = self.client.get(reverse('pdf_overview'))
-        form = forms.AddFormNoFile(
-            data={
-                'name': 'some_pdf',
-                'tag_string': 'tag_a tag_2',
-                'collection': self.user.profile.current_collection.id,
-            },
-            profile=self.user.profile,
-        )
-
-        pdf_views.AddPdfMixin.obj_save(form, response.wsgi_request, None)
-
-        pdf = self.user.profile.current_collection.pdfs.get(name='some_pdf')
-        tag_names = [tag.name for tag in pdf.tags.all()]
-        self.assertEqual(set(tag_names), {'tag_2', 'tag_a'})
-        self.assertEqual(pdf.file.size, DEMO_FILE_SIZE)
-        self.assertEqual(pdf.collection, self.user.profile.current_collection)
-
-        mock_process_with_pypdfium.assert_called_once_with(pdf)
-        mock_set_highlights_and_comments.assert_called_once_with(pdf)
-
 
 class TestBulkAddPDFMixin(TestCase):
     username = 'user'
@@ -272,33 +246,6 @@ class TestBulkAddPDFMixin(TestCase):
         # also check date the test1 and test2 are unchanged
         for i in range(2):
             self.assertEqual(old_pdfs[i], self.user.profile.current_pdfs.get(name=f'test{i + 1}'))
-
-    @mock.patch('pdf.views.pdf_views.PdfProcessingServices.set_highlights_and_comments')
-    @mock.patch('pdf.views.pdf_views.PdfProcessingServices.process_with_pypdfium')
-    @override_settings(DEMO_MODE=True)
-    def test_obj_save_demo_mode(self, mock_process_with_pypdfium, mock_set_highlights_and_comments):
-        # do a dummy request so we can get a request object
-        response = self.client.get(reverse('pdf_overview'))
-        form = forms.BulkAddFormNoFile(
-            data={
-                'tag_string': 'tag_a tag_2',
-                'description': 'description',
-                'collection': self.user.profile.current_collection.id,
-            },
-            profile=self.user.profile,
-        )
-
-        pdf_views.BulkAddPdfMixin.obj_save(form, response.wsgi_request, None)
-
-        pdf = self.user.profile.current_pdfs.get(name='demo')
-        tag_names = [tag.name for tag in pdf.tags.all()]
-        self.assertEqual(set(tag_names), {'tag_2', 'tag_a'})
-        self.assertEqual('description', 'description')
-        self.assertEqual(pdf.collection, self.user.profile.current_collection)
-        self.assertEqual(pdf.file.size, DEMO_FILE_SIZE)
-
-        mock_process_with_pypdfium.assert_called_once_with(pdf)
-        mock_set_highlights_and_comments.assert_called_once_with(pdf)
 
 
 class TestOverviewMixin(TestCase):
@@ -757,28 +704,6 @@ class TestViews(TestCase):
         self.assertEqual(pdf.revision, 1)
         self.assertEqual(pdf.file.name, original_file_name)
         self.assertTrue(original_file_path.exists())
-        mock_set_highlights_and_comments.assert_called_once_with(pdf)
-
-    @mock.patch('pdf.views.pdf_views.PdfProcessingServices.set_highlights_and_comments')
-    @override_settings(DEMO_MODE=True)
-    def test_update_pdf_post_demo_mode(self, mock_set_highlights_and_comments):
-        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf')
-
-        # assign empty file and check size
-        init_file_path = Path(__file__).parents[1] / '__init__.py'
-        with init_file_path.open(mode="rb") as f:
-            file = File(f, name='dummy')
-            pdf.file = file
-            pdf.save()
-
-        self.assertEqual(pdf.file.size, 0)
-
-        response = self.client.post(reverse('update_pdf'), data={'pdf_id': pdf.id})
-
-        pdf = Pdf.objects.get(id=pdf.id)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(pdf.file.size, DEMO_FILE_SIZE)
         mock_set_highlights_and_comments.assert_called_once_with(pdf)
 
     def test_star(self):

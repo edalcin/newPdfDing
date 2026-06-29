@@ -15,9 +15,6 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         clean_up_deleted_shared_pdfs()
 
-        if settings.DEMO_MODE:
-            clean_demo_db()
-
 
 def clean_up_deleted_shared_pdfs():
     """Delete shared PDFs with a deletion date in the past."""

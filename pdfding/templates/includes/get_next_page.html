@@ -1,37 +1,29 @@
 <div id="next_page_{{ current_page }}"
-     x-data="{ in_progress: false }"
      class="flex justify-center items-center gap-x-1 font-semibold
             text-slate-500 dark:text-slate-400
             [&>div>div]:flex [&>div>div]:flex-row [&>div>div]:items-center [&>div>div]:gap-x-1 pt-2">
     {% if next_page_available %}
-    <div id="next_page_{{ current_page }}_toggle">
-        <div class="cursor-pointer hover:text-slate-900 dark:hover:text-slate-100"
-             x-show="!in_progress"
-             @click="in_progress = true"
-             {% if page == 'pdf_details_highlights' or page == 'pdf_details_comments' %}
-             hx-get="{% url get_next_overview_page_name page=current_page|add:1 identifier=pdf.id %}?{{ request.META.QUERY_STRING }}"
-             {% else %}
-             hx-get="{% url get_next_overview_page_name page=current_page|add:1 %}?{{ request.META.QUERY_STRING }}"
-             {% endif %}
-             hx-target="#next_page_{{ current_page }}"
-             hx-swap="outerHTML">
-            <a>Load More</a>
-            <div class="-rotate-90">
-              {% include 'includes/svg/back.html' %}
-            </div>
-        </div>
-        <div  x-show="in_progress" x-cloak class="text-slate-800 dark:text-slate-200">
-           {% include 'includes/svg/spinner.html' %}
-        </div>
+    <div id="next_page_{{ current_page }}_toggle"
+         hx-on::before-request="document.getElementById('next_page_{{ current_page }}_toggle').style.display='none'; document.getElementById('next_page_{{ current_page }}_spinner').style.display='flex'"
+         {% if page == 'pdf_details_highlights' or page == 'pdf_details_comments' %}
+         hx-get="{% url get_next_overview_page_name page=current_page|add:1 identifier=pdf.id %}?{{ request.META.QUERY_STRING }}"
+         {% else %}
+         hx-get="{% url get_next_overview_page_name page=current_page|add:1 %}?{{ request.META.QUERY_STRING }}"
+         {% endif %}
+         hx-target="#next_page_{{ current_page }}"
+         hx-swap="outerHTML"
+         hx-trigger="revealed">
+    </div>
+    <div id="next_page_{{ current_page }}_spinner" style="display:none" class="text-slate-800 dark:text-slate-200">
+        {% include 'includes/svg/spinner.html' %}
     </div>
     {% endif %}
     {% if next_page_available and current_page > 1 %}
-    <span x-show="!in_progress" class="cursor-default mb-1 pl-1 pr-2">|</span>
+    <span class="cursor-default mb-1 pl-1 pr-2">|</span>
     {% endif %}
     {% if current_page > 1 %}
     <div>
-        <div x-show="!in_progress"
-             class="cursor-pointer hover:text-slate-900 dark:hover:text-slate-100"
+        <div class="cursor-pointer hover:text-slate-900 dark:hover:text-slate-100"
              @click="window.scrollTo({top: 0, behavior: 'smooth'})">
             <a>Back to Top</a>
             <div class="rotate-90">

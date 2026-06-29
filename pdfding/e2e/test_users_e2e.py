@@ -1,8 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock, patch
 
-from allauth.mfa.models import Authenticator
-from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth.models import User
 from django.test import override_settings
 from django.urls import reverse
@@ -204,35 +201,6 @@ class UsersE2ETestCase(PdfDingE2ETestCase):
                 self.page.get_by_text("Cancel").click()
                 expect(self.page.locator(name)).to_contain_text('Edit')
 
-    def test_settings_mfa_edit_visible(self):
-        with sync_playwright() as p:
-            self.open(reverse('account_settings'), p)
-            expect(self.page.locator('#edit_mfa')).to_be_visible()
-
-    def test_settings_mfa_activated(self):
-        Authenticator.objects.create(user=self.user, type='totp', data={})
-
-        with sync_playwright() as p:
-            self.open(reverse('account_settings'), p)
-            expect(self.page.locator('#mfa_activated')).to_contain_text('Activated')
-
-    def test_settings_mfa_deactivated(self):
-        with sync_playwright() as p:
-            self.open(reverse('account_settings'), p)
-            expect(self.page.locator('#mfa_activated')).to_contain_text('Deactivated')
-
-    def test_settings_social_only(self):
-        # test that email and password settings are not present for oidc users
-        social_account = SocialAccount.objects.create(user=self.user)
-        self.user.socialaccount_set.set([social_account])
-
-        with sync_playwright() as p:
-            self.open(reverse('account_settings'), p)
-
-            expect(self.page.locator('#email_edit')).to_have_count(0)
-            expect(self.page.get_by_text("Password")).to_have_count(0)
-            expect(self.page.get_by_text("Two-Factor Authentication")).to_have_count(0)
-
     def test_header_dropdown(self):
         with sync_playwright() as p:
             self.open(reverse('pdf_overview'), p)
@@ -281,41 +249,7 @@ class UsersE2ETestCase(PdfDingE2ETestCase):
 
 
 class UsersLoginE2ETestCase(PdfDingE2ENoLoginTestCase):
-    def test_login(self):
-        with sync_playwright() as p:
-            self.open(reverse('home'), p)
-            expect(self.page.get_by_role('heading')).to_contain_text('Sign In')
-            self.page.get_by_placeholder('Email address').click()
-            self.page.get_by_placeholder('Email address').fill(self.email)
-            self.page.get_by_placeholder('Email address').press('Tab')
-            self.page.get_by_placeholder('Password').fill(self.password)
-            self.page.get_by_role('button', name='Sign In', exact=True).click()
-            expect(self.page.locator('body')).to_contain_text('PDFs')
 
-            # demo mode info should not be visible
-            expect(self.page.locator("#demo_mode")).not_to_be_visible()
-
-    def test_login_header_normal(self):
-        with sync_playwright() as p:
-            self.open(reverse('home'), p)
-            # login and signup should be displayed if not in oidc only mode
-            expect(self.page.get_by_role('banner')).to_contain_text('Sign in Sign up')
-
-    @override_settings(SOCIALACCOUNT_ONLY=True)
-    def test_login_header_oidc_only(self):
-        with sync_playwright() as p:
-            self.open(reverse('home'), p)
-            expect(self.page.get_by_role('banner')).to_contain_text('Sign in')
-            # signup should not be displayed in oidc only mode
-            expect(self.page.get_by_role('banner')).not_to_contain_text('Sign up')
-
-    @override_settings(SIGNUP_CLOSED=True)
-    def test_login_header_signup_disabled(self):
-        with sync_playwright() as p:
-            self.open(reverse('home'), p)
-            expect(self.page.get_by_role('banner')).to_contain_text('Sign in')
-            # signup should not be displayed in signup_disabled mode
-            expect(self.page.get_by_role('banner')).not_to_contain_text('Sign up')
 
     @override_settings(DEFAULT_THEME='dark', DEFAULT_THEME_COLOR='Blue')
     def test_default_theme(self):
@@ -328,29 +262,3 @@ class UsersLoginE2ETestCase(PdfDingE2ENoLoginTestCase):
             expect(self.page.locator('body')).to_have_css('background-color', 'oklch(0.208 0.042 265.755)')
             expect(self.page.locator('#logo_div')).to_have_css('background-color', 'rgb(71, 147, 204)')
 
-    @patch('users.views.create_demo_user')
-    @patch('users.views.uuid4', return_value='123456789')
-    @override_settings(DEMO_MODE=True)
-    def test_login_demo_mode(self, mock_uuid4, mock_create_demo_user):
-        email = '12345678@pdfding.com'
-        mock_user = Mock()
-        mock_user.email = email
-        mock_create_demo_user.return_value = mock_user
-
-        with sync_playwright() as p:
-            self.open(reverse('home'), p)
-            expect(self.page.locator("#demo_mode")).to_be_visible()
-
-            self.page.get_by_role("button", name="Create User").click()
-            expect(self.page.locator("#demo_user")).to_contain_text("Demo user successfully created")
-            expect(self.page.locator("#demo_user")).to_contain_text(
-                f"You can log into your temporary account with: {email} / demo"
-            )
-
-
-class EditionE2ETestCase(PdfDingE2ETestCase):
-    @override_settings(DEMO_MODE=True)
-    def test_demo_mode_sidebar(self):
-        with sync_playwright() as p:
-            self.open(reverse('home'), p)
-            expect(self.page.locator("#demo_mode")).to_be_visible()

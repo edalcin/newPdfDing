@@ -1,4 +1,5 @@
 import re
+import hashlib
 import traceback
 from collections import defaultdict
 from datetime import datetime
@@ -37,6 +38,16 @@ import json
 logger = getLogger(__file__)
 
 
+def compute_file_sha256(file) -> str:
+    """Compute SHA-256 hash of a file-like object, then seek back to 0."""
+    h = hashlib.sha256()
+    file.seek(0)
+    for chunk in iter(lambda: file.read(8192), b''):
+        h.update(chunk)
+    file.seek(0)
+    return h.hexdigest()
+
+
 class PdfProcessingServices:
     @classmethod
     def create_pdf(
@@ -49,11 +60,13 @@ class PdfProcessingServices:
         tag_string: str = '',
         file_directory: str = '',
     ):
+        file_sha256 = compute_file_sha256(pdf_file)
         pdf = Pdf.objects.create(
             name=name,
             description=description,
             notes=notes,
             file=pdf_file,
+            file_sha256=file_sha256,
             file_directory=file_directory,
             collection=collection,
         )

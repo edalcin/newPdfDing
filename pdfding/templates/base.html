@@ -11,27 +11,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PdfDing</title>
     <link href="{% static 'css/tailwind.css' %}" rel="stylesheet">
+    <link href="{% static 'css/boxicons.css' %}" rel="stylesheet">
+    <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
+    <meta name="theme-color" content="#0f172a">
     <link rel="icon" type="image/x-icon" href="{% static 'images/logo_with_circle.svg' %}">
     <script>
       (function() {
+        var stored = localStorage.getItem('theme');
         {% if not request.user.is_authenticated %}
-        const theme = '{{ DEFAULT_THEME }}';
+        var theme = stored || '{{ DEFAULT_THEME }}';
         {% else %}
-        const theme = '{{ request.user.profile.dark_mode_str }}';
+        var theme = stored || '{{ request.user.profile.dark_mode_str }}';
         {% endif %}
 
         if (theme === 'system') {
-          const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-          if (isSystemDark) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.add('light');
-          }
-
-          // Listen for system theme changes
-          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
-            document.documentElement.classList.toggle('dark', event.matches);
+          var isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.classList.add(isSystemDark ? 'dark' : 'light');
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+            document.documentElement.classList.toggle('dark', e.matches);
+            document.documentElement.classList.toggle('light', !e.matches);
           });
         } else {
           document.documentElement.classList.add(theme);
@@ -53,6 +51,40 @@
         }
     </style>
     {% endif %}
+    <script>
+    function tagPicker(allTags, initialValue) {
+      return {
+        allTags: allTags || [],
+        selectedTags: initialValue ? initialValue.trim().split(/\s+/).filter(Boolean) : [],
+        inputValue: '',
+        suggestions: [],
+        filterSuggestions() {
+          var q = this.inputValue.toLowerCase();
+          if (!q) { this.suggestions = []; return; }
+          this.suggestions = this.allTags.filter(function(t) {
+            return t.toLowerCase().includes(q) && !this.selectedTags.includes(t);
+          }.bind(this));
+        },
+        addTag(tag) {
+          if (!this.selectedTags.includes(tag)) this.selectedTags.push(tag);
+          this.inputValue = '';
+          this.suggestions = [];
+        },
+        addTagFromInput() {
+          var t = this.inputValue.trim();
+          if (t) this.addTag(t);
+        },
+        removeTag(tag) {
+          this.selectedTags = this.selectedTags.filter(function(t) { return t !== tag; });
+        }
+      };
+    }
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js');
+      }
+    </script>
 </head>
 <body class="flex flex-col bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200"
       x-data="{ show_bulk_edit_menu: false }">

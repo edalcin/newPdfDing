@@ -1,7 +1,6 @@
 import pdf.views.collection_views as collection_views
 import pdf.views.pdf_bulk_action_views as pdf_bulk_action_views
 import pdf.views.pdf_views as pdf_views
-import pdf.views.share_views as share_views
 import pdf.views.workspace_views as workspace_views
 from django.urls import path
 
@@ -63,84 +62,14 @@ urlpatterns = [
     ),
     # bulk edit views
     path('bulk_actions/', pdf_bulk_action_views.BulkActions.as_view(), name='bulk_actions'),
-    # sharing related views
-    path('share/<identifier>', share_views.Share.as_view(), name='share_pdf'),
-    path('shared/overview/', share_views.Overview.as_view(), name='shared_pdf_overview'),
-    path(
-        'shared/get_next_overview_page/<int:page>/',
-        share_views.Overview.as_view(),
-        name='get_next_shared_overview_page',
-    ),
-    path('shared/overview/query/', share_views.OverviewQuery.as_view(), name='shared_pdf_overview_query'),
-    path('shared/overview/<int:page>/', share_views.Overview.as_view(), name='shared_pdf_overview_page'),
-    path('shared/delete/<identifier>', share_views.Delete.as_view(), name='delete_shared_pdf'),
-    path('shared/details/<identifier>', share_views.Details.as_view(), name='shared_pdf_details'),
-    path('shared/download/<identifier>', share_views.Download.as_view(), name='download_shared_pdf'),
-    path('shared/edit/<identifier>/<field_name>', share_views.Edit.as_view(), name='edit_shared_pdf'),
-    path('shared/get/<identifier>/<revision>', share_views.Serve.as_view(), name='serve_shared_pdf'),
-    path('shared/get_qrcode/<identifier>', share_views.ServeQrCode.as_view(), name='serve_qrcode'),
-    path('shared/download_qrcode/<identifier>', share_views.DownloadQrCode.as_view(), name='download_qrcode'),
-    path('shared/<identifier>', share_views.SharedPdfPublicView.as_view(), name='view_shared_pdf'),
     # tag related views
     path('delete_tag/', pdf_views.DeleteTag.as_view(), name='delete_tag'),
     path('edit_tag/', pdf_views.EditTag.as_view(), name='edit_tag'),
     # workspace related views
-    path('workspace/create', workspace_views.Create.as_view(), name='create_workspace'),
-    path('workspace/details', workspace_views.Details.as_view(), name='workspace_details'),
-    path('workspace/details/<identifier>', workspace_views.Details.as_view(), name='workspace_details'),
-    path('workspace/edit/<identifier>/<field_name>', workspace_views.Edit.as_view(), name='edit_workspace'),
-    path('workspace/delete/<identifier>', workspace_views.Delete.as_view(), name='delete_workspace'),
     path('', pdf_views.Overview.as_view(), name='workspace_overview'),  # needed for base views working
     path('collection/create', collection_views.Create.as_view(), name='create_collection'),
     path('collection/details/<identifier>', workspace_views.CollectionDetails.as_view(), name='collection_details'),
     path('collection/edit/<identifier>/<field_name>', collection_views.Edit.as_view(), name='edit_collection'),
     path('collection/delete/<identifier>', collection_views.Delete.as_view(), name='delete_collection'),
-    path('collection/share/<identifier>', share_views.ShareCollection.as_view(), name='share_collection'),
     path('', pdf_views.Overview.as_view(), name='collection_overview'),  # needed for base views working
-    path('shared_collection/overview', share_views.CollectionOverview.as_view(), name='shared_collection_overview'),
-    path(
-        'shared_collection/delete/<identifier>',
-        share_views.DeleteSharedCollection.as_view(),
-        name='delete_shared_collection',
-    ),
-    path(
-        'shared_collection/get_next_overview_page/<int:page>/',
-        share_views.CollectionOverview.as_view(),
-        name='get_next_shared_collection_overview_page',
-    ),
-    path(
-        'shared_collection/details/<identifier>',
-        share_views.DetailsSharedCollection.as_view(),
-        name='shared_collection_details',
-    ),
-    path(
-        'shared_collection/edit/<identifier>/<field_name>',
-        share_views.EditSharedCollection.as_view(),
-        name='edit_shared_collection',
-    ),
-    path(
-        'shared_collection/get_qrcode/<identifier>',
-        share_views.ServeSharedCollectionQrCode.as_view(),
-        name='serve_shared_collection_qrcode',
-    ),
-    path(
-        'shared_collection/download_qrcode/<identifier>',
-        share_views.DownloadSharedCollectionQrCode.as_view(),
-        name='download_shared_collection_qrcode',
-    ),
-    path(
-        'shared_collection/<identifier>',
-        share_views.SharedCollectionPublicView.as_view(),
-        name='view_shared_collection',
-    ),
-    path(
-        'shared_collection/get/<identifier>',
-        share_views.DownloadCollectionPdf.as_view(),
-        name='download_pdf_shared_collection',
-    ),
-    path(
-        'shared_collection/get/<identifier>/<revision>',
-        share_views.ServeCollectionPdf.as_view(),
-        name='serve_pdf_shared_collection',
-    ),
 ]

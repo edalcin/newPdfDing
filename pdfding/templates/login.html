@@ -1,0 +1,20 @@
+{% extends 'layouts/box.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block content %}
+<div class="flex flex-col items-center gap-y-4">
+    <div class="flex items-center justify-center bg-primary h-16 w-16 rounded-full">
+        <img class="h-12 w-12" src="{% static 'images/logo.svg' %}" alt="Logo"/>
+    </div>
+    <h1 class="text-2xl font-bold text-primary">PdfDing</h1>
+    {% if error %}
+    <div class="text-red-500 text-sm">{{ error }}</div>
+    {% endif %}
+    <form method="POST" class="flex flex-col gap-y-3 w-full">
+        {% csrf_token %}
+        {{ form.password }}
+        <button type="submit" class="btn-primary w-full py-2">{% trans 'Sign in' %}</button>
+    </form>
+</div>
+{% endblock %}

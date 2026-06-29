@@ -42,10 +42,7 @@
         </p>
         <p>
             {{ form.tag_string.errors }}
-            {{ form.tag_string }}
-            <span class="helptext" id="{{ form.tag_string.auto_id }}_helptext">
-                {{ form.tag_string.help_text|safe }}
-            </span>
+            {% include 'includes/tag_input.html' with current_value=form.tag_string.value|default:'' %}
         </p>
         <p>
             {{ form.description.errors }}

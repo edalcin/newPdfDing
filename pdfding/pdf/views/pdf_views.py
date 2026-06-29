@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 
 from base import base_views
 from core.settings import MEDIA_ROOT
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
 from django.db.models import Q, QuerySet
@@ -19,12 +18,12 @@ from pdf.models.pdf_models import Pdf, PdfComment, PdfHighlight
 from pdf.models.tag_models import Tag
 from pdf.services import pdf_services
 from pdf.services.collection_services import change_collection_of_pdf
-from pdf.services.pdf_services import PdfProcessingServices
+from pdf.services.pdf_services import PdfProcessingServices, compute_file_sha256
 from pdf.services.tag_services import TagServices
-from pdf.services.workspace_services import check_if_collection_part_of_workspace, get_pdfs_of_workspace
+from pdf.services.workspace_services import check_if_collection_part_of_workspace, check_if_pdf_with_hash_exists, get_pdfs_of_workspace
 from rapidfuzz import fuzz, utils
 from users.models import Profile
-from users.service import get_demo_pdf, get_viewer_theme_and_color
+from users.service import get_viewer_theme_and_color
 
 
 class BasePdfMixin:
@@ -34,10 +33,7 @@ class BasePdfMixin:
 class AddPdfMixin(BasePdfMixin):
     def __init__(self):
         self.template_name = 'add_pdf.html'
-        if settings.DEMO_MODE:  # pragma: no cover
-            self.form = forms.AddFormNoFile
-        else:
-            self.form = forms.AddForm
+        self.form = forms.AddForm
 
     def get_context_get(self, request: HttpRequest, _):
         """Get the context needed to be passed to the template containing the form for adding a PDF."""
@@ -58,10 +54,7 @@ class AddPdfMixin(BasePdfMixin):
         collection_id = form.data.get('collection')
         collection = Collection.objects.get(id=collection_id)
 
-        if settings.DEMO_MODE:
-            pdf_file = get_demo_pdf()
-        else:
-            pdf_file = form.files['file']
+        pdf_file = form.files['file']
 
         if form.data.get('use_file_name'):
             name = pdf_services.create_unique_name_from_file(pdf_file, collection.workspace)
@@ -80,10 +73,7 @@ class AddPdfMixin(BasePdfMixin):
 class BulkAddPdfMixin(BasePdfMixin):
     def __init__(self):
         self.template_name = 'bulk_add_pdf.html'
-        if settings.DEMO_MODE:  # pragma: no cover
-            self.form = forms.BulkAddFormNoFile
-        else:
-            self.form = forms.BulkAddForm
+        self.form = forms.BulkAddForm
 
     def get_context_get(self, request: HttpRequest, _):
         """Get the context needed to be passed to the template containing the form for bulk adding PDFs."""
@@ -94,9 +84,8 @@ class BulkAddPdfMixin(BasePdfMixin):
         return context
 
     @staticmethod
-    def obj_save(form: forms.BulkAddForm | forms.BulkAddFormNoFile, request: HttpRequest, __):
-        """Save the multiple PDFs based on the submitted form."""
-
+    def obj_save(form, request, __):
+        """Save multiple PDFs, skipping duplicates by sha256 content hash."""
         description = form.data.get('description', '')
         notes = form.data.get('notes', '')
         tag_string = form.data.get('tag_string', '')
@@ -110,28 +99,43 @@ class BulkAddPdfMixin(BasePdfMixin):
         else:
             pdf_info_list = []
 
-        if settings.DEMO_MODE:
-            files = [get_demo_pdf()]
-        else:
-            files = form.files.getlist('file')
+        files = form.files.getlist('file')
+
+        skipped_names = []
+        seen_hashes = set()
 
         for file in files:
-            # add file unless skipping existing is set and a PDF with the same name and file size already exists
-            if not (
-                form.data.get('skip_existing')
-                and (pdf_services.create_name_from_file(file), file.size) in pdf_info_list
-            ):
-                pdf_name = pdf_services.create_unique_name_from_file(file, workspace)
+            # name+size pre-filter (existing behaviour)
+            if form.data.get('skip_existing') and (pdf_services.create_name_from_file(file), file.size) in pdf_info_list:
+                skipped_names.append(file.name)
+                continue
 
-                PdfProcessingServices.create_pdf(
-                    name=pdf_name,
-                    collection=collection,
-                    pdf_file=file,
-                    description=description,
-                    notes=notes,
-                    file_directory=file_directory,
-                    tag_string=tag_string,
-                )
+            # content-hash dedup (always active)
+            sha256 = compute_file_sha256(file)
+            if sha256 in seen_hashes or check_if_pdf_with_hash_exists(sha256, workspace):
+                skipped_names.append(file.name)
+                continue
+            seen_hashes.add(sha256)
+
+            pdf_name = pdf_services.create_unique_name_from_file(file, workspace)
+            PdfProcessingServices.create_pdf(
+                name=pdf_name,
+                collection=collection,
+                pdf_file=file,
+                description=description,
+                notes=notes,
+                file_directory=file_directory,
+                tag_string=tag_string,
+            )
+
+        if skipped_names:
+            messages.warning(
+                request,
+                _('Skipped %(n)d duplicate PDF(s): %(names)s') % {
+                    'n': len(skipped_names),
+                    'names': ', '.join(skipped_names),
+                }
+            )
 
 
 class OverviewMixin(BasePdfMixin):
@@ -568,10 +572,7 @@ class UpdatePdf(PdfMixin, View):
         pdf_id = request.POST.get('pdf_id')
         pdf = self.get_object(request, pdf_id)
 
-        if settings.DEMO_MODE:
-            updated_pdf = get_demo_pdf()
-        else:
-            updated_pdf = request.FILES.get('updated_pdf')
+        updated_pdf = request.FILES.get('updated_pdf')
         try:
             old_file_name = pdf.file.name
             old_file_path = MEDIA_ROOT / old_file_name

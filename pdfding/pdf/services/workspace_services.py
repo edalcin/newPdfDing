@@ -94,3 +94,9 @@ def get_shared_pdfs_of_workspace(workspace: Workspace) -> QuerySet[SharedPdf]:
     pdfs = get_pdfs_of_workspace(workspace)
 
     return SharedPdf.objects.filter(pdf__in=pdfs)
+
+def check_if_pdf_with_hash_exists(sha256: str, workspace: Workspace) -> 'Pdf | None':
+    """Return an existing Pdf in the workspace with the given sha256 hash, or None."""
+    if not sha256:
+        return None
+    return get_pdfs_of_workspace(workspace).filter(file_sha256=sha256).first()

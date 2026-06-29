@@ -1,7 +1,7 @@
 {% load i18n %}
 <form action="{{ action_url }}"
       method="post"
-      {% if field_name != "description" and field_name != "notes" %}
+      {% if field_name != "description" and field_name != "notes" and field_name != "tags" %}
       class="flex gap-2 text-black dark:text-slate-200 h-8 w-11/12 my-1 ml-1
              [&>select]:bg-white dark:[&>select]:bg-slate-700
              [&>input]:bg-slate-200! dark:[&>input]:bg-slate-700!"
@@ -10,7 +10,11 @@
       {% endif %}
       autocomplete="off">
     {% csrf_token %}
+    {% if field_name == 'tags' %}
+    {% include 'includes/tag_input.html' with current_value=form.tag_string.value|default:'' %}
+    {% else %}
     {% for field in form %}{{ field }}{% endfor %}
+    {% endif %}
     <button class="flex! items-center justify-center h-8 w-18" type="submit">{% trans 'Submit' %}</button>
 </form>
 
