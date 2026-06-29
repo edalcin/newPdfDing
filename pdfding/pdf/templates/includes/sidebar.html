@@ -1,0 +1,112 @@
+{% extends 'layouts/base_sidebar.html' %}
+{% load i18n %}
+{% block sidebar_content %}
+<div class="flex flex-row md:flex-col w-full md:pb-3 gap-2 md:border-b border-slate-300 dark:border-slate-600">
+  {% include 'partials/workspace_dropdown.html' with page='overview' %}
+  {% if current_collection_id %}
+  {% include 'partials/collection_dropdown.html' %}
+  {% endif %}
+</div>
+<div class="pt-2 mt-1 ">
+  <div class="flex flex-row w-full justify-between! md:flex-col gap-y-1
+              [&>*]:font-semibold [&>div]:px-3 md:[&>div]:px-2 [&>div]:py-2 md:[&>div]:py-1 [&>div]:rounded-md
+              [&>div>a]:flex [&>div>a]:flex-row [&>div>a]:items-center [&>div>a]:gap-x-2
+              [&>div]:hover:bg-slate-200 dark:[&>div]:hover:bg-slate-700">
+      <div {% if page == 'pdf_overview' %} class="bg-slate-200 md:bg-slate-100 dark:bg-slate-800" {% endif %}>
+          <a href="{% url 'pdf_overview' %}">
+              {% include 'includes/svg/document.html' %}
+              <span class="hidden md:block">{% translate 'PDFs' %}</span>
+          </a>
+      </div>
+      <div>
+          <a href="{% url 'shared_pdf_overview' %}">
+              {% include 'includes/svg/share.html' %}
+              <span class="hidden md:block">{% translate 'Shared' %}</span>
+          </a>
+      </div>
+      <div {% if page == 'pdf_overview_starred' %} class="bg-slate-200 md:bg-slate-100 dark:bg-slate-800" {% endif %}>
+          <a href="{% url 'pdf_overview_query' %}?selection=starred">
+              {% include 'includes/svg/star.html' %}
+              <span class="hidden md:block">{% translate 'Starred' %}</span>
+          </a>
+      </div>
+      <div>
+          <a href="{% url 'pdf_highlight_overview' %}">
+              {% include 'includes/svg/annotation.html' %}
+              <span class="hidden md:block">{% translate 'Annotations' %}</span>
+          </a>
+      </div>
+      <div {% if page == 'pdf_overview_archived' %} class="bg-slate-200 md:bg-slate-100 dark:bg-slate-800" {% endif %}>
+          <a href="{% url 'pdf_overview_query' %}?selection=archived">
+              {% include 'includes/svg/archive.html' %}
+              <span class="hidden md:block">{% translate 'Archive' %}</span>
+          </a>
+      </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block sidebar_extra_content %}
+{% if page == 'pdf_overview' or page == 'pdf_overview_starred' or page == 'pdf_overview_archived' %}
+<div class="hidden md:block md:flex md:flex-row items-center pt-4 mt-3
+            border-t border-slate-300 dark:border-slate-600 gap-x-2 pb-2 pl-2 font-semibold">
+    <div class="flex flex-row items-center justify-between! w-full">
+        <div class="flex flex-row items-center gap-x-1">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- source: https://www.svgrepo.com/svg/471962/tag-01 -->
+                <!-- license: CC0 License-->
+                <path d="M8 8H8.01M2 5.2L2 9.67451C2 10.1637 2 10.4083 2.05526 10.6385C2.10425 10.8425 2.18506 11.0376 2.29472 11.2166C2.4184 11.4184 2.59135 11.5914 2.93726 11.9373L10.6059 19.6059C11.7939 20.7939 12.388 21.388 13.0729 21.6105C13.6755 21.8063 14.3245 21.8063 14.927 21.6105C15.612 21.388 16.2061 20.7939 17.3941 19.6059L19.6059 17.3941C20.7939 16.2061 21.388 15.612 21.6105 14.927C21.8063 14.3245 21.8063 13.6755 21.6105 13.0729C21.388 12.388 20.7939 11.7939 19.6059 10.6059L11.9373 2.93726C11.5914 2.59135 11.4184 2.4184 11.2166 2.29472C11.0376 2.18506 10.8425 2.10425 10.6385 2.05526C10.4083 2 10.1637 2 9.67452 2L5.2 2C4.0799 2 3.51984 2 3.09202 2.21799C2.7157 2.40973 2.40973 2.71569 2.21799 3.09202C2 3.51984 2 4.07989 2 5.2ZM8.5 8C8.5 8.27614 8.27614 8.5 8 8.5C7.72386 8.5 7.5 8.27614 7.5 8C7.5 7.72386 7.72386 7.5 8 7.5C8.27614 7.5 8.5 7.72386 8.5 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Tags</span>
+            <div x-data="{ show_tag_mode_settings: false }" class="relative">
+                <svg id="show_tag_mode_settings" @click="show_tag_mode_settings = !show_tag_mode_settings"
+                      xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="w-[16px] h-[16px] cursor-pointer text-slate-500! hover:text-black!
+                            dark:text-slate-300 dark:hover:text-white!">
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                </svg>
+
+                <div id="tag_mode_settings" x-show="show_tag_mode_settings" x-cloak
+                      @click.away="show_tag_mode_settings = false"
+                      @keyup.escape.window="show_tag_mode_settings = false"
+                      class="flex flex-row items-center z-20 w-35 top-5 py-1 px-2  absolute rounded-sm border gap-x-2
+                            bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700">
+                  <span class="font-semibold">{% translate 'Tree Mode' %}</span>
+
+                    <div id="tag_mode_toggle"
+                          class="flex items-center cursor-pointer w-8 h-4 rounded-full
+                                bg-slate-300 dark:bg-slate-600"
+                          hx-post="{% url 'change_tree_mode' %}"
+                          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                        {% if request.user.profile.tag_tree_mode %}
+                        <div class="h-3 w-3 rounded-full bg-primary ml-4"></div>
+                        {% else %}
+                        <div class="h-3 w-3 rounded-full bg-slate-400 ml-1"></div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <svg id="tags_open_collapse_toggle"
+              hx-post="{% url 'open_collapse_tags' %}"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="w-5 h-5 mr-2 cursor-pointer text-slate-500! hover:text-black!
+                    dark:text-slate-300 dark:hover:text-white!
+                    {% if request.user.profile.tags_open %} rotate-90 {% endif %}">
+            <path d="m9 18 6-6-6-6"></path>
+        </svg>
+    </div>
+</div>
+{% if request.user.profile.tags_open %}
+<div class="hidden md:block pl-3 overflow-auto flex-grow
+            [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-gray-500 [&::-webkit-scrollbar-thumb]:bg-primary">
+    {% include 'includes/tags.html' %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

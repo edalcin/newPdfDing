@@ -1,0 +1,243 @@
+import importlib
+from pathlib import Path
+from unittest.mock import patch
+
+from django.apps import apps
+from django.contrib.auth.models import User
+from django.core.files import File
+from django.db import connection
+from django.db.models.functions import Lower
+from django.test import TestCase
+from pdf.models.pdf_models import Pdf
+from pdf.models.shared_models import SharedPdf
+from pdf.models.tag_models import Tag
+from pdf.models.workspace_models import Workspace
+from pdf.services.pdf_services import PdfProcessingServices
+from pdf.services.workspace_services import create_workspace
+from users.service import get_demo_pdf
+
+from pdfding.core.settings.base import MEDIA_ROOT
+
+add_number_of_pdf_pages = importlib.import_module('pdf.migrations.0009_readd_number_of_pages_with_new_default')
+add_pdf_previews = importlib.import_module('pdf.migrations.0013_add_pdf_previews')
+add_comments_highlights = importlib.import_module('pdf.migrations.0015_add_comments_highlights')
+rename_pdfs_and_add_file_directory = importlib.import_module('pdf.migrations.0016_rename_pdfs_and_add_file_directory')
+fill_collections_workspaces = importlib.import_module('pdf.migrations.0020_fill_collections_workspaces')
+adjust_file_paths_to_ws_collection = importlib.import_module('pdf.migrations.0022_adjust_pdf_paths_to_ws_collection')
+
+
+class TestMigrations(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='test_user', password='12345')
+        self.pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_1')
+
+    @patch('pdf.services.pdf_services.PdfProcessingServices.set_thumbnail_and_preview')
+    def test_fill_number_of_pages(self, mock_set_thumbnail_and_preview):
+        # as I cannot mock the migration file since it has an illegal name and applying the migration
+        # in the test did not work either I am using a dummy pdf file -.-. The dummy file has two pages.
+
+        self.assertEqual(self.pdf.number_of_pages, -1)
+
+        dummy_path = Path(__file__).parent / 'data' / 'dummy.pdf'
+        with dummy_path.open(mode="rb") as f:
+            self.pdf.file = File(f, name=dummy_path.name)
+            self.pdf.save()
+
+        add_number_of_pdf_pages.fill_number_of_pages(apps, connection.schema_editor())
+
+        pdf = Pdf.objects.get(id=self.pdf.id)
+        self.assertEqual(pdf.number_of_pages, 2)
+        # thumbnail cannot be called, otherwise the migration will fail
+        mock_set_thumbnail_and_preview.assert_not_called()
+
+    def test_fill_number_of_pages_exception_caught(self):
+        self.assertEqual(self.pdf.number_of_pages, -1)
+        add_number_of_pdf_pages.fill_number_of_pages(apps, connection.schema_editor())
+
+    def test_fill_thumbnails_and_previews(self):
+        # as I cannot mock the migration file since it has an illegal name and applying the migration
+        # in the test did not work either I am using a dummy pdf file -.-. The dummy file has two pages.
+
+        self.assertEqual(self.pdf.number_of_pages, -1)
+        self.assertFalse(self.pdf.thumbnail)
+        self.assertFalse(self.pdf.preview)
+
+        dummy_path = Path(__file__).parent / 'data' / 'dummy.pdf'
+        with dummy_path.open(mode="rb") as f:
+            self.pdf.file = File(f, name=dummy_path.name)
+            self.pdf.save()
+
+        add_pdf_previews.fill_thumbnails_and_previews(apps, connection.schema_editor())
+
+        pdf = Pdf.objects.get(id=self.pdf.id)
+        self.assertEqual(pdf.number_of_pages, 2)
+        self.assertTrue(pdf.thumbnail)
+        self.assertTrue(pdf.preview)
+
+    def test_fill_thumbnails_and_previews_exception_caught(self):
+        self.assertEqual(self.pdf.number_of_pages, -1)
+        add_pdf_previews.fill_thumbnails_and_previews(apps, connection.schema_editor())
+
+    def test_set_highlights_and_comments(self):
+        self.assertFalse(self.pdf.pdfcomment_set.count())
+        self.assertFalse(self.pdf.pdfhighlight_set.count())
+
+        self.pdf.file = get_demo_pdf()
+        self.pdf.save()
+
+        add_comments_highlights.set_highlights_and_comments(apps, connection.schema_editor())
+
+        pdf = Pdf.objects.get(id=self.pdf.id)
+        self.assertTrue(pdf.pdfcomment_set.count())
+        self.assertTrue(pdf.pdfhighlight_set.count())
+
+    def test_set_highlights_and_comments_exception_caught(self):
+        self.pdf.file = get_demo_pdf()
+        self.pdf.save()
+
+        self.assertFalse(self.pdf.pdfcomment_set.count())
+        self.assertFalse(self.pdf.pdfhighlight_set.count())
+        add_comments_highlights.set_highlights_and_comments(apps, connection.schema_editor())
+
+    def test_rename_pdfs(self):
+        # because of the 00xx in the migration file name mocking does not work as expected
+        def new_rename_pdf(input_pdf: Pdf):
+            input_pdf.file = f'{input_pdf.name}_renamed'
+            input_pdf.save()
+
+        orignal_process_renaming_pdf = rename_pdfs_and_add_file_directory.PdfProcessingServices.process_renaming_pdf
+        rename_pdfs_and_add_file_directory.PdfProcessingServices.process_renaming_pdf = new_rename_pdf
+
+        for i in range(3):
+            Pdf.objects.create(
+                collection=self.user.profile.current_collection, name=f'rename_{i}', file=f'old_name_{i}'
+            )
+
+        rename_pdfs_and_add_file_directory.update_pdf_file_names(apps, connection.schema_editor())
+
+        for pdf in Pdf.objects.filter(name__icontains='rename'):
+            self.assertEqual(f'{pdf.name}_renamed', pdf.file.name)
+
+        # undo monkey patching
+        rename_pdfs_and_add_file_directory.PdfProcessingServices.process_renaming_pdf = orignal_process_renaming_pdf
+
+    def test_fill_collections_workspaces(self):
+        # we need to delete the default user
+        self.user.delete()
+
+        user = User.objects.create_user(username='bla', password='12345')
+
+        # we need to delete the personal workspace in order to test the migration
+        personal_workspace = user.profile.workspaces[0]
+        personal_workspace.delete()
+
+        # create a workspace so we can create pdfs and see if the collection will change with the migration
+        created_workspace = create_workspace('dummy', user)
+        collection = created_workspace.collections[0]
+        user.profile.current_workspace_id = created_workspace.id
+        user.profile.current_collection_id = collection.id
+        user.profile.save()
+
+        changed_user = User.objects.get(id=user.id)
+
+        # assert that setup is correct
+        self.assertEqual(changed_user.profile.collections.count(), 1)
+        self.assertEqual(changed_user.profile.workspaces.count(), 1)
+        self.assertEqual(changed_user.profile.current_workspace_id, created_workspace.id)
+        self.assertEqual(changed_user.profile.current_collection_id, collection.id)
+
+        # need to set the descripton to the profile id so we can filter by it
+        # same for tag
+        pdf = Pdf.objects.create(name='test', collection=collection, description=user.profile.id)
+        tag = Tag.objects.create(name=user.profile.id, workspace=created_workspace)
+
+        fill_collections_workspaces.fill_data(
+            apps, connection.schema_editor(), filter_pdfs_by='description', filter_tags_by='name'
+        )
+
+        changed_user = User.objects.get(id=user.id)
+        changed_pdf = Pdf.objects.get(id=pdf.id)
+        changed_tag = Tag.objects.get(id=tag.id)
+        profile = changed_user.profile
+        workspace = Workspace.objects.get(id=profile.id)
+
+        self.assertEqual(profile.current_collection_id, str(profile.user.id))
+        self.assertEqual(profile.current_workspace_id, str(profile.user.id))
+        self.assertEqual(profile.workspaces.count(), 2)
+        self.assertEqual(profile.collections.count(), 1)
+        for ws, expected_name in zip(profile.workspaces.order_by(Lower('name')), ['dummy', 'Personal']):
+            self.assertEqual(ws.name, expected_name)
+        self.assertEqual(workspace.personal_workspace, True)
+        self.assertEqual(workspace.id, str(profile.id))
+        self.assertEqual(profile.collections[0].id, str(profile.id))
+        self.assertEqual(profile.collections[0].name, 'Default')
+        self.assertEqual(profile.collections[0].default_collection, True)
+        self.assertEqual(workspace.users.count(), 1)
+        self.assertEqual(workspace.owners[0], changed_user)
+        self.assertEqual(changed_pdf.collection, profile.collections[0])
+        self.assertEqual(changed_tag.workspace, workspace)
+
+    @patch('pdf.models.shared_models.get_collection_dir')
+    @patch('pdf.models.pdf_models.get_collection_dir')
+    def test_adjust_file_paths_to_ws_collection(self, mock_get_parent_dirs, mock_shared_get_parent_dirs):
+        self.pdf.delete()  # we need to delete the pdf created by setUp
+        user = User.objects.create_user(username='user', password='12345')
+        # create an other user without PDFs to verify that non existing user media directories do not
+        # cause any problems
+        User.objects.create_user(username='user_without_pdfs', password='12345')
+
+        mock_get_parent_dirs.return_value = str(user.id)
+        mock_shared_get_parent_dirs.return_value = str(user.id)
+
+        pdf = PdfProcessingServices.create_pdf(
+            name='banana', collection=user.profile.current_collection, pdf_file=get_demo_pdf()
+        )
+        # we need some dummy file for the qr code
+        shared_pdf = SharedPdf.objects.create(name='shared', pdf=pdf, file=get_demo_pdf())
+
+        pdf_relative_path = f'{user.id}/pdf/{pdf.name}.pdf'
+        preview_relative_path = f'{user.id}/previews/{pdf.id}.png'
+        thumbnail_relative_path = f'{user.id}/thumbnails/{pdf.id}.png'
+        shared_pdf_relative_path = f'{user.id}/qr/{shared_pdf.id}.svg'
+        relative_paths_old = [
+            pdf_relative_path,
+            preview_relative_path,
+            thumbnail_relative_path,
+            shared_pdf_relative_path,
+        ]
+
+        moved_pdf_relative_path = f'{user.id}/default/pdf/{pdf.name}.pdf'
+        moved_preview_relative_path = f'{user.id}/default/previews/{pdf.id}.png'
+        moved_thumbnail_relative_path = f'{user.id}/default/thumbnails/{pdf.id}.png'
+        moved_shared_pdf_relative_path = f'{user.id}/default/qr/{shared_pdf.id}.svg'
+        relative_paths_moved = [
+            moved_pdf_relative_path,
+            moved_preview_relative_path,
+            moved_thumbnail_relative_path,
+            moved_shared_pdf_relative_path,
+        ]
+
+        self.assertEqual(pdf.file.name, pdf_relative_path)
+        self.assertEqual(pdf.preview.name, preview_relative_path)
+        self.assertEqual(pdf.thumbnail.name, thumbnail_relative_path)
+        self.assertEqual(shared_pdf.file.name, shared_pdf_relative_path)
+
+        for relative_path_old, relative_path_moved in zip(relative_paths_old, relative_paths_moved):
+            self.assertTrue((MEDIA_ROOT / relative_path_old).exists())
+            self.assertFalse((MEDIA_ROOT / relative_path_moved).exists())
+
+        adjust_file_paths_to_ws_collection.adjust_file_paths(apps, connection.schema_editor())
+
+        # refresh the objects so we do have the changes
+        pdf = Pdf.objects.get(id=pdf.id)
+        shared_pdf = SharedPdf.objects.get(id=shared_pdf.id)
+
+        self.assertEqual(pdf.file.name, moved_pdf_relative_path)
+        self.assertEqual(pdf.preview.name, moved_preview_relative_path)
+        self.assertEqual(pdf.thumbnail.name, moved_thumbnail_relative_path)
+        self.assertEqual(shared_pdf.file.name, moved_shared_pdf_relative_path)
+
+        for relative_path_old, relative_path_moved in zip(relative_paths_old, relative_paths_moved):
+            self.assertFalse((MEDIA_ROOT / relative_path_old).exists())
+            self.assertTrue((MEDIA_ROOT / relative_path_moved).exists())
+            (MEDIA_ROOT / relative_path_moved).unlink()

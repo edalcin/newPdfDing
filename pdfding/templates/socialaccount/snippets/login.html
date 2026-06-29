@@ -1,0 +1,57 @@
+{% load i18n %}
+{% load allauth %}
+{% load socialaccount %}
+{% get_providers as socialaccount_providers %}
+{% if not 'accountsignup' in request.path %}
+    {% if socialaccount_providers %}
+        {% if not SOCIALACCOUNT_ONLY %}
+            <div class="relative flex py-5 items-center">
+            <div class="grow border-t border-gray-400"></div>
+            <span class="shrink mx-4 text-gray-400">or</span>
+            <div class="grow border-t border-gray-400"></div>
+        </div>
+        {% endif %}
+
+        {% provider_login_url socialaccount_providers.0 process="login" scope=scope auth_params=auth_params as href %}
+        <form action="{{ href }}" method="post">
+          {% csrf_token %}
+          <button type="submit">SIGN IN VIA {{ socialaccount_providers.0.name }}</button>
+        </form>
+
+    {% endif %}
+{% endif %}
+
+{% if DEMO_MODE %}
+{% with '12345'|make_list as int_list %}
+<div id="demo_mode" class="mt-6 pt-4 pb-6 border-t border-gray-400">
+    <h2>Demo Mode</h2>
+    <div>
+        <span class="text-sm">The demo mode has a couple of <span class="font-bold">restrictions</span>:</span>
+    </div>
+    <ul class="list-disc pl-5 pt-1 text-sm">
+      <li>The demo instance is reset at least once every day, so any changes you make will be lost.</li>
+      <li>File uploads are not allowed when adding a new PDF. Instead, a dummy PDF will be used.</li>
+      <li>PDFs are read-only. So any changes in the viewer's editor won't be saved.</li>
+      <li>Don't enter private information. Assume all data can be read by other users.</li>
+    </ul>
+</div>
+<div id="demo_user" class="pt-2" x-data="{ in_progress: false }">
+    <button x-show="!in_progress"
+            @click="in_progress = true"
+            hx-post="{% url 'create_demo_user' %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-target="#demo_user"
+            hx-swap="innerHTML">
+        Create User
+    </button>
+    <button class="-pt-4" x-show="in_progress" x-cloak type="button" disabled>
+      <div class="flex justify-center">
+          <div class=text-white>
+              {% include 'includes/svg/spinner.html' %}
+          </div>
+          <span>Processing</span>
+      </div
+    </button>
+</div>
+{% endwith %}
+{% endif %}

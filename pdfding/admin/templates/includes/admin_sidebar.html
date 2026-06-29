@@ -1,0 +1,32 @@
+{% extends 'layouts/base_sidebar.html' %}
+{% load i18n %}
+{% block sidebar_content %}
+<div class="flex flex-row w-full justify-between! md:flex-col gap-y-1
+            [&>*]:font-semibold [&>div]:px-3 md:[&>div]:px-2 [&>div]:py-2 md:[&>div]:py-1 [&>div]:rounded-md
+            [&>div>a]:flex [&>div>a]:flex-row [&>div>a]:items-center [&>div>a]:gap-x-2
+            [&>div]:hover:bg-slate-200 dark:[&>div]:hover:bg-slate-700">
+    <div>
+        <a href="{% url 'pdf_overview' %}">
+            {% include 'includes/svg/back.html' %}
+            <span class="hidden md:block">{% trans 'Back to App' %}</span>
+        </a>
+    </div>
+    <div {% if page == 'user_overview' %} class="bg-slate-200 md:bg-slate-100 dark:bg-slate-800" {% endif %}>
+        <a href="{% url 'user_overview' %}">
+            {% include 'includes/svg/user.html' %}
+            <span class="hidden md:block">{% trans 'Users' %}</span>
+        </a>
+    </div>
+    <div {% if page == 'instance_info' %} class="bg-slate-200 md:bg-slate-100 dark:bg-slate-800" {% endif %}>
+        <a href="{% url 'instance_info' %}">
+            <svg fill="currentColor" class="w-5 h-5" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                <!-- source: https://www.svgrepo.com/svg/66446/stats -->
+                <!-- license: CC0 License-->
+                <path d="m80.1,405.6c3.5,2.4 17,9.1 28.4-5.3l77.2-112.8 81.7,78.8c4.3,4.1 10.2,6.3 16.2,5.6 5.9-0.6 11.3-3.7 14.8-8.6l135.5-194.3 4.9,65c1.2,16.5 16.7,19.2 21.9,18.8 11.2-0.9 19.7-10.6 18.8-21.9l-8.6-114.3c-0.8-11.2-10.6-19.7-21.9-18.8l-114.3,8.6c-11.2,0.8-19.7,10.6-18.8,21.9 0.8,11.2 10.5,19.6 21.9,18.8l65-4.9-124.2,178-81.9-79c-4.3-4.2-10.3-6.3-16.2-5.6-6,0.6-11.4,3.8-14.8,8.8l-90.9,132.8c-6.4,9.3-4,22 5.3,28.4z"/>
+                <path d="M480.6,460.2H51.8V31.4c0-11.3-9.1-20.4-20.4-20.4S11,20.1,11,31.4v449.2c0,11.3,9.1,20.4,20.4,20.4h449.2    c11.3,0,20.4-9.1,20.4-20.4C501,469.3,491.9,460.2,480.6,460.2z"/>
+            </svg>
+            <span class="hidden md:block">{% trans 'Information' %}</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

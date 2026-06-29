@@ -1,0 +1,99 @@
+from datetime import datetime, timedelta, timezone
+
+from core.settings import MEDIA_ROOT
+from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase
+from pdf.models.pdf_models import Pdf
+from pdf.models.shared_models import SharedCollection, SharedPdf, get_collection_qr_code_path, get_qrcode_file_path
+
+
+class TestSharedBased(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='username', password='password')
+        self.pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf')
+
+    def test_delete(self):
+        # the file name (path) is set automatically, the name in simpleupload is just a dummy
+        shared_pdf = SharedPdf.objects.create(pdf=self.pdf, name='share', max_views=5)
+        shared_pdf.file = SimpleUploadedFile('qr.png', b'these are the file contents!')
+        shared_pdf.save()
+
+        file_path = MEDIA_ROOT / shared_pdf.file.name
+        file_path.touch(exist_ok=True)
+
+        shared_pdf.delete()
+
+        self.assertFalse(SharedPdf.objects.filter(id=shared_pdf.id))
+        assert not file_path.exists()
+
+    def test_deleted(self):
+        for minutes, exptected_result in [(5, False), (-5, True)]:
+            deletion_date = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+
+            shared_pdf = SharedPdf.objects.create(pdf=self.pdf, name='share', deletion_date=deletion_date)
+
+            self.assertEqual(shared_pdf.deleted, exptected_result)
+
+    def test_get_natural_time_future_never(self):
+        shared_pdf = SharedPdf.objects.create(pdf=self.pdf, name='share')
+        time_string = shared_pdf.get_natural_time_future(shared_pdf.deletion_date, 'deletes', 'deleted')
+
+        self.assertEqual(time_string, 'deletes never')
+
+    def test_get_natural_time_future_in(self):
+        deletion_date = datetime.now(timezone.utc) + timedelta(days=3, hours=2)
+
+        shared_pdf = SharedPdf.objects.create(pdf=self.pdf, name='share', deletion_date=deletion_date)
+        time_string = shared_pdf.get_natural_time_future(shared_pdf.deletion_date, 'deletes', 'deleted')
+
+        self.assertEqual(time_string, 'deletes in 3 days')
+
+    def test_get_natural_time_future_past(self):
+        deletion_date = datetime.now(timezone.utc) - timedelta(days=3, hours=2)
+
+        shared_pdf = SharedPdf.objects.create(pdf=self.pdf, name='share', deletion_date=deletion_date)
+        time_string = shared_pdf.get_natural_time_future(shared_pdf.deletion_date, 'deletes', 'deleted')
+
+        self.assertEqual(time_string, 'deleted')
+
+
+class TestSharedPdf(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='username', password='password')
+        self.pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf')
+
+    def test_not_inactive(self):
+        shared_pdf = SharedPdf.objects.create(pdf=self.pdf, name='share', max_views=4, views=2)
+
+        self.assertFalse(shared_pdf.inactive)
+
+    def test_inactive_views(self):
+        shared_pdf = SharedPdf.objects.create(pdf=self.pdf, name='share', max_views=2, views=4)
+
+        self.assertTrue(shared_pdf.inactive)
+
+    def test_views_string(self):
+        shared_pdf = SharedPdf.objects.create(pdf=self.pdf, name='share', max_views=4, views=2)
+        self.assertEqual(shared_pdf.views_string, '2/4 Views')
+
+        shared_pdf = SharedPdf.objects.create(pdf=self.pdf, name='share', views=2)
+        self.assertEqual(shared_pdf.views_string, '2 Views')
+
+
+class TestOther(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='username', password='password')
+
+    def test_get_qrcode_file_path(self):
+        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf')
+        shared_pdf = SharedPdf.objects.create(pdf=pdf, name='share')
+        generated_filepath = get_qrcode_file_path(shared_pdf, '')
+
+        self.assertEqual(generated_filepath, f'{self.user.id}/default/qr/{shared_pdf.id}.svg')
+
+    def test_get_collection_qr_code_path(self):
+        shared_collection = SharedCollection(collection=self.user.profile.current_collection, name='shared_collection')
+        generated_filepath = get_collection_qr_code_path(shared_collection, '')
+
+        self.assertEqual(generated_filepath, f'{self.user.id}/shared_collections_qr/{shared_collection.id}.svg')

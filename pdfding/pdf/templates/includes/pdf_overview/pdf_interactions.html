@@ -1,0 +1,37 @@
+<div class="flex flex-row -mr-2! md:mr-0! md:gap-x-2 items-center [&>a]:cursor-pointer
+            [&>a]:hover:text-slate-800 [&>a]:dark:hover:text-slate-200">
+    {% if pdf.notes %}
+    <a id="show-notes-{{ loop_id }}"
+       @click="show_notes_{{ loop_id }} = !show_notes_{{ loop_id }}"
+       hx-get="{% url 'get_notes' identifier=pdf.id %}"
+       hx-target="#notes-{{ loop_id }}"
+       hx-swap="innerHTML" >
+        <svg class="w-5 h-5 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- source: https://www.svgrepo.com/svg/489063/note-01 -->
+            <!-- license: PD License-->
+            <path d="M13 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V9M13 3L19 9M13 3V8C13 8.55228 13.4477 9 14 9H19M9 13H15M9 17H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    {% endif %}
+    <a id="preview-{{ loop_id }}"
+       hx-get="{% url 'show_preview' pdf.id %}"
+       hx-target="#preview"
+       hx-swap="innerHTML"
+       @click="show_preview_modal = true">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- source: https://www.svgrepo.com/svg/471661/maximize-01 -->
+            <!-- license: CC0 License-->
+            <path d="M14 10L21 3M21 3H15M21 3V9M10 14L3 21M3 21H9M3 21L3 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </a>
+    <a id="open-actions-{{ loop_id }}" @click="show_actions_{{ loop_id }} = !show_actions_{{ loop_id }}"
+       @click.away="show_actions_{{ loop_id }} = false"
+       @keyup.escape.window="show_actions_{{ loop_id }} = false"       >
+        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="1"></circle>
+            <circle cx="12" cy="5" r="1"></circle>
+            <circle cx="12" cy="19" r="1"></circle>
+        </svg>
+    </a>
+</div>

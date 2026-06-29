@@ -1,0 +1,222 @@
+@media all and (max-width: 900px){
+  #outerContainer .hiddenMediumView{
+    display:none !important;
+  }
+  #outerContainer .visibleMediumView:not(.hidden, [hidden]){
+    display:inline-block !important;
+  }
+}
+@media all and (max-width: 750px){
+  .hiddenSmallView,
+  .hiddenSmallView *{
+    display:none !important;
+  }
+  #toolbarContainer #toolbarViewer .toolbarButtonSpacer{
+    width:0;
+  }
+}
+@media all and (max-width: 415px){
+  .hiddenMiniView,
+  .hiddenMiniView *{
+    display:none !important;
+  }
+  #toolbarContainer #toolbarViewer .toolbarButtonSpacer{
+    width:0;
+  }
+}
+select:hover option:hover {
+    background-color: red !important;
+    color: white !important;
+}
+
+:root {
+  --toolbar-border-color: none;  /* needed for some reason, otherwise it will not work */
+  --field-border-color: rgb(115 115 115);  /* input field bordercolor */
+  /* buttons hover and selected color */
+  --toolbar-icon-hover-bg-color: rgb(226 232 240);  /* toolbar icon hover image color */
+  --dropdown-btn-hover-bg-color: rgb(226 232 240);  /* dropdown button hover color */
+  --toggled-btn-color: rgb(226 232 240);  /* toolbar icon selected color */
+}
+
+.light {
+  --primary-bg-color: rgb(255 255 255);
+  --secondary-bg-color: rgb(242 242 242);
+  --textcolor: rgb(15 23 42);
+
+  --body-bg-color: var(--primary-bg-color); /* background around pdf, sets also sidebar color! */
+  --scrollbar-bg-color: var(--primary-bg-color);  /* scrollbar background color */
+  --toolbar-border-color: var(--primary-bg-color);  /* toolbar border color */
+  --progressBar-bg-color: var(--primary-bg-color);  /* progressbar background color */
+
+  --field-bg-color: var(--secondary-bg-color);  /* input field bg color */
+  --toolbar-bg-color: var(--secondary-bg-color);  /* toolbar color */
+  --dropdown-btn-bg-color: var(--secondary-bg-color);  /* dropdown button color */
+  --sidebar-toolbar-bg-color: var(--secondary-bg-color);  /* sidebar toolbar bg color */
+  --signature-bg: var(--secondary-bg-color);  /* signature dropdown background color */
+  --doorhanger-bg-color: var(--secondary-bg-color);
+
+  --main-color: var(--textcolor);   /* main text */
+  --toolbar-icon-bg-color: var(--textcolor); /* toolbar icon image color */
+  --field-color: var(--textcolor); /* input field text color */
+  --treeitem-color: var(--textcolor);  /* table of contents text color */
+}
+
+.dark {
+  --primary-bg-color: rgb(15 23 42);
+  --secondary-bg-color: rgb(25 34 50);
+  --textcolor: rgb(226 232 240);
+
+  --body-bg-color: var(--primary-bg-color); /* background around pdf, sets also sidebar color! */
+  --sidebar-narrow-bg-color: var(--primary-bg-color); /* sidebar background around pdf mobile */
+  --treeitem-bg-color: var(--primary-bg-color);  /* table of contents bg color */
+  --treeitem-selected-bg-color: var(--primary-bg-color);  /* table of contents selected bg color */
+  --scrollbar-bg-color: var(--secondary-bg-color);  /* scrollbar background color */
+  --toolbar-border-color: var(--primary-bg-color);  /* toolbar border color */
+  --progressBar-bg-color: var(--primary-bg-color);  /* progressbar background color */
+
+  --field-bg-color: var(--secondary-bg-color);  /* input field bg color */
+  --toolbar-bg-color: var(--secondary-bg-color);  /* toolbar color */
+  --dropdown-btn-bg-color: var(--secondary-bg-color);  /* dropdown button color */
+  --sidebar-toolbar-bg-color: var(--secondary-bg-color);  /* sidebar toolbar bg color */
+  --signature-bg: var(--secondary-bg-color);
+  --doorhanger-bg-color: var(--secondary-bg-color);
+
+  --main-color: var(--textcolor);   /* main text */
+  --toolbar-icon-bg-color: var(--textcolor); /* toolbar icon image color */
+  --field-color: var(--textcolor); /* input field text color */
+  --treeitem-color: var(--textcolor);  /* table of contents text color */
+}
+
+.inverted {
+  --primary-bg-color: rgb(71 71 71);
+  --secondary-bg-color: rgb(61 61 61);
+  --textcolor: rgb(226 232 240);
+
+  --body-bg-color: var(--primary-bg-color); /* background around pdf, sets also sidebar color!*/
+  --sidebar-narrow-bg-color: var(--primary-bg-color); /* sidebar background around pdf mobile*/
+  --treeitem-bg-color: var(--primary-bg-color);  /* table of contents bg color */
+  --treeitem-selected-bg-color: var(--primary-bg-color);  /* table of contents selected bg color */
+  --scrollbar-bg-color: var(--primary-bg-color);  /* scrollbar background color */
+  --toolbar-border-color: var(--primary-bg-color);  /* toolbar border color */
+  --progressBar-bg-color: var(--primary-bg-color);  /* progressbar background color */
+
+  --field-bg-color: var(--secondary-bg-color);  /* input field bg color */
+  --toolbar-bg-color: var(--secondary-bg-color);  /* toolbar color */
+  --dropdown-btn-bg-color: var(--secondary-bg-color);  /* dropdown button color */
+  --sidebar-toolbar-bg-color: var(--secondary-bg-color);  /* sidebar toolbar bg color */
+  --signature-bg: var(--secondary-bg-color);
+  --doorhanger-bg-color: var(--secondary-bg-color);
+
+  --main-color: var(--textcolor);   /* main text */
+  --toolbar-icon-bg-color: var(--textcolor); /* toolbar icon image color */
+  --field-color: var(--textcolor); /* input field text color */
+  --treeitem-color: var(--textcolor);  /* table of contents text color */
+}
+
+.button1 {
+  background-color: var(--secondary-bg-color);
+  color: var(--textcolor);
+  border-width: 0px;
+  margin: 2px 1px;
+  padding: 3px 4px 0;
+}
+.button1:hover {
+  color: rgb(226 232 240);
+  border-radius: 2px
+}
+.doorHanger, .doorHangerRight {
+  background-color: var(--secondary-bg-color);
+}
+dialog {
+  background-color: var(--secondary-bg-color);
+}
+#addSignatureDialog {
+  --input-text-bg-color: var(--primary-bg-color);
+  --dialog-bg-color: var(--secondary-bg-color);
+  --dialog-border-color: var(--secondary-bg-color);
+  --clear-signature-button-bg: var(--secondary-bg-color);
+  --clear-signature-button-bg-disabled: var(--secondary-bg-color);
+
+  --text-primary-color: var(--textcolor);
+  --tab-bottom-line-inactive-color: var(--secondary-bg-color);
+  --tab-top-line-inactive-color: var(--secondary-bg-color);
+  --tab-top-line-hover-color: var(--secondary-bg-color);
+  --tab-bottom-line-active-color: var(--secondary-bg-color);
+}
+#viewsManager {
+  --sidebar-bg-color: var(--secondary-bg-color);
+  --header-bg: var(--secondary-bg-color);
+  --status-actions-bg: var(--secondary-bg-color);
+  --text-color: var(--textcolor);
+  --image-current-page-number-fg: var(--textcolor);
+}
+.treeView {
+  --treeitem-color: var(--textcolor);
+  --treeitem-selected-color: var(--textcolor);
+  --treeitem-hover-color: var(--textcolor);
+}
+.viewsManagerStatusLabel {
+  color: var(--textcolor);
+}
+#addSignatureTypeContainer:is(:is(:is(#addSignatureDialog .mainContainer) #addSignatureActionContainer) > [role="tabpanel"]) #addSignatureTypeInput {
+  background-color: var(--primary-bg-color);
+}
+#addSignatureDrawContainer:is(:is(:is(#addSignatureDialog .mainContainer) #addSignatureActionContainer) > [role="tabpanel"]) > span {
+  background-color: var(--primary-bg-color);
+}
+:is(:is(:is(#addSignatureDialog .mainContainer) #addSignatureActionContainer) > [role="tabpanel"]) > svg {
+  background-color: var(--primary-bg-color);
+}
+#addSignatureImageContainer:is(:is(:is(#addSignatureDialog .mainContainer) #addSignatureActionContainer) > [role="tabpanel"]) #addSignatureImagePlaceholder {
+  background-color: var(--primary-bg-color);
+}
+.editorParamsToolbarContainer {
+  background-color: var(--secondary-bg-color);
+}
+.horizontalToolbarSeparator {
+  border-top: 1px solid var(--textcolor);
+  opacity: 0.2;
+}
+.toolbarButton::before{
+  color: var(--textcolor);
+}
+.toolbarButton.labeled:hover{
+  color: var(--textcolor);
+}
+.toolbarButton.labeled:hover{
+  color: var(--textcolor);
+}
+.toolbarButton.labeled::before {
+  background-color: var(--textcolor);
+}
+.toolbarButton.toggled:hover{
+  color: var(--textcolor);
+}
+.toolbarButton.toggled::before {
+  background-color: var(--textcolor);
+}
+.toolbarButton.toggled {
+  color: var(--textcolor);
+}
+.toolbarButton.toggled:hover{
+  color: var(--textcolor);
+}
+.treeItemToggler::before {
+  background-color: var(--textcolor);
+}
+.splitToolbarButtonSeparator{
+  border-left:1px solid var(--textcolor);
+  opacity: 0.5
+}
+.logo {
+   width: 22px;
+   height: 22px;
+   border-radius: 50%;
+   opacity: 0.9;
+   padding: 3px;
+   margin: 0px 4px;
+}
+.inverted #viewerContainer > #viewer .page {
+  filter: grayscale(100%);
+  filter: invert(80%);
+}

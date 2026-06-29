@@ -1,0 +1,56 @@
+{% load i18n %}
+<div x-data="{ sortOpen: false }" class="relative flex flex-row grow justify-end items-center md:gap-x-2">
+    <form class="flex grow md:max-w-120 lg:max-w-160 px-3 md:px-5" action="{% url 'user_overview_query' %}" method="GET" id="search_form">
+        <input class="border h-10 rounded-sm! align-text-center focus:border-primary!
+                      bg-slate-100 dark:bg-slate-800! border-slate-400 dark:border-slate-600"
+              type="text" placeholder="{% trans 'Search for mail or #admin' %}"
+                id="search_input"
+                name="search"
+                @keyup.enter="document.getElementById('search_form').submit()"/>
+    </form>
+    <a id="sorting_settings"
+       @click="sortOpen = !sortOpen"
+       @click.away="sortOpen = false"
+       @keyup.escape.window="sortOpen = false"
+       class="cursor-pointer rounded-sm py-1 md:px-2 group relative
+              hover:bg-slate-200 dark:hover:bg-slate-800">
+        <svg class="h-6 w-6 text-primary" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- source: https://www.svgrepo.com/svg/361828/sort -->
+            <!-- license: PD -->
+            <path d="M6.293 4.293a1 1 0 0 1 1.414 0l4 4a1 1 0 0 1-1.414 1.414L8 7.414V19a1 1 0 1 1-2 0V7.414L3.707 9.707a1 1 0 0 1-1.414-1.414l4-4zM16 16.586V5a1 1 0 1 1 2 0v11.586l2.293-2.293a1 1 0 0 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L16 16.586z" fill="currentColor"/>
+        </svg>
+
+        <span x-show="!sortOpen" class="absolute pointer-events-none top-8 -left-1! mt-1 px-2 py-1 rounded-sm opacity-0
+                     group-hover:opacity-100 group-hover:delay-350
+                     text-slate-600 dark:text-slate-200 bg-slate-200 dark:bg-slate-800">{% trans 'Sort' %}
+        </span>
+    </a>
+    <div x-show="sortOpen" x-cloak
+         class="absolute top-11 right-0 shadow-sm rounded-lg w-40 p-2 z-20 border
+                bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700">
+        <div class="flex flex-col pt-1 [&>a]:py-1 [&>a]:my-[1px] [&>a]:px-2 [&>a]:flex [&>a]:items-center [&>a]:gap-x-1
+                    [&>a]:cursor-pointer [&>a]:rounded-sm [&>a]:cursor-pointer
+                    [&>a]:hover:bg-slate-200 dark:[&>a]:hover:bg-slate-700">
+            <a hx-post="{% url 'change_sorting' 'user_sorting' 'newest' %}"
+               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+               x-bind:class="'{{ sorting }}' === '-date_joined' ? 'bg-slate-200! dark:bg-slate-700!' : ''">
+                {% trans 'Newest' %}
+            </a>
+            <a hx-post="{% url 'change_sorting' 'user_sorting' 'oldest' %}"
+               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+               x-bind:class="'{{ sorting }}' === 'date_joined' ? 'bg-slate-200! dark:bg-slate-700!' : ''">
+                {% trans 'Oldest' %}
+            </a>
+            <a hx-post="{% url 'change_sorting' 'user_sorting' 'email_asc' %}"
+               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+               x-bind:class="'{{ sorting }}' === 'Lower(F(email))' ? 'bg-slate-200! dark:bg-slate-700!' : ''">
+                A - Z
+            </a>
+            <a hx-post="{% url 'change_sorting' 'user_sorting' 'email_desc' %}"
+               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+               x-bind:class="'{{ sorting }}' === 'OrderBy(Lower(F(email)), descending=True)' ? 'bg-slate-200! dark:bg-slate-700!' : ''">
+                Z - A
+            </a>
+        </div>
+    </div>
+</div>

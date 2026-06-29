@@ -1,0 +1,81 @@
+{% extends 'layouts/blank.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class=""
+     x-data="{
+       show_tag_name_modal: false,
+       show_preview_modal: false,
+       show_delete_pdf_modal: false,
+       bulk_selected_pdfs: [],
+       selected_bulk_action: 'archive'
+     }"
+     id="pdf_overview">
+    <div class="flex flex-col md:flex-row md:justify-start"
+         :class="{ 'opacity-15': show_tag_name_modal || show_preview_modal || show_delete_pdf_modal }">
+        <div class="w-full! md:w-72! lg:w-72! px-2 md:px-4 pt-2">
+          {% include 'includes/sidebar.html' %}
+        </div>
+        <div class="flex w-full justify-center md:px-8 p-2">
+            <div class="{% if layout == 'Compact' %}
+                        md:ml-10 min-[850px]:ml-10! lg:mx-20!
+                        {% else %}
+                        md:ml-10 min-[850px]:ml-10! lg:mx-10!
+                        {% endif %}
+                        w-full pb-4">
+                {% if search_query or tag_query %}
+                {% include 'includes/pdf_overview/search_filters.html' %}
+                {% endif %}
+                {% if not page_obj %}
+                <div class="pt-4 *:flex *:justify-center">
+                    {% if search_query or tag_query or special_pdf_selection %}
+                    <span class="text-2xl">{% trans "There aren't any PDFs matching the current filters" %}</span>
+                    <span class="pt-4 text-lg">{% trans 'Please try different filters' %}.</span>
+                    {% else %}
+                    <span class="text-2xl">{% trans 'Collection has no PDFs yet' %}</span>
+                    <span class="pt-4 text-lg">
+                      {% trans 'Get started by adding PDFs' %}.
+                    </span>
+                    {% endif %}
+                </div>
+                {% else %}
+                {% include 'includes/pdf_overview/bulk_action_menu.html' %}
+                {% include 'includes/pdf_overview/overview_page.html' %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div x-show="show_tag_name_modal" x-cloak
+         @click.away="show_tag_name_modal = false; $refs.edit_tag_inner.remove()"
+         @keyup.escape.window="show_tag_name_modal = false; $refs.edit_tag_inner.remove()"
+         class="fixed inset-x-0 top-40  mx-auto my-auto w-80 h-52 z-20">
+        <div id="edit_tag"></div>
+    </div>
+    <div x-show="show_preview_modal" x-cloak
+         {# preview_inner clears the preview, otherwise the old preview will be shortly visible when opening a new one #}
+         @click.away="show_preview_modal = false; $refs.preview_inner.remove()"
+         @keyup.escape.window="show_preview_modal = false; $refs.preview_inner.remove()"
+         class="fixed inset-x-0 top-40 mx-auto my-auto w-80! lg:w-[28rem]! z-20">
+        <div id="preview"></div>
+    </div>
+    <div x-show="show_delete_pdf_modal" x-cloak
+         @click.away="show_delete_pdf_modal = false"
+         @keyup.escape.window="show_delete_pdf_modal = false"
+         class="fixed inset-x-0 top-40 mx-auto my-auto w-80! lg:w-[28rem]! z-20">
+        <div id="delete_pdf_modal"></div>
+    </div>
+</div>
+
+<script>
+  function select_all_pdfs() {
+    var pdfs = []
+    var checkboxes = document.getElementsByName("bulk_edit_selected");
+
+    for (let checkbox of checkboxes) {
+      checkbox.checked = true;
+      pdfs.push(checkbox.value);
+    }
+  return pdfs;
+}
+</script>
+{% endblock %}

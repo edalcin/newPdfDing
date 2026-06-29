@@ -1,0 +1,405 @@
+from datetime import datetime, timedelta, timezone
+from unittest import mock
+
+import pytest
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import User
+from django.core.files import File
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.forms import ValidationError
+from django.test import Client, TestCase
+from pdf import forms
+from pdf.forms import CleanHelpers
+from pdf.models.pdf_models import Pdf
+from pdf.models.shared_models import SharedCollection, SharedPdf
+
+from pdfding.pdf.services.workspace_services import create_collection
+
+
+class TestPdfForms(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='user', password='12345', email='a@a.com')
+
+    @mock.patch('pdf.forms.magic.from_buffer', return_value='application/pdf')
+    def test_add_form_valid(self, mock_from_buffer):
+        file_mock = mock.MagicMock(spec=File, name='FileMock')
+        file_mock.name = 'test1.pdf'
+        form = forms.AddForm(
+            data={'name': 'PDF Name', 'collection': self.user.profile.current_collection.id},
+            profile=self.user.profile,
+            files={'file': file_mock},
+        )
+
+        choices = form.fields['collection'].choices
+        id, name = choices[0]
+
+        self.assertTrue(form.is_valid())
+        self.assertEqual(len(choices), 1)
+        self.assertEqual(id, self.user.profile.current_collection.id)
+        self.assertEqual(name, self.user.profile.current_collection.name)
+
+    @mock.patch('pdf.forms.magic.from_buffer', return_value='application/pdf')
+    def test_bulk_add_form_valid(self, mock_from_buffer):
+        file_mock = mock.MagicMock(spec=File, name='FileMock')
+        file_mock.name = 'test1.pdf'
+        form = forms.BulkAddForm(
+            data={'collection': self.user.profile.current_collection.id},
+            profile=self.user.profile,
+            files={'file': [file_mock]},
+        )
+
+        choices = form.fields['collection'].choices
+        id, name = choices[0]
+
+        self.assertTrue(form.is_valid())
+        self.assertEqual(len(choices), 1)
+        self.assertEqual(id, self.user.profile.current_collection.id)
+        self.assertEqual(name, self.user.profile.current_collection.name)
+
+    @mock.patch('pdf.forms.magic.from_buffer', return_value='application/pdf')
+    def test_add_missing_profile(self, mock_from_buffer):
+        file_mock = mock.MagicMock(spec=File, name='FileMock')
+        file_mock.name = 'test1.pdf'
+
+        with self.assertRaisesMessage(KeyError, 'profile'):
+            forms.AddForm(data={'name': 'PDF Name'}, files={'file': file_mock})
+
+    @mock.patch('pdf.forms.magic.from_buffer', return_value='application/pdf')
+    def test_bulk_add_missing_profile(self, mock_from_buffer):
+        file_mock = mock.MagicMock(spec=File, name='FileMock')
+        file_mock.name = 'test1.pdf'
+
+        with self.assertRaisesMessage(KeyError, 'profile'):
+            forms.BulkAddForm(files={'file': file_mock})
+
+    @mock.patch('pdf.forms.CleanHelpers.clean_file')
+    def test_bulk_add_clean_file(self, mock_clean_file):
+        file_mock_1 = mock.MagicMock(spec=File, name='FileMock_1')
+        file_mock_1.name = 'test1.pdf'
+        file_mock_2 = mock.MagicMock(spec=File, name='FileMock_2')
+        file_mock_2.name = 'test2.pdf'
+        form = forms.BulkAddForm(
+            data={'collection': self.user.profile.current_collection.id},
+            files={'file': [file_mock_1, file_mock_2]},
+            profile=self.user.profile,
+        )
+
+        self.assertTrue(form.is_valid())
+        mock_clean_file.assert_has_calls([mock.call(file_mock_1), mock.call(file_mock_2)])
+
+    @mock.patch('pdf.forms.CleanHelpers.clean_name', return_value='existing name')
+    @mock.patch('pdf.forms.magic.from_buffer', return_value='application/pdf')
+    def test_pdf_clean_name_existing(self, mock_from_buffer, mock_clean_name):
+        # create pdf for user
+        Pdf.objects.create(collection=self.user.profile.current_collection, name='existing name')
+        file_mock = mock.MagicMock(spec=File, name='FileMock')
+        file_mock.name = 'test1.pdf'
+        # create the form with the already existing pdf name
+        form = forms.AddForm(
+            data={'name': 'existing name', 'collection': self.user.profile.current_collection.id},
+            profile=self.user.profile,
+            files={'file': file_mock},
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['name'], ['A PDF with this name already exists!'])
+        mock_clean_name.assert_called_once_with('existing name')
+
+    @mock.patch('pdf.forms.magic.from_buffer', return_value='application/pdf')
+    def test_pdf_clean_name_existing_placeholder(self, mock_from_buffer):
+        # create pdf for user
+        Pdf.objects.create(collection=self.user.profile.current_collection, name='bb36974a-3792-47c5-96cc-c79adb87cf82')
+        file_mock = mock.MagicMock(spec=File, name='FileMock')
+        file_mock.name = 'test1.pdf'
+        # create the form with the placeholder name
+        form = forms.AddForm(
+            data={
+                'name': 'bb36974a-3792-47c5-96cc-c79adb87cf82',
+                'collection': self.user.profile.current_collection.id,
+            },
+            profile=self.user.profile,
+            files={'file': file_mock},
+        )
+
+        self.assertTrue(form.is_valid())
+
+    def test_pdf_collection_form_missing_pdf(self):
+        with self.assertRaisesMessage(KeyError, 'instance'):
+            forms.PdfCollectionForm()
+
+
+class TestShareForms(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='user', password='12345', email='a@a.com')
+
+    def test_add_form_valid(self):
+        form = forms.ShareForm(data={'name': 'Share Name'}, profile=self.user.profile)
+
+        self.assertTrue(form.is_valid())
+
+    def test_clean_missing_profile(self):
+        with self.assertRaisesMessage(KeyError, 'profile'):
+            forms.ShareForm(data={'name': 'Share Name'})
+
+    @mock.patch('pdf.forms.CleanHelpers.clean_name', return_value='existing name')
+    def test_pdf_clean_name_existing(self, mock_clean_name):
+        # create pdf for user
+        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_name')
+        SharedPdf.objects.create(pdf=pdf, name='existing name')
+        # create the form with the already existing pdf name
+        form = forms.ShareForm(data={'name': 'existing name'}, profile=self.user.profile)
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['name'], ['A Share with this name already exists!'])
+        mock_clean_name.assert_called_once_with('existing name')
+
+    def test_pdf_clean_name_existing_but_deleted(self):
+        deletion_date = datetime.now(timezone.utc) - timedelta(minutes=5)
+
+        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_name')
+        SharedPdf.objects.create(pdf=pdf, name='existing name', deletion_date=deletion_date)
+        # create the form with the already existing pdf name
+        form = forms.ShareForm(data={'name': 'existing name'}, profile=self.user.profile)
+
+        self.assertTrue(form.is_valid())
+
+    def test_get_existing_with_same_name_pdf_existing(self):
+        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_name')
+        shared_pdf = SharedPdf.objects.create(pdf=pdf, name='existing_name')
+
+        form = forms.ShareForm(data={'name': 'existing_name'}, profile=self.user.profile)
+
+        assert shared_pdf == form.get_existing_with_same_name('existing_name')
+
+    def test_get_existing_with_same_name_pdf_not_existing(self):
+        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_name')
+        SharedPdf.objects.create(pdf=pdf, name='existing_name')
+
+        form = forms.ShareForm(data={'name': 'not_existing_name'}, profile=self.user.profile)
+
+        assert not form.get_existing_with_same_name('not_existing_name')
+
+    def test_get_existing_with_same_name_collection_existing(self):
+        collection = self.user.profile.current_collection
+        existing_shared_collection = SharedCollection.objects.create(collection=collection, name='shared_col')
+        form = forms.ShareCollectionForm(data={'name': existing_shared_collection.name}, profile=self.user.profile)
+
+        assert existing_shared_collection == form.get_existing_with_same_name(existing_shared_collection.name)
+
+    def test_get_existing_with_same_name_collection_not_existing(self):
+        collection = self.user.profile.current_collection
+        SharedCollection.objects.create(collection=collection, name='shared_col')
+        form = forms.ShareCollectionForm(data={'name': 'other'}, profile=self.user.profile)
+
+        assert not form.get_existing_with_same_name('other')
+
+
+class TestViewSharedPasswordForm(TestCase):
+    def test_clean_password_input_valid(self):
+        user = User.objects.create_user(username='user', password='12345', email='a@a.com')
+        pdf = Pdf.objects.create(collection=user.profile.current_collection, name='pdf_name')
+        hashed_password = make_password('password')
+        shared_pdf = SharedPdf.objects.create(pdf=pdf, name='existing name', password=hashed_password)
+
+        for password, expected_result in [('password', True), ('wrong_password', False)]:
+            form = forms.ViewSharedPasswordForm(data={'password_input': password}, shared_obj=shared_pdf)
+
+            self.assertEqual(form.is_valid(), expected_result)
+
+
+class TestTagForms(TestCase):
+    @mock.patch('pdf.forms.CleanHelpers.clean_tag_string_file_directory', return_value='some_name')
+    def test_clean_name_valid(self, mock_clean_tag_string_file_directory):
+        # we also test stripping
+        for name in ['some_name', ' some_name ']:
+            form = forms.TagNameForm(data={'name': name})
+            self.assertTrue(form.is_valid())
+
+            mock_clean_tag_string_file_directory.assert_called_with('some_name')
+
+    def test_clean_name_invalid_spaces(self):
+        form = forms.TagNameForm(data={'name': 'spa ces'})
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['name'], ['Tag names are not allowed to contain spaces!'])
+
+
+class TestWorkspaceForms(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='user', password='12345', email='a@a.com')
+
+    def test_add_form_valid(self):
+        form = forms.WorkspaceForm(data={'name': 'ws_name'}, profile=self.user.profile)
+
+        self.assertTrue(form.is_valid())
+
+    def test_clean_missing_profile(self):
+        with self.assertRaisesMessage(KeyError, 'profile'):
+            forms.WorkspaceForm(data={'name': 'ws_name'})
+
+
+class TestCollectionForms(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='user', password='12345', email='a@a.com')
+
+    def test_add_form_valid(self):
+        form = forms.CollectionForm(data={'name': 'collection_name'}, profile=self.user.profile)
+
+        self.assertTrue(form.is_valid())
+
+    def test_clean_missing_profile(self):
+        with self.assertRaisesMessage(KeyError, 'profile'):
+            forms.CollectionForm(data={'name': 'collection_name'})
+
+    @mock.patch('pdf.forms.CleanHelpers.clean_workspace_name', return_value='c_name')
+    def test_clean_name_valid(self, mock_clean_workspace_name):
+        form = forms.CollectionForm(data={'name': 'collection_name'}, profile=self.user.profile)
+        self.assertTrue(form.is_valid())
+
+        mock_clean_workspace_name.assert_called_with('collection_name')
+
+    def test_clean_name_invalid_all(self):
+        form = forms.CollectionForm(data={'name': 'all'}, profile=self.user.profile)
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['name'], ['"All" is not a valid collection name!'])
+
+    def test_clean_name_invalid_existing_name(self):
+        form = forms.CollectionForm(data={'name': 'DEFAULT'}, profile=self.user.profile)
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['name'], ['There is already a collection named DEFAULT in the current workspace!'])
+
+
+class TestCleanHelpers(TestCase):
+    def test_clean_name(self):
+        inputs = ['  this is some    name with whitespaces ', 'simple']
+        expected_output = ['this is some name with whitespaces', 'simple']
+        generated_output = [forms.CleanHelpers.clean_name(i) for i in inputs]
+
+        self.assertEqual(expected_output, generated_output)
+
+    def test_clean_password_no_password(self):
+        self.assertEqual(forms.CleanHelpers.clean_password(''), '')
+
+    def test_clean_password_password(self):
+        self.assertEqual(forms.CleanHelpers.clean_password('password'), make_password('password', salt='pdfding'))
+
+    def test_clean_max_views_correct(self):
+        self.assertEqual(forms.CleanHelpers.clean_max_views(10), 10)
+
+    def test_clean_max_views_incorrect(self):
+        with self.assertRaises(ValidationError):
+            forms.CleanHelpers.clean_max_views(-10)
+
+        with self.assertRaises(ValidationError):
+            forms.CleanHelpers.clean_max_views(1e10)
+
+    def test_clean_time_input_correct(self):
+        self.assertEqual(forms.CleanHelpers.clean_time_input('1d0h22m'), '1d0h22m')
+
+    def test_clean_time_input_incorrect(self):
+        with self.assertRaises(ValidationError):
+            forms.CleanHelpers.clean_time_input('1d22m')
+
+        with self.assertRaises(ValidationError):
+            forms.CleanHelpers.clean_time_input('1:01:22')
+
+    def test_pdf_clean_file_wrong_file_type(self):
+        simple_file = SimpleUploadedFile("not_pdf.pdf", b"these are the file contents!")
+
+        with self.assertRaisesMessage(ValidationError, expected_message='Uploaded file is not a PDF!'):
+            CleanHelpers.clean_file(simple_file)
+
+    @mock.patch('pdf.forms.CleanHelpers.clean_tag_string_file_directory')
+    def test_clean_file_directory(self, mock_clean_tag_string_file_directory):
+        CleanHelpers.clean_file_directory('  some/dir')
+        mock_clean_tag_string_file_directory.assert_called_once_with('some/dir')
+
+    def test_clean_file_directory_spaces(self):
+        with self.assertRaisesMessage(
+            ValidationError, expected_message='Directories are not allowed to contain spaces!'
+        ):
+            CleanHelpers.clean_file_directory('so me/dir')
+
+    def test_clean_file_directory_empty(self):
+        self.assertEqual('', CleanHelpers.clean_file_directory(''))
+
+    def test_clean_tag_string_file_directory_correct(self):
+        tag_string = 'programming/python/django ot-h上_er'
+
+        self.assertEqual(tag_string, CleanHelpers.clean_tag_string_file_directory(tag_string))
+
+    def test_clean_tag_string_file_directory_invalid_char(self):
+        with self.assertRaisesMessage(
+            ValidationError, expected_message='Only letters, numbers, "/", "-" and "_" are valid characters!'
+        ):
+            CleanHelpers.clean_tag_string_file_directory('inval+id')
+
+    def test_clean_tag_string_file_directory_starting_ending_slash(self):
+        for tag_string in ['tag_1 /tag_2', 'tag/']:
+            with self.assertRaisesMessage(ValidationError, expected_message='Not allowed to begin or end with "/"!'):
+                CleanHelpers.clean_tag_string_file_directory(tag_string)
+
+    def test_clean_tag_string_file_directory_consecutive_slashes(self):
+        with self.assertRaisesMessage(
+            ValidationError, expected_message='Not allowed to contain consecutive "/" characters!'
+        ):
+            CleanHelpers.clean_tag_string_file_directory('inval//id')
+
+    def test_clean_tag_string_file_directory_multiple_spaces_between(self):
+        tag_string = 'programming/python/django   ot-h_er'
+
+        self.assertEqual(tag_string, CleanHelpers.clean_tag_string_file_directory(tag_string))
+
+    def test_clean_workspace_name_valid(self):
+        assert 'valid_name' == CleanHelpers.clean_workspace_name(' valid_name  ')
+
+    def test_clean_workspace_name_invalid_wrong_char(self):
+        with pytest.raises(ValidationError, match='Only "-", "_", numbers or letters are allowed!'):
+            CleanHelpers.clean_workspace_name('ab/c')
+
+    def test_clean_workspace_name_invalid_too_long(self):
+        with pytest.raises(ValidationError, match='Maximum number of characters for a workspace name is 50!'):
+            CleanHelpers.clean_workspace_name('a' * 51)
+
+    def test_clean_workspace_name_invalid_underscore_dash(self):
+        with pytest.raises(ValidationError, match='"_" or "-" are not valid workspace names!'):
+            CleanHelpers.clean_workspace_name('-')
+
+        with pytest.raises(ValidationError, match='"_" or "-" are not valid workspace names!'):
+            CleanHelpers.clean_workspace_name('_')
+
+
+class TestOther(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='user', password='12345', email='a@a.com')
+
+    def test_get_collection_choices(self):
+        other_collection = create_collection(self.user.profile.current_workspace, 'other')
+        current_collection = self.user.profile.current_collection
+
+        expected_choices = [
+            (other_collection.id, other_collection.name),
+            (current_collection.id, current_collection.name),
+        ]
+        assert (
+            forms.get_collection_choices(
+                other_collection.id, other_collection.name, self.user.profile.current_workspace.collections
+            ).choices
+            == expected_choices
+        )
+
+    def test_get_collection_choices_all(self):
+        other_collection = create_collection(self.user.profile.current_workspace, 'other')
+        current_collection = self.user.profile.current_collection
+
+        expected_choices = [
+            (current_collection.id, current_collection.name),
+            (other_collection.id, other_collection.name),
+        ]
+        assert (
+            forms.get_collection_choices('all', 'All', self.user.profile.current_workspace.collections).choices
+            == expected_choices
+        )

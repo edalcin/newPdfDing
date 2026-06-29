@@ -1,0 +1,96 @@
+from django.contrib.auth.models import User
+from django.db.models import QuerySet
+from pdf.models.collection_models import Collection
+from pdf.models.pdf_models import Pdf
+from pdf.models.shared_models import SharedCollection, SharedPdf
+from pdf.models.workspace_models import Workspace, WorkspaceError, WorkspaceRoles, WorkspaceUser
+from users.models import Profile
+
+
+def create_personal_workspace(creator: User) -> Workspace:
+    """Create a personal workspace for a user including the workspace user and the default collection"""
+
+    if (
+        Profile.objects.filter(user=creator).count()
+        and creator.profile.workspaces.filter(personal_workspace=True).count() > 0
+    ):
+        raise WorkspaceError(f'There is already a personal workspace for user {creator.email}!')
+    else:
+        personal_workspace = Workspace.objects.create(
+            id=str(creator.id), name='Personal', personal_workspace=True, description='Personal Workspace'
+        )
+        WorkspaceUser.objects.create(workspace=personal_workspace, user=creator, role=WorkspaceRoles.OWNER)
+        Collection.objects.create(
+            id=str(creator.id),
+            name='Default',
+            workspace=personal_workspace,
+            default_collection=True,
+            description='Default Collection',
+        )
+
+    return personal_workspace
+
+
+def create_workspace(name: str, creator: User, description: str = '') -> Workspace:
+    """Create a non personal workspace for a user including the workspace user and the default collection"""
+
+    workspace = Workspace.objects.create(name=name, personal_workspace=False, description=description)
+    WorkspaceUser.objects.create(workspace=workspace, user=creator, role=WorkspaceRoles.OWNER)
+    Collection.objects.create(
+        id=workspace.id,
+        name='Default',
+        workspace=workspace,
+        default_collection=True,
+        description='Default Collection',
+    )
+
+    return workspace
+
+
+def create_collection(workspace: Workspace, collection_name: str, description: str = '') -> Collection:
+    """Create a collection and add it to the workspace"""
+
+    if workspace.collections.filter(name=collection_name).count():
+        raise WorkspaceError(f'There is already a collection named {collection_name}!')
+    else:
+        return Collection.objects.create(
+            workspace=workspace, name=collection_name, default_collection=False, description=description
+        )
+
+
+def check_if_collection_part_of_workspace(workspace: Workspace, collection_id: str):
+    """Check if a collection is part of a workspace."""
+
+    if workspace.collections.filter(id=collection_id).count():
+        return True
+    else:
+        return False
+
+
+def get_pdfs_of_workspace(workspace: Workspace) -> QuerySet[Pdf]:
+    """Get all PDFs of the workspace."""
+
+    return Pdf.objects.filter(collection__in=workspace.collections)
+
+
+def get_shared_collections_of_workspace(workspace: Workspace) -> QuerySet[SharedCollection]:
+    """Get all shared collections of a workspace."""
+
+    return SharedCollection.objects.filter(collection__in=workspace.collections)
+
+
+def check_if_pdf_with_name_exists(name: str, workspace: Workspace) -> bool:
+    """Check if a PDF with the specified name exists in the workspace."""
+
+    if get_pdfs_of_workspace(workspace).filter(name=name).first():
+        return True
+    else:
+        return False
+
+
+def get_shared_pdfs_of_workspace(workspace: Workspace) -> QuerySet[SharedPdf]:
+    """Get all shared PDFs of the workspace."""
+
+    pdfs = get_pdfs_of_workspace(workspace)
+
+    return SharedPdf.objects.filter(pdf__in=pdfs)

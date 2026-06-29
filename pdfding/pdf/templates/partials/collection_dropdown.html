@@ -1,0 +1,84 @@
+{% load i18n %}
+<div id="collections_open_collapse_toggle"
+      x-data="{ show_collections: false }"
+      class="w-5/10 md:w-full cursor-pointer">
+  <div @click="show_collections = !show_collections"
+        class="flex flex-row justify-between w-full items-center px-2 py-1 relative
+              border border-slate-400 dark:border-slate-600 rounded-sm font-semibold
+              bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700">
+    <div class="flex flex-row items-center gap-x-2 w-[85%]">
+      {% include 'includes/svg/collection.html' %}
+      <div id='current_collection_name' class="truncate w-[85%]">
+        <span>{{ current_collection_name }}</span>
+      </div>
+    </div>
+    {% include 'includes/svg/dropdown_large.html' %}
+  </div>
+  <div id="collection_modal" x-show="show_collections" x-cloak
+        @click.away="show_collections = false"
+        @keyup.escape.window="show_collections = false"
+        {# leave background as otherwise popup will be transparent #}
+        class="absolute z-20 mt-2 left-0 w-[96%] md:w-full mx-2 md:mx-0 rounded-sm p-1 border
+              bg-slate-50 dark:bg-slate-900 border-slate-400 dark:border-slate-600">
+    <div class="flex flex-col gap-y-1 p-1 [&>.ws-modal-child]:py-1 [&>.ws-modal-child]:px-2
+                [&>.ws-modal-child]:rounded-sm [&>.ws-modal-child]:flex [&>.ws-modal-child]:flex-row
+                [&>.ws-modal-child]:hover:bg-slate-200 [&>.ws-modal-child]:dark:hover:bg-slate-700">
+      {% if page != 'collection_details' %}
+      <div hx-post="{% url 'change_collection' 'all' %}"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          class="ws-modal-child justify-between items-center rounded-sm
+                  {% if current_collection_id == 'all' %}
+                  bg-slate-100 dark:bg-slate-800
+                  {% endif %}">
+        <div class="truncate w-9/10">{% trans 'All' context 'all collections' %}</div>
+        {% if current_collection_id == 'all' %}
+        <div>✓</div>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% for collection in request.user.profile.collections %}
+      {% if page != 'collection_details' %}
+      <div hx-post="{% url 'change_collection' collection.id %}"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          class="ws-modal-child justify-between items-center rounded-sm
+                  {% if collection.id == current_collection_id %}
+                  bg-slate-100 dark:bg-slate-800
+                  {% endif %}">
+        <div class="truncate w-9/10">{{ collection.name }}</div>
+        {% if collection.id == current_collection_id %}
+        <div>✓</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <a href="{% url 'collection_details' collection.id %}"
+          class="ws-modal-child justify-between items-center rounded-sm
+                  {% if collection.id == current_collection_id %}
+                  bg-slate-100 dark:bg-slate-800
+                  {% endif %}">
+        <div class="truncate w-9/10">{{ collection.name }}</div>
+        {% if collection.id == current_collection_id %}
+        <div>✓</div>
+        {% endif %}
+      </a>
+      {% endif %}
+      {% endfor %}
+      <span class="my-1 border-t border-slate-400 dark:border-slate-600"></span>
+      <a href="{% url 'create_collection' %}" class="ws-modal-child items-center gap-x-2">
+        {% include 'includes/svg/plus.html' %}
+        <span>{% trans 'Create Collection' %}</span>
+      </a>
+      {% if page != 'collection_details' %}
+      <a
+        {% if current_collection_id == 'all' %}
+         href="{% url 'collection_details' current_workspace_id %}"
+        {% else %}
+         href="{% url 'collection_details' current_collection_id %}"
+        {% endif %}
+         class="ws-modal-child items-center gap-x-2">
+        {% include 'includes/svg/settings.html' with size='dropdown' %}
+        <span class="">{% trans 'Collection Settings' %}</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>

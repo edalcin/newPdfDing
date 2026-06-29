@@ -1,0 +1,15 @@
+{% extends 'layouts/add_box.html' %}
+{% load i18n %}
+
+{% block content %}
+
+<h1>{% trans 'Share PDF' %}</h1>
+<h2 class="pb-2 truncate">{{ pdf_name }}</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" >{% trans 'Submit' %}</button>
+</form>
+
+{% endblock %}

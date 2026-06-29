@@ -1,0 +1,46 @@
+{% load static %}
+{% load i18n %}
+<div id="actions-{{ loop_id }}" x-show="show_actions_{{ loop_id }}" x-cloak
+     x-transition:enter="duration-300 ease-out" x-transition:enter-start="opacity-0 scale-90"
+     x-transition:enter-end="opacity-100 scale-100"
+     class="flex flex-col absolute top-8 right-5 md:right-7 z-20 py-1 px-2 rounded-sm border text-base!
+            [&>a]:py-1 [&>a]:px-2 [&>a]:flex [&>a]:items-center [&>a]:gap-x-2 [&>a]:rounded-sm
+            text-slate-800 bg-slate-200 border-slate-300 [&>a]:hover:bg-slate-300
+            dark:text-slate-200 dark:bg-slate-700 dark:border-slate-600 dark:[&>a]:hover:bg-slate-600">
+    <a href="{% url 'pdf_details' pdf.id %}">
+        {% include 'includes/svg/detail.html' %}
+        {% trans 'Details' %}
+    </a>
+    <a href="{% url 'share_pdf' pdf.id %}">
+        {% include 'includes/svg/share.html' %}
+        {% trans 'Share' %}
+    </a>
+    <a id="star-{{ loop_id }}" class="cursor-pointer"
+       hx-post="{% url 'star' pdf.id %}"
+       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        {% include 'includes/svg/star.html' %}
+        {% if pdf.starred %}
+        {% trans 'Unstar' %}
+        {% else %}
+        {% trans 'Star' %}
+        {% endif %}
+    </a>
+    <a id="archive-{{ loop_id }}" class="cursor-pointer"
+       hx-post="{% url 'archive' pdf.id %}"
+       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+        {% include 'includes/svg/archive.html' %}
+        {% if pdf.archived %}
+        {% trans 'Unarchive' %}
+        {% else %}
+        {% trans 'Archive' %}
+        {% endif %}
+    </a>
+    <a id="delete-{{ loop_id }}" class="cursor-pointer"
+       @click="show_delete_pdf_modal = true"
+       hx-get="{% url 'delete_pdf' pdf.id %}"
+       hx-target="#delete_pdf_modal"
+       hx-swap="innerHTML">
+        <img src="{% static 'images/trash.svg' %}" width="19">
+        {% trans 'Delete' %}
+    </a>
+</div>

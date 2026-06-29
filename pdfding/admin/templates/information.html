@@ -1,0 +1,32 @@
+{% extends 'layouts/blank.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="" >
+    <div class="flex flex-col md:flex-row md:justify-start">
+        <div class="w-full! md:w-72! lg:w-72! px-2 md:px-4 pt-2">
+          {% include 'includes/admin_sidebar.html' with page='instance_info' %}
+        </div>
+        <div class="flex flex-col w-full justify-left md:pr-8 md:pl-20 p-2 **:border-slate-400! dark:**:border-slate-600!">
+            <div class="flex justify-left text-2xl font-bold pb-4">
+              {% trans 'Information' %}
+            </div>
+            <div class="flex flex-col lg:flex-row text-lg font-semibold gap-y-5 md:gap-x-5
+                        [&>div]:flex [&>div]:flex-col [&>div]:border lg:[&>div]:w-58 [&>div]:px-4 [&>div]:py-2 [&>div]:rounded-sm">
+                <div id="number_of_users">
+                  <span>{% trans 'Total Users' %}</span>
+                    <span class="text-3xl">{{ number_of_users }}</span>
+                </div>
+                <div id="number_of_pdfs">
+                  <span>{% trans 'Total PDFs' %}</span>
+                    <span class="text-3xl">{{ number_of_pdfs }}</span>
+                </div>
+                <div id="current_version">
+                  <span>{% trans 'Version' %}</span>
+                    <span class="text-3xl">{{ current_version }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

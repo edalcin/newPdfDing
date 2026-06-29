@@ -1,0 +1,27 @@
+{% extends 'layouts/blank.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="" >
+    <div class="flex flex-col md:flex-row md:justify-start">
+    <div class="w-full! md:w-72! lg:w-72! px-2 md:px-4 pt-2">
+          {% include 'includes/admin_sidebar.html' with page='user_overview' %}
+        </div>
+        <div class="flex w-full justify-center md:px-8 p-2">
+            <div class="flex flex-col w-full md:w-[78%] min-[850px]:w-[90%]! gap-y-4 pb-8">
+                {% if search_query or tag_query %}
+                {% include 'includes/user_search_filters.html' %}
+                {% endif %}
+                {% if not page_obj %}
+                <div class="pt-4 *:flex *:justify-center">
+                  <span class="text-2xl">{% trans "There aren't any users matching the search criteria" %}</span>
+                  <span class="pt-4 text-lg">{% trans 'Please try a different search.' %}</span>
+                </div>
+                {% else %}
+                {% include 'includes/user_overview_page.html' %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
