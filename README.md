@@ -26,8 +26,9 @@ This fork preserves all core document-management features while removing the mul
 | **Tag input** | Plain text field | Auto-complete picker — shows existing tags as you type, allows creating new ones inline |
 | **Tag management** | Rename/delete per-tag (inline edit) | Admin page (`/admin/tags`) — create, rename, delete, and **substitute** (merge one tag into another across all PDFs) |
 | **Container image** | Published to Docker Hub (`mrmn/pdfding`) | Built and published to GHCR (`ghcr.io/edalcin/newpdfding`) on every push to `main` |
+| **Public sharing** | Full shared-PDF feature (password, expiry, max views, QR code, sessions) | Minimal share link per PDF — one UUID link, no password/expiry; owner shares/unshares from the details page; public viewer is read-only (no annotations, highlights or notes visible); admin can revoke any share at `/admin/shares` |
 
-Everything else — PDF viewer, annotations, highlights, Markdown notes, collections, starring, archiving, progress bars, signatures, sharing, themes, dark mode, backup — is inherited unchanged from **PdfDing v1.9.0**.
+Everything else — PDF viewer, annotations, highlights, Markdown notes, collections, starring, archiving, progress bars, signatures, themes, dark mode, backup — is inherited unchanged from **PdfDing v1.9.0**.
 
 ---
 
