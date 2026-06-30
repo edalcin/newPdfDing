@@ -119,7 +119,7 @@ See https://github.com/adobe-type-tools/cmap-resources
       {# get the start page #}
       var page_number = {{ current_page }};
 
-      var url = "{% url 'serve_pdf' pdf_id revision %}"
+      var url = "{{ serve_url }}"
       start_viewer(page_number, url, "{{ tab_title }}", "{{ request.LANGUAGE_CODE }}");
 
       {% if user_view_bool %}

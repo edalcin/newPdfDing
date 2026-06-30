@@ -1,0 +1,1317 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1782733258.4330275,
+    "ast_hash": "7bf81dca0376bde3a32244b82bc7cbc0",
+    "semantic_hash": "7bf81dca0376bde3a32244b82bc7cbc0"
+  },
+  "bootstrap.sh": {
+    "mtime": 1782760853.0371675,
+    "ast_hash": "248c942d871fe820a38c46154cfed178",
+    "semantic_hash": "248c942d871fe820a38c46154cfed178"
+  },
+  "package.json": {
+    "mtime": 1782760876.4822695,
+    "ast_hash": "5a9f64d58f9a20d32b22f8285aaa060f",
+    "semantic_hash": "5a9f64d58f9a20d32b22f8285aaa060f"
+  },
+  "pdfding/admin/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/admin/tests/test_views.py": {
+    "mtime": 1782761587.401745,
+    "ast_hash": "5a62fcc86e15d3986a744be77b19d5cd",
+    "semantic_hash": "5a62fcc86e15d3986a744be77b19d5cd"
+  },
+  "pdfding/admin/urls.py": {
+    "mtime": 1782760776.5854268,
+    "ast_hash": "0530424aeb954b31190b738fa370ab44",
+    "semantic_hash": "0530424aeb954b31190b738fa370ab44"
+  },
+  "pdfding/admin/views.py": {
+    "mtime": 1782763572.0739338,
+    "ast_hash": "e3d925a2269d38c3974009636027e050",
+    "semantic_hash": "e3d925a2269d38c3974009636027e050"
+  },
+  "pdfding/backup/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/backup/management/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/backup/management/commands/recover_data.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "ea0ad360e00b07bbf8a119f85b6c854c",
+    "semantic_hash": "ea0ad360e00b07bbf8a119f85b6c854c"
+  },
+  "pdfding/backup/service.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "806a139cf8c38ff25665e28277de9379",
+    "semantic_hash": "806a139cf8c38ff25665e28277de9379"
+  },
+  "pdfding/backup/tasks.py": {
+    "mtime": 1782813688.847917,
+    "ast_hash": "e82ead869c1e623f924ff94cfa91598f",
+    "semantic_hash": "e82ead869c1e623f924ff94cfa91598f"
+  },
+  "pdfding/backup/tests/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "414c605cb60d580e6badcca40369c02f",
+    "semantic_hash": "414c605cb60d580e6badcca40369c02f"
+  },
+  "pdfding/backup/tests/test_management.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "efc3bc1d7be36d96f63c1e13abcc3432",
+    "semantic_hash": "efc3bc1d7be36d96f63c1e13abcc3432"
+  },
+  "pdfding/backup/tests/test_service.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "bcf59f148aaf37d3358aba4cf0d6476f",
+    "semantic_hash": "bcf59f148aaf37d3358aba4cf0d6476f"
+  },
+  "pdfding/backup/tests/test_tasks.py": {
+    "mtime": 1782813840.8984513,
+    "ast_hash": "ed77f56bbca1885040bb07ad763b6d45",
+    "semantic_hash": "ed77f56bbca1885040bb07ad763b6d45"
+  },
+  "pdfding/base/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/base/base_views.py": {
+    "mtime": 1782813696.9742644,
+    "ast_hash": "e3dea87cbbc212e1ab184d8242d674b0",
+    "semantic_hash": "e3dea87cbbc212e1ab184d8242d674b0"
+  },
+  "pdfding/base/service.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "da7c0eba463b8a3edd89ed4fd6a921c5",
+    "semantic_hash": "da7c0eba463b8a3edd89ed4fd6a921c5"
+  },
+  "pdfding/base/task_helpers.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "51dcfc5cbfe1dd4f9c6e5c3c458f272e",
+    "semantic_hash": "51dcfc5cbfe1dd4f9c6e5c3c458f272e"
+  },
+  "pdfding/base/tests/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/base/tests/base_view_definitions.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "33b0e1fadb7fec27801fc42a7d2815ea",
+    "semantic_hash": "33b0e1fadb7fec27801fc42a7d2815ea"
+  },
+  "pdfding/base/tests/test_base_views.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "fd046d1280749106f22e2f7550080763",
+    "semantic_hash": "fd046d1280749106f22e2f7550080763"
+  },
+  "pdfding/base/tests/test_service.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "8b4099a043c2bc618e61d066f1617ad4",
+    "semantic_hash": "8b4099a043c2bc618e61d066f1617ad4"
+  },
+  "pdfding/base/tests/test_task_helpers.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "6a13115604c664982182ffc66d944a50",
+    "semantic_hash": "6a13115604c664982182ffc66d944a50"
+  },
+  "pdfding/conftest.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "5a49201e4f20ed5c0202c26596e4bf45",
+    "semantic_hash": "5a49201e4f20ed5c0202c26596e4bf45"
+  },
+  "pdfding/core/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/core/context_processors.py": {
+    "mtime": 1782760776.5767856,
+    "ast_hash": "53d6dffbdaab12d90aba06850674f336",
+    "semantic_hash": "53d6dffbdaab12d90aba06850674f336"
+  },
+  "pdfding/core/middleware.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "bd71bce63e0bd44ed7f3ef6948a93906",
+    "semantic_hash": "bd71bce63e0bd44ed7f3ef6948a93906"
+  },
+  "pdfding/core/settings/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "53db354c34ec92a47793a361a2a429de",
+    "semantic_hash": "53db354c34ec92a47793a361a2a429de"
+  },
+  "pdfding/core/settings/base.py": {
+    "mtime": 1782761000.1246426,
+    "ast_hash": "a0159e234139bc543e70b0ad33f586e0",
+    "semantic_hash": "a0159e234139bc543e70b0ad33f586e0"
+  },
+  "pdfding/core/settings/dev.py": {
+    "mtime": 1782761028.0959063,
+    "ast_hash": "3e2dc9d6d3e96accc47c506518e92dbb",
+    "semantic_hash": "3e2dc9d6d3e96accc47c506518e92dbb"
+  },
+  "pdfding/core/settings/prod.py": {
+    "mtime": 1782761028.081516,
+    "ast_hash": "9531d51a2cfa36e75240c1241e09bd07",
+    "semantic_hash": "9531d51a2cfa36e75240c1241e09bd07"
+  },
+  "pdfding/core/tests/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/core/tests/test_middleware.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "a0183558d05c4add30e18324618dc32c",
+    "semantic_hash": "a0183558d05c4add30e18324618dc32c"
+  },
+  "pdfding/core/tests/test_views.py": {
+    "mtime": 1782761526.5065472,
+    "ast_hash": "a1664b522432118e0f7d92202cede078",
+    "semantic_hash": "a1664b522432118e0f7d92202cede078"
+  },
+  "pdfding/core/urls.py": {
+    "mtime": 1782760997.870529,
+    "ast_hash": "5cdecc666b0293a9048aff15767dcc4d",
+    "semantic_hash": "5cdecc666b0293a9048aff15767dcc4d"
+  },
+  "pdfding/core/views.py": {
+    "mtime": 1782761252.229231,
+    "ast_hash": "13073f6b717a816c920a5ada80b6da40",
+    "semantic_hash": "13073f6b717a816c920a5ada80b6da40"
+  },
+  "pdfding/core/wsgi.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "a942ae9a1d33d08c7b5a045c104bbbcb",
+    "semantic_hash": "a942ae9a1d33d08c7b5a045c104bbbcb"
+  },
+  "pdfding/e2e/helpers.py": {
+    "mtime": 1782761332.9320855,
+    "ast_hash": "39a4bb775e82717a82068fbdeb2a001a",
+    "semantic_hash": "39a4bb775e82717a82068fbdeb2a001a"
+  },
+  "pdfding/e2e/test_collection_e2e.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "74963068628a494f91c4742e9a31b12b",
+    "semantic_hash": "74963068628a494f91c4742e9a31b12b"
+  },
+  "pdfding/e2e/test_pdf_annotations_e2e.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "eb4f587187fca57e1baffb988b813594",
+    "semantic_hash": "eb4f587187fca57e1baffb988b813594"
+  },
+  "pdfding/e2e/test_pdf_bulk_actions.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "3114d753ae3312697cfc87e697c9f8ba",
+    "semantic_hash": "3114d753ae3312697cfc87e697c9f8ba"
+  },
+  "pdfding/e2e/test_pdf_details_e2e.py": {
+    "mtime": 1782736891.0535748,
+    "ast_hash": "9c39b770b63b48b79f9f13d8e0cd2016",
+    "semantic_hash": "9c39b770b63b48b79f9f13d8e0cd2016"
+  },
+  "pdfding/e2e/test_pdf_overview_e2e.py": {
+    "mtime": 1782761555.0744712,
+    "ast_hash": "7589c563ad555dbce0661ec1675d5704",
+    "semantic_hash": "7589c563ad555dbce0661ec1675d5704"
+  },
+  "pdfding/e2e/test_pdf_overview_sidebar_e2e.py": {
+    "mtime": 1782813887.0598247,
+    "ast_hash": "9e1b8c036e4b7802c8164170a5a8bb7e",
+    "semantic_hash": "9e1b8c036e4b7802c8164170a5a8bb7e"
+  },
+  "pdfding/e2e/test_users_e2e.py": {
+    "mtime": 1782761434.7277365,
+    "ast_hash": "ab3da8233c3e253a77e05d0438cf08b4",
+    "semantic_hash": "ab3da8233c3e253a77e05d0438cf08b4"
+  },
+  "pdfding/manage.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "8a285f10c02cfb6c56fdbaa43a4b0de7",
+    "semantic_hash": "8a285f10c02cfb6c56fdbaa43a4b0de7"
+  },
+  "pdfding/pdf/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/pdf/apps.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "4a461d02ad3d058acbde22de0f3f7f55",
+    "semantic_hash": "4a461d02ad3d058acbde22de0f3f7f55"
+  },
+  "pdfding/pdf/forms.py": {
+    "mtime": 1782813809.5572438,
+    "ast_hash": "728143103125d308a0e363205fac4881",
+    "semantic_hash": "728143103125d308a0e363205fac4881"
+  },
+  "pdfding/pdf/migrations/0001_add_pdf_and_tag.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "2f2eb050aeac30f1f166b211563e785c",
+    "semantic_hash": "2f2eb050aeac30f1f166b211563e785c"
+  },
+  "pdfding/pdf/migrations/0002_add_pdf_views.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "7cdb6ebc71682ced75f4a3c2b8e9af1f",
+    "semantic_hash": "7cdb6ebc71682ced75f4a3c2b8e9af1f"
+  },
+  "pdfding/pdf/migrations/0003_add_pdf_sharing.py": {
+    "mtime": 1782814073.1528594,
+    "ast_hash": "e7155dc44645cc4f5e1dc769c33d2250",
+    "semantic_hash": "e7155dc44645cc4f5e1dc769c33d2250"
+  },
+  "pdfding/pdf/migrations/0004_add_pdf_sharing_options.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "6a947e96622f3117ed9e5cb530f5d593",
+    "semantic_hash": "6a947e96622f3117ed9e5cb530f5d593"
+  },
+  "pdfding/pdf/migrations/0005_add_last_viewed_date.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "201cf6392e1d07bed9b61af739420a19",
+    "semantic_hash": "201cf6392e1d07bed9b61af739420a19"
+  },
+  "pdfding/pdf/migrations/0006_increase_pdf_model_name_lenghts_to_150.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "e7e5357508428b4c7d630f3e73b0e5c6",
+    "semantic_hash": "e7e5357508428b4c7d630f3e73b0e5c6"
+  },
+  "pdfding/pdf/migrations/0007_add_number_of_pdf_pages.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "f9de69d763881edcddeb9f4893c3a7bb",
+    "semantic_hash": "f9de69d763881edcddeb9f4893c3a7bb"
+  },
+  "pdfding/pdf/migrations/0008_tmp_remove_number_of_pages.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "df56821e47c589d24c823d10644a6a40",
+    "semantic_hash": "df56821e47c589d24c823d10644a6a40"
+  },
+  "pdfding/pdf/migrations/0009_readd_number_of_pages_with_new_default.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "2178aade7390c500207c485e462a19ca",
+    "semantic_hash": "2178aade7390c500207c485e462a19ca"
+  },
+  "pdfding/pdf/migrations/0010_add_notes.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "9236b96bbde92d367da16c7851c4ee4d",
+    "semantic_hash": "9236b96bbde92d367da16c7851c4ee4d"
+  },
+  "pdfding/pdf/migrations/0011_add_starred_archived.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "0d8c3d5e67a4450f7bb7a7ef0789a708",
+    "semantic_hash": "0d8c3d5e67a4450f7bb7a7ef0789a708"
+  },
+  "pdfding/pdf/migrations/0012_add_pdf_thumbnails.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "06095caf48c85ba62cacb4db2c3f3bf0",
+    "semantic_hash": "06095caf48c85ba62cacb4db2c3f3bf0"
+  },
+  "pdfding/pdf/migrations/0013_add_pdf_previews.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "88c0b86800e3e2ccb889bcf37d39ce43",
+    "semantic_hash": "88c0b86800e3e2ccb889bcf37d39ce43"
+  },
+  "pdfding/pdf/migrations/0014_add_pdf_revision.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "af7f628040901471a3e48afe75f5ea75",
+    "semantic_hash": "af7f628040901471a3e48afe75f5ea75"
+  },
+  "pdfding/pdf/migrations/0015_add_comments_highlights.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "3df9962f28e9dae90c4be705bdc884a0",
+    "semantic_hash": "3df9962f28e9dae90c4be705bdc884a0"
+  },
+  "pdfding/pdf/migrations/0016_rename_pdfs_and_add_file_directory.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "628326cff3f5beaeb16b803786e6ec4c",
+    "semantic_hash": "628326cff3f5beaeb16b803786e6ec4c"
+  },
+  "pdfding/pdf/migrations/0017_increase_pdf_file_field_max_lenght.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "30746d608c87fd54a44dc6f9bbd92142",
+    "semantic_hash": "30746d608c87fd54a44dc6f9bbd92142"
+  },
+  "pdfding/pdf/migrations/0018_remove_wrong_null_true.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "c19552ba95dae067c23e3a950d1a3542",
+    "semantic_hash": "c19552ba95dae067c23e3a950d1a3542"
+  },
+  "pdfding/pdf/migrations/0019_add_collections_workspaces.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "a8c42d779b93dbd33268046df087a2a0",
+    "semantic_hash": "a8c42d779b93dbd33268046df087a2a0"
+  },
+  "pdfding/pdf/migrations/0020_fill_collections_workspaces.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "535a536ca129d09bea6cd84adb0fdec3",
+    "semantic_hash": "535a536ca129d09bea6cd84adb0fdec3"
+  },
+  "pdfding/pdf/migrations/0021_adjust_workspace_role_names.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d6162925cacb7084a42863c899f8816d",
+    "semantic_hash": "d6162925cacb7084a42863c899f8816d"
+  },
+  "pdfding/pdf/migrations/0022_adjust_pdf_paths_to_ws_collection.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "2ddb1049f51641dc0327ce559519cc9c",
+    "semantic_hash": "2ddb1049f51641dc0327ce559519cc9c"
+  },
+  "pdfding/pdf/migrations/0023_remove_owner.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "6aaff5c0c0046c73ccfe64778cbc62c6",
+    "semantic_hash": "6aaff5c0c0046c73ccfe64778cbc62c6"
+  },
+  "pdfding/pdf/migrations/0024_remove_unneeded_null_true.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "df673696953bcba8ef33444e815354ab",
+    "semantic_hash": "df673696953bcba8ef33444e815354ab"
+  },
+  "pdfding/pdf/migrations/0025_add_session_to_shared_pdf.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "9e7d997534140d1aa6adb0122d305c30",
+    "semantic_hash": "9e7d997534140d1aa6adb0122d305c30"
+  },
+  "pdfding/pdf/migrations/0026_add_shared_collection.py": {
+    "mtime": 1782814073.169388,
+    "ast_hash": "64f6702df4e379e133e35715b857ef8a",
+    "semantic_hash": "64f6702df4e379e133e35715b857ef8a"
+  },
+  "pdfding/pdf/migrations/0027_remove_expiration_and_description_from_shared_models.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "e305356c22181a1bb8591bd89e28430f",
+    "semantic_hash": "e305356c22181a1bb8591bd89e28430f"
+  },
+  "pdfding/pdf/migrations/0028_remove_unneeded_fields_from_shared_collection.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "547910592c3abe4c1111519c96529060",
+    "semantic_hash": "547910592c3abe4c1111519c96529060"
+  },
+  "pdfding/pdf/migrations/0029_add_file_sha256.py": {
+    "mtime": 1782760904.7453187,
+    "ast_hash": "030291823786b37d618dbd9843ffc289",
+    "semantic_hash": "030291823786b37d618dbd9843ffc289"
+  },
+  "pdfding/pdf/migrations/0030_remove_shared_models.py": {
+    "mtime": 1782813445.6280277,
+    "ast_hash": "d0c7416ce2e0840ef1c804a1e0d88f52",
+    "semantic_hash": "d0c7416ce2e0840ef1c804a1e0d88f52"
+  },
+  "pdfding/pdf/migrations/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/pdf/models/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/pdf/models/collection_models.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "2d2df7047e733df50fa5cd6b16bb527e",
+    "semantic_hash": "2d2df7047e733df50fa5cd6b16bb527e"
+  },
+  "pdfding/pdf/models/helpers.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "0475a8a5d88f5a707abe683b2eb4d634",
+    "semantic_hash": "0475a8a5d88f5a707abe683b2eb4d634"
+  },
+  "pdfding/pdf/models/pdf_models.py": {
+    "mtime": 1782760767.6272297,
+    "ast_hash": "a75c627f13058a33c0b0235b1b2eda6c",
+    "semantic_hash": "a75c627f13058a33c0b0235b1b2eda6c"
+  },
+  "pdfding/pdf/models/tag_models.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "5be105de2ec092254f0cca5df7ea7b8b",
+    "semantic_hash": "5be105de2ec092254f0cca5df7ea7b8b"
+  },
+  "pdfding/pdf/models/workspace_models.py": {
+    "mtime": 1782813790.1613128,
+    "ast_hash": "139406aa14a0cb79fbea7aab76734cf2",
+    "semantic_hash": "139406aa14a0cb79fbea7aab76734cf2"
+  },
+  "pdfding/pdf/services/collection_services.py": {
+    "mtime": 1782813809.5751252,
+    "ast_hash": "cb84db7a7e5bbf2cb475eb7c9c9c09a4",
+    "semantic_hash": "cb84db7a7e5bbf2cb475eb7c9c9c09a4"
+  },
+  "pdfding/pdf/services/pdf_services.py": {
+    "mtime": 1782760818.3841403,
+    "ast_hash": "86f931bba4e47095cce6a99d674ca3d0",
+    "semantic_hash": "86f931bba4e47095cce6a99d674ca3d0"
+  },
+  "pdfding/pdf/services/tag_services.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "09b2fe5383c590ec1a45485e91d36232",
+    "semantic_hash": "09b2fe5383c590ec1a45485e91d36232"
+  },
+  "pdfding/pdf/services/workspace_services.py": {
+    "mtime": 1782813790.1511836,
+    "ast_hash": "d75ee5cc78d344d54c787b48ce97806b",
+    "semantic_hash": "d75ee5cc78d344d54c787b48ce97806b"
+  },
+  "pdfding/pdf/signals.py": {
+    "mtime": 1782813790.172821,
+    "ast_hash": "e694732ef804f3c9820e9bf631eb2b96",
+    "semantic_hash": "e694732ef804f3c9820e9bf631eb2b96"
+  },
+  "pdfding/pdf/tasks.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "8ce6f609bd3e590e0901dc4ee08c6bc2",
+    "semantic_hash": "8ce6f609bd3e590e0901dc4ee08c6bc2"
+  },
+  "pdfding/pdf/tests/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/pdf/tests/data/dummy_export.json": {
+    "mtime": 1782098272.0,
+    "ast_hash": "cbbc99504c96831542163317c1677870",
+    "semantic_hash": "cbbc99504c96831542163317c1677870"
+  },
+  "pdfding/pdf/tests/test_forms.py": {
+    "mtime": 1782813848.2259507,
+    "ast_hash": "20dd818d8f50adc4e7ff44eeb03529c8",
+    "semantic_hash": "20dd818d8f50adc4e7ff44eeb03529c8"
+  },
+  "pdfding/pdf/tests/test_migrations.py": {
+    "mtime": 1782813873.035243,
+    "ast_hash": "ec1c929c4518532c6c515dd9fb96b355",
+    "semantic_hash": "ec1c929c4518532c6c515dd9fb96b355"
+  },
+  "pdfding/pdf/tests/test_models/test_collection_models.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "ef10bc800b5414142717eca4fbcb5cb8",
+    "semantic_hash": "ef10bc800b5414142717eca4fbcb5cb8"
+  },
+  "pdfding/pdf/tests/test_models/test_helpers.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "7aa66db7e5ed9a950c236039f01462e0",
+    "semantic_hash": "7aa66db7e5ed9a950c236039f01462e0"
+  },
+  "pdfding/pdf/tests/test_models/test_pdf_models.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d946b688dc4d8c8542ff8c196653f788",
+    "semantic_hash": "d946b688dc4d8c8542ff8c196653f788"
+  },
+  "pdfding/pdf/tests/test_models/test_tag_models.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "5c174998da1b26a6f70407e9b3ec4da9",
+    "semantic_hash": "5c174998da1b26a6f70407e9b3ec4da9"
+  },
+  "pdfding/pdf/tests/test_models/test_workspace_models.py": {
+    "mtime": 1782813864.2134452,
+    "ast_hash": "9976f4e6279ee30f5bdbee64668e3ca3",
+    "semantic_hash": "9976f4e6279ee30f5bdbee64668e3ca3"
+  },
+  "pdfding/pdf/tests/test_services/test_collection_services.py": {
+    "mtime": 1782814087.1540303,
+    "ast_hash": "ca5fc8def28458f7a5f64fbc3e2f3ebe",
+    "semantic_hash": "ca5fc8def28458f7a5f64fbc3e2f3ebe"
+  },
+  "pdfding/pdf/tests/test_services/test_pdf_services.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "c7ec918f3e76952c3530535d4b488f9a",
+    "semantic_hash": "c7ec918f3e76952c3530535d4b488f9a"
+  },
+  "pdfding/pdf/tests/test_services/test_tag_services.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "23844829593c3e3e9a46eb271368e7a5",
+    "semantic_hash": "23844829593c3e3e9a46eb271368e7a5"
+  },
+  "pdfding/pdf/tests/test_services/test_workspaces_services.py": {
+    "mtime": 1782813852.3029096,
+    "ast_hash": "8fdcfe1b6c9071d8e8bce9f05c5fc840",
+    "semantic_hash": "8fdcfe1b6c9071d8e8bce9f05c5fc840"
+  },
+  "pdfding/pdf/tests/test_signals.py": {
+    "mtime": 1782813868.2839148,
+    "ast_hash": "73351ffd81588e9add9549564eaf65cc",
+    "semantic_hash": "73351ffd81588e9add9549564eaf65cc"
+  },
+  "pdfding/pdf/tests/test_tasks.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "00874bd4cd9edaad52158da7cc855883",
+    "semantic_hash": "00874bd4cd9edaad52158da7cc855883"
+  },
+  "pdfding/pdf/tests/test_views/test_collection_views.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "35706724307dcea6c6d465d76dd8e3d5",
+    "semantic_hash": "35706724307dcea6c6d465d76dd8e3d5"
+  },
+  "pdfding/pdf/tests/test_views/test_pdf_bulk_actions_views.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "7b0b8f8ea4f5e3cbf4d8704dbcb2e7bf",
+    "semantic_hash": "7b0b8f8ea4f5e3cbf4d8704dbcb2e7bf"
+  },
+  "pdfding/pdf/tests/test_views/test_pdf_views.py": {
+    "mtime": 1782761555.05046,
+    "ast_hash": "3f33a5aaeaddfd3adc083b7f157ec5da",
+    "semantic_hash": "3f33a5aaeaddfd3adc083b7f157ec5da"
+  },
+  "pdfding/pdf/tests/test_views/test_pdf_views_tags.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "636c8a2c4187c33d7dee5b4526c23039",
+    "semantic_hash": "636c8a2c4187c33d7dee5b4526c23039"
+  },
+  "pdfding/pdf/tests/test_views/test_workspace_views.py": {
+    "mtime": 1782761650.734382,
+    "ast_hash": "634f9964db1c714a34c8a8e782a79355",
+    "semantic_hash": "634f9964db1c714a34c8a8e782a79355"
+  },
+  "pdfding/pdf/urls.py": {
+    "mtime": 1782761087.4476182,
+    "ast_hash": "f85f3121ad3c4e8748af2ab5ac59a06f",
+    "semantic_hash": "f85f3121ad3c4e8748af2ab5ac59a06f"
+  },
+  "pdfding/pdf/views/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/pdf/views/collection_views.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "345c5b2fabab4cdda03db664d2ced88b",
+    "semantic_hash": "345c5b2fabab4cdda03db664d2ced88b"
+  },
+  "pdfding/pdf/views/pdf_bulk_action_views.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "a1464e1281d0c44f3bcdbe2888b5e912",
+    "semantic_hash": "a1464e1281d0c44f3bcdbe2888b5e912"
+  },
+  "pdfding/pdf/views/pdf_views.py": {
+    "mtime": 1782761000.1063805,
+    "ast_hash": "1c9b2bbf0c0fa5ca7cc9e0fe5ca6c0f8",
+    "semantic_hash": "1c9b2bbf0c0fa5ca7cc9e0fe5ca6c0f8"
+  },
+  "pdfding/pdf/views/workspace_views.py": {
+    "mtime": 1782813809.5717483,
+    "ast_hash": "a1d76ef773949d7b0aa2ce4002c0487a",
+    "semantic_hash": "a1d76ef773949d7b0aa2ce4002c0487a"
+  },
+  "pdfding/static/js/pdfding/viewer_base.js": {
+    "mtime": 1782098272.0,
+    "ast_hash": "6365a1e7a1e91978cab4b8aad4f050be",
+    "semantic_hash": "6365a1e7a1e91978cab4b8aad4f050be"
+  },
+  "pdfding/static/js/pdfding/viewer_logged_in.js": {
+    "mtime": 1782098272.0,
+    "ast_hash": "328c7e8f23bf98924af460a56f50f61d",
+    "semantic_hash": "328c7e8f23bf98924af460a56f50f61d"
+  },
+  "pdfding/users/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/users/apps.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "c087f63d725944c4583d025a0cbd4245",
+    "semantic_hash": "c087f63d725944c4583d025a0cbd4245"
+  },
+  "pdfding/users/forms.py": {
+    "mtime": 1782760956.270848,
+    "ast_hash": "57e0f9d6a747c0bdd654796c98a69c12",
+    "semantic_hash": "57e0f9d6a747c0bdd654796c98a69c12"
+  },
+  "pdfding/users/management/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/users/management/commands/clean_up.py": {
+    "mtime": 1782813693.2839093,
+    "ast_hash": "1e2890caad6f988540a5b4908b826b9e",
+    "semantic_hash": "1e2890caad6f988540a5b4908b826b9e"
+  },
+  "pdfding/users/management/commands/ensure_admin.py": {
+    "mtime": 1782760776.5612128,
+    "ast_hash": "a5f8278e6aab633ad3db57670c147e07",
+    "semantic_hash": "a5f8278e6aab633ad3db57670c147e07"
+  },
+  "pdfding/users/management/commands/make_admin.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "af088dfbb19592be718f8d850a04857e",
+    "semantic_hash": "af088dfbb19592be718f8d850a04857e"
+  },
+  "pdfding/users/migrations/0001_initial.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "52a678f3e4bfe4bac2704b44c0529d84",
+    "semantic_hash": "52a678f3e4bfe4bac2704b44c0529d84"
+  },
+  "pdfding/users/migrations/0002_remove_unnecessary_profile_information.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d14b8e3478b159900644f407f35b04ef",
+    "semantic_hash": "d14b8e3478b159900644f407f35b04ef"
+  },
+  "pdfding/users/migrations/0003_add_dark_mode.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "380f7dcdc0cddeed4eedab3a7724737c",
+    "semantic_hash": "380f7dcdc0cddeed4eedab3a7724737c"
+  },
+  "pdfding/users/migrations/0004_add_theme_color.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "77cbdb6c6f61669ea90473c4c87b057c",
+    "semantic_hash": "77cbdb6c6f61669ea90473c4c87b057c"
+  },
+  "pdfding/users/migrations/0005_add_pdfs_per_page.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "0b16effcaeca662210f6533a0efd3bbf",
+    "semantic_hash": "0b16effcaeca662210f6533a0efd3bbf"
+  },
+  "pdfding/users/migrations/0006_add_default_themes.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "04e304fff158f586f6787ff7e9c8792b",
+    "semantic_hash": "04e304fff158f586f6787ff7e9c8792b"
+  },
+  "pdfding/users/migrations/0007_add_custom_theme_colors.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "a2c5412a370343e5252b4b88ed4597cf",
+    "semantic_hash": "a2c5412a370343e5252b4b88ed4597cf"
+  },
+  "pdfding/users/migrations/0008_add_pdf_inverted_color_mode.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "aca103e91b259a90a70a956a3b84de9e",
+    "semantic_hash": "aca103e91b259a90a70a956a3b84de9e"
+  },
+  "pdfding/users/migrations/0009_show_progress.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "a67607d9087d0c412de62048a5e57ff3",
+    "semantic_hash": "a67607d9087d0c412de62048a5e57ff3"
+  },
+  "pdfding/users/migrations/0010_add_tags_tree_mode.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "a0db5a9c7531a1b2b8c54ad2c592b4eb",
+    "semantic_hash": "a0db5a9c7531a1b2b8c54ad2c592b4eb"
+  },
+  "pdfding/users/migrations/0011_add_show_thumbnails.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "302c87326b5506b8d4effc86b3c92f3e",
+    "semantic_hash": "302c87326b5506b8d4effc86b3c92f3e"
+  },
+  "pdfding/users/migrations/0012_add_creme_theme.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "c0ac6c09637051316b70e7b6b75002e1",
+    "semantic_hash": "c0ac6c09637051316b70e7b6b75002e1"
+  },
+  "pdfding/users/migrations/0013_persistant_sorting.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "513371c5b56d66a34877db3747f1de98",
+    "semantic_hash": "513371c5b56d66a34877db3747f1de98"
+  },
+  "pdfding/users/migrations/0014_activiate_nested_tags_overview.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "10d02b3a4ca4743ee453bce958b95eeb",
+    "semantic_hash": "10d02b3a4ca4743ee453bce958b95eeb"
+  },
+  "pdfding/users/migrations/0015_add_pdf_overview_layouts.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "9dade80860d123a8bca613778496b4d0",
+    "semantic_hash": "9dade80860d123a8bca613778496b4d0"
+  },
+  "pdfding/users/migrations/0016_readd_show_progress_bars.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "ba3cc1c57d5cbbe9730ed077259d6428",
+    "semantic_hash": "ba3cc1c57d5cbbe9730ed077259d6428"
+  },
+  "pdfding/users/migrations/0017_add_annotation_sorting.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "12f1f55eeaf80fa250d3f7b859fbd3c3",
+    "semantic_hash": "12f1f55eeaf80fa250d3f7b859fbd3c3"
+  },
+  "pdfding/users/migrations/0018_remove_tertiary_colors.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "e9bfaab7b1fd18d546c9fefb7e4b336d",
+    "semantic_hash": "e9bfaab7b1fd18d546c9fefb7e4b336d"
+  },
+  "pdfding/users/migrations/0019_keep_screen_awake.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "13dd5f33bf81f42443feaff460dc48db",
+    "semantic_hash": "13dd5f33bf81f42443feaff460dc48db"
+  },
+  "pdfding/users/migrations/0020_add_dark_mode_system.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "2e6cdb35cdf3e887a7a83aca4d5c548c",
+    "semantic_hash": "2e6cdb35cdf3e887a7a83aca4d5c548c"
+  },
+  "pdfding/users/migrations/0021_add_a_little_nagging.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "29ce8829a242aa381801420db5c871c2",
+    "semantic_hash": "29ce8829a242aa381801420db5c871c2"
+  },
+  "pdfding/users/migrations/0022_add_signatures.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "19b1014c1fc714e31b267861caae531e",
+    "semantic_hash": "19b1014c1fc714e31b267861caae531e"
+  },
+  "pdfding/users/migrations/0023_add_pdf_stats.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "c4ef9ce9e5f4e2dd32363d1015b5d8f5",
+    "semantic_hash": "c4ef9ce9e5f4e2dd32363d1015b5d8f5"
+  },
+  "pdfding/users/migrations/0024_add_current_collection_workspace.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "eb9ace39aea77f02c7db4c72604bc013",
+    "semantic_hash": "eb9ace39aea77f02c7db4c72604bc013"
+  },
+  "pdfding/users/migrations/0025_remove_unneeded_null_true.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "756225763cdfc654639fcacf0e0d1b37",
+    "semantic_hash": "756225763cdfc654639fcacf0e0d1b37"
+  },
+  "pdfding/users/migrations/0026_remove_nagging.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d877b07f9deb8fa77e09de80423ce03f",
+    "semantic_hash": "d877b07f9deb8fa77e09de80423ce03f"
+  },
+  "pdfding/users/migrations/0027_remove_pdf_stats_from_profile.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "b28fe64c200b457d0d7e0300258fbb3b",
+    "semantic_hash": "b28fe64c200b457d0d7e0300258fbb3b"
+  },
+  "pdfding/users/migrations/0028_add_minimal_layout.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d494339937bbbb57c09f5a6a714bff90",
+    "semantic_hash": "d494339937bbbb57c09f5a6a714bff90"
+  },
+  "pdfding/users/migrations/0029_remove_creme_theme.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "42d972e21aa45be1f3aa53637cf138f3",
+    "semantic_hash": "42d972e21aa45be1f3aa53637cf138f3"
+  },
+  "pdfding/users/migrations/0030_add_language_adjust_theme_choices.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "4986676f679a1372f3bd0a593b3e6217",
+    "semantic_hash": "4986676f679a1372f3bd0a593b3e6217"
+  },
+  "pdfding/users/migrations/0031_add_nagging.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "915e25c84f7652b4023c7241d48324ee",
+    "semantic_hash": "915e25c84f7652b4023c7241d48324ee"
+  },
+  "pdfding/users/migrations/0032_remove_dead_sorting_fields.py": {
+    "mtime": 1782813445.6280277,
+    "ast_hash": "008366dfaa4717e2f300f20154086bb3",
+    "semantic_hash": "008366dfaa4717e2f300f20154086bb3"
+  },
+  "pdfding/users/migrations/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/users/models.py": {
+    "mtime": 1782813672.4363146,
+    "ast_hash": "65744611d0c2a31cd340a1b5403e2d35",
+    "semantic_hash": "65744611d0c2a31cd340a1b5403e2d35"
+  },
+  "pdfding/users/service.py": {
+    "mtime": 1782813685.2651932,
+    "ast_hash": "b7f5ef297c2c0dc66e50ecdc003c8494",
+    "semantic_hash": "b7f5ef297c2c0dc66e50ecdc003c8494"
+  },
+  "pdfding/users/signals.py": {
+    "mtime": 1782760776.5742784,
+    "ast_hash": "c86569a1b8d0ac0c118a5142b6c1cd58",
+    "semantic_hash": "c86569a1b8d0ac0c118a5142b6c1cd58"
+  },
+  "pdfding/users/tests/__init__.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "pdfding/users/tests/test_forms.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "626a848a6ef1cf793c7d565e718a0c12",
+    "semantic_hash": "626a848a6ef1cf793c7d565e718a0c12"
+  },
+  "pdfding/users/tests/test_management.py": {
+    "mtime": 1782814094.579875,
+    "ast_hash": "337faadeb20d57d086c2be791f7d6245",
+    "semantic_hash": "337faadeb20d57d086c2be791f7d6245"
+  },
+  "pdfding/users/tests/test_migrations.py": {
+    "mtime": 1782098272.0,
+    "ast_hash": "ca77038b0373ddf769e9832ed0c75639",
+    "semantic_hash": "ca77038b0373ddf769e9832ed0c75639"
+  },
+  "pdfding/users/tests/test_models.py": {
+    "mtime": 1782813870.1390233,
+    "ast_hash": "2f40ac0900f6bc8ab9ededc73d3e4b29",
+    "semantic_hash": "2f40ac0900f6bc8ab9ededc73d3e4b29"
+  },
+  "pdfding/users/tests/test_service.py": {
+    "mtime": 1782761599.607984,
+    "ast_hash": "a87ba0514694aa993b41d0b60b2288bc",
+    "semantic_hash": "a87ba0514694aa993b41d0b60b2288bc"
+  },
+  "pdfding/users/tests/test_signals.py": {
+    "mtime": 1782761342.0258796,
+    "ast_hash": "14d671fe61013a4001d9bee85a5da59d",
+    "semantic_hash": "14d671fe61013a4001d9bee85a5da59d"
+  },
+  "pdfding/users/tests/test_views.py": {
+    "mtime": 1782813856.0558238,
+    "ast_hash": "b91e20dd41837d292cac5b04b739525e",
+    "semantic_hash": "b91e20dd41837d292cac5b04b739525e"
+  },
+  "pdfding/users/urls.py": {
+    "mtime": 1782761102.0048456,
+    "ast_hash": "663ff2d916ae3dbd0e666ea853990964",
+    "semantic_hash": "663ff2d916ae3dbd0e666ea853990964"
+  },
+  "pdfding/users/views.py": {
+    "mtime": 1782813677.6213458,
+    "ast_hash": "331d3e25878aa26b42358b0a8f3c0252",
+    "semantic_hash": "331d3e25878aa26b42358b0a8f3c0252"
+  },
+  "pyproject.toml": {
+    "mtime": 1782761756.8442352,
+    "ast_hash": "6b6f03b7c8e29e41051edf221e55a43d",
+    "semantic_hash": "6b6f03b7c8e29e41051edf221e55a43d"
+  },
+  ".github/dependabot.yml": {
+    "mtime": 1782098272.0,
+    "ast_hash": "505bf847b1c0be2d9c222409396bafa5",
+    "semantic_hash": ""
+  },
+  ".github/workflows/docker-publish.yaml": {
+    "mtime": 1782723561.4476955,
+    "ast_hash": "8fedc467a5dc0ebbdb1281642f9b05e5",
+    "semantic_hash": ""
+  },
+  ".pre-commit-config.yaml": {
+    "mtime": 1782098272.0,
+    "ast_hash": "6c98165481f506cf279aeb70e26c0683",
+    "semantic_hash": ""
+  },
+  "CHANGELOG.md": {
+    "mtime": 1782098272.0,
+    "ast_hash": "22de1c6fded2a6385a8aa90f774dae81",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1782733258.4290252,
+    "ast_hash": "8a6643a420fdad6bfb583523bc6cef16",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1782760864.3191562,
+    "ast_hash": "6ad873cb51f1713681e89bb0058f27cf",
+    "semantic_hash": ""
+  },
+  "SECURITY.md": {
+    "mtime": 1782098272.0,
+    "ast_hash": "8905faf7a51a9dc14023495ec29f2c85",
+    "semantic_hash": ""
+  },
+  "compose/postgres.docker-compose.yaml": {
+    "mtime": 1782760860.500714,
+    "ast_hash": "def3d4654e3f1e8568e20cb0351f4442",
+    "semantic_hash": ""
+  },
+  "compose/sqlite.docker-compose.yaml": {
+    "mtime": 1782760857.0333607,
+    "ast_hash": "7c4cbd69294c498e6ad89c9a69f2b9e0",
+    "semantic_hash": ""
+  },
+  "pdfding/admin/templates/information.html": {
+    "mtime": 1782763582.5365741,
+    "ast_hash": "9899f25c1e0e1f855f7de45a58662eed",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/add_pdf.html": {
+    "mtime": 1782760968.9793136,
+    "ast_hash": "00c72a5efb2e65b6b19d68b9d31dc50e",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/bulk_add_pdf.html": {
+    "mtime": 1782736891.0591905,
+    "ast_hash": "fb7049b1299984c3070cf30c602de082",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/collection_details.html": {
+    "mtime": 1782761118.8523245,
+    "ast_hash": "8ddb3cb3d709a6a87ab12988c9a7ee5b",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/create_collection.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "15acdbd2232f59cd7b7b9685b84d2290",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/add_pdf_optionals.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "fda60e2363320ea518765ea195b15472",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/add_sidebar.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "49d5b9d619dd4aa557483a2e3c8b9a87",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/annotations_sidebar.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "dc1ec2814b50c3fe592289695ac2c33d",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/individual_tag.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "adc22af0d308cb45d030b1f8c62de75b",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_annotation_overview/annotation.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "0c84ff29deacc45e7cddd00c226fb5af",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_annotation_overview/header_extra.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "52039f832b46b66c3f16f6d62f2a8403",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_annotation_overview/overview_page.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "4464c731d7f9ec94a6d7dc88713efe3b",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_details_sidebar.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "062e179e1eb74cd7a014dc215d33c80a",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_overview/bulk_action_menu.html": {
+    "mtime": 1782736891.0602603,
+    "ast_hash": "a5b156b146e391f19bc72d1f51f65059",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_overview/compact_pdf.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "5ba82d88f6301a836fb9271680c1aefb",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_overview/header_extra.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "7621b0783a10409f59a358bcbee090ce",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_overview/minimal_pdf.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "df03634959011bd2145f7d1416d23ff1",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_overview/overview_page.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "fd2a336ee7d76831a0b211132d80a254",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_overview/pdf_actions_menu.html": {
+    "mtime": 1782761101.9731512,
+    "ast_hash": "6cbc7fd53fe1c070567651b911daeca3",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_overview/pdf_interactions.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "01a0a087455abd1072d79262c772e5e8",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_overview/search_filters.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "879a799879be07de2f70d2edbd9bbe27",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/pdf_overview/spacious_pdf.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "16ac1ad6da071b773c7d392f48a0713c",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/sidebar.html": {
+    "mtime": 1782761101.9646456,
+    "ast_hash": "5687818dd07d60b86e9ce23a45fadcba",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/tag_input.html": {
+    "mtime": 1782760941.6416628,
+    "ast_hash": "b13b2010c179dfb0275b8ee0f7800ab3",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/includes/tags.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "574e8db717d18c07b2f382fcece24898",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/partials/collection_dropdown.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "bce58ddf0c5edcbc108e6d5e615c32f8",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/partials/delete_collection.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "61fa9674482a54e53dc295a0b00734b4",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/partials/delete_pdf.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "218e55152896372299c1f0441e8af804",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/partials/details_form.html": {
+    "mtime": 1782760968.9833133,
+    "ast_hash": "3cc19ba3fed0a46dc19aea00c8754119",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/partials/notes.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "54fb04f2447b4e83bce937339988d52e",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/partials/preview.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "0d4c4719770f700f7818db973aa2c830",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/partials/tag_name_form.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "a71c2b525aeb3fafc016f03fab77905f",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/pdf_annotation_overview.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "3c82ea789ded8ca0ae7e702855301d9c",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/pdf_details.html": {
+    "mtime": 1782761177.6663392,
+    "ast_hash": "1cb68bb170978f8f50d5222d519cdc7f",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/pdf_details_annotation_overview.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "f06fb3164577317fe47e6435619feb33",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/pdf_overview.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "4f2a956e005aa7d8cc7b526ec7e34858",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/templates/viewer.html": {
+    "mtime": 1782761101.9867218,
+    "ast_hash": "02b070a5eef5698c4d386497a4f2a026",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/404.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "764db12544700aae0e72e409a3a044dc",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/base.html": {
+    "mtime": 1782760922.789082,
+    "ast_hash": "e9ba3306136714b4ff215e8fb5453d71",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/get_next_page.html": {
+    "mtime": 1782760922.7945895,
+    "ast_hash": "1a3f41eb2d2b018d95c61ad71ca98cf3",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/header.html": {
+    "mtime": 1782761114.882987,
+    "ast_hash": "a241b47796ad7614d30343a38d9cbc04",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/messages.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "9b971bd6b30a178cf900e3e1d674f9c7",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/nagging_banner.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "0ce50d6c4633fd636d096ece8a2b1f99",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/annotation.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "822497bfba8f23db4942d2aef2c45248",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/archive.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "2f396deca24849b2fa953efd16df8f0a",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/back.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "c8e97e63ed2c53678b5fee6489c6c5d4",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/collection.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "31056bb5c07abc7b22a05154087bd154",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/comment.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "95e0d0ee2580ac6754ab2fc4d55ab4dd",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/detail.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "17f0db9508d6ec8f3d55a9a586cd8fd9",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/document.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "acafb25215a7af5bc1009f5fa6c26af6",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/download.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "54af6193c3715777cdd777217cc99743",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/dropdown_large.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "457d36934937fffa07f104b1aedc20d8",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/plus.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "089b8dac7b30f5dc71b536c24cff98b3",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/settings.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "5fc79f335be6d0dd385a73691be9dfff",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/spinner.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "ae9cc9f91c37bd559499d1e07ea0029d",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/star.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "49a6f4a7d0b86e4e8975052a39f0a5dd",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/includes/svg/user.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "97728170f19b1a9983e7d3328cc2259d",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/layouts/add_box.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "5fb5e3ebebd156c12da9c561d7e9465c",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/layouts/base_sidebar.html": {
+    "mtime": 1782761252.2246077,
+    "ast_hash": "d35e8da0c8767ce52f8a519688f9ef12",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/layouts/blank.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "61465d0e421e8154cd349aa12b87eeaf",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/layouts/box.html": {
+    "mtime": 1782760776.5879385,
+    "ast_hash": "3a216914a923e5b8351080b9b1879f87",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/layouts/box_large.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "ac96284b84a8cdf0a187b152975a2011",
+    "semantic_hash": ""
+  },
+  "pdfding/templates/login.html": {
+    "mtime": 1782760776.5783494,
+    "ast_hash": "e3a17c6b78ca99226fb3d404c66e55f6",
+    "semantic_hash": ""
+  },
+  "pdfding/users/templates/account_settings.html": {
+    "mtime": 1782761049.6795583,
+    "ast_hash": "bfa0986d071cd9f043ea245d52917a54",
+    "semantic_hash": ""
+  },
+  "pdfding/users/templates/danger_settings.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "e31af0f390696aa2794f64682ff75d77",
+    "semantic_hash": ""
+  },
+  "pdfding/users/templates/includes/settings_sidebar.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "42a1426952913c8cbf3147e0675d1d35",
+    "semantic_hash": ""
+  },
+  "pdfding/users/templates/partials/settings_form.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "5b831c4b5517063586c51e1af2ca714c",
+    "semantic_hash": ""
+  },
+  "pdfding/users/templates/profile_delete.html": {
+    "mtime": 1782761252.2160976,
+    "ast_hash": "7327794f229f309f0145325b76e93d7c",
+    "semantic_hash": ""
+  },
+  "pdfding/users/templates/ui_settings.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "8e950371158f5ac4743f872bd26a8d70",
+    "semantic_hash": ""
+  },
+  "pdfding/users/templates/viewer_settings.html": {
+    "mtime": 1782098272.0,
+    "ast_hash": "d38e7d8b8242f78e6ccdabe12d3a8fc7",
+    "semantic_hash": ""
+  },
+  "pdfding/pdf/tests/data/dummy.pdf": {
+    "mtime": 1782098272.0,
+    "ast_hash": "9cc470cbf4cb127524090a611d8a090a",
+    "semantic_hash": ""
+  },
+  "pdfding/users/demo_data/demo.pdf": {
+    "mtime": 1782098272.0,
+    "ast_hash": "035666095da253708c90a56898eaf01a",
+    "semantic_hash": ""
+  },
+  "pdfding/static/fonts/boxicons.svg": {
+    "mtime": 1782761061.48256,
+    "ast_hash": "b0bb967778275b356010f01219188eb0",
+    "semantic_hash": ""
+  },
+  "pdfding/static/images/icon-192.png": {
+    "mtime": 1782761072.8735023,
+    "ast_hash": "f829b914fc47cfc9c0747c119c27cf1b",
+    "semantic_hash": ""
+  },
+  "pdfding/static/images/icon-512.png": {
+    "mtime": 1782761072.8735023,
+    "ast_hash": "f829b914fc47cfc9c0747c119c27cf1b",
+    "semantic_hash": ""
+  },
+  "pdfding/static/images/logo.svg": {
+    "mtime": 1782098272.0,
+    "ast_hash": "761839a1827d58db5f7ae6b04ee89172",
+    "semantic_hash": ""
+  },
+  "pdfding/static/images/logo_with_circle.svg": {
+    "mtime": 1782098272.0,
+    "ast_hash": "2c5550fe6c750578b2e0313b64510aff",
+    "semantic_hash": ""
+  },
+  "pdfding/static/images/trash.svg": {
+    "mtime": 1782098272.0,
+    "ast_hash": "80638155d450f6344c1a45c2a7204e98",
+    "semantic_hash": ""
+  }
+}

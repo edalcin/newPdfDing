@@ -1,16 +1,16 @@
 # Graph Report - newPdfDing  (2026-06-30)
 
 ## Corpus Check
-- 180 files · ~134,369 words
+- 180 files · ~135,652 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 489 nodes · 661 edges · 37 communities (32 shown, 5 thin omitted)
-- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 50 edges (avg confidence: 0.61)
+- 1566 nodes · 2756 edges · 202 communities (98 shown, 104 thin omitted)
+- Extraction: 71% EXTRACTED · 29% INFERRED · 0% AMBIGUOUS · INFERRED: 796 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d02fb0b2`
+- Built from commit: `f1d760f2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -52,183 +52,488 @@
 - [[_COMMUNITY_Community 34|Community 34]]
 - [[_COMMUNITY_Community 35|Community 35]]
 - [[_COMMUNITY_Community 36|Community 36]]
+- [[_COMMUNITY_Community 37|Community 37]]
+- [[_COMMUNITY_Community 38|Community 38]]
+- [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 40|Community 40]]
+- [[_COMMUNITY_Community 41|Community 41]]
+- [[_COMMUNITY_Community 42|Community 42]]
+- [[_COMMUNITY_Community 43|Community 43]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 50|Community 50]]
+- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
+- [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
+- [[_COMMUNITY_Community 55|Community 55]]
+- [[_COMMUNITY_Community 56|Community 56]]
+- [[_COMMUNITY_Community 57|Community 57]]
+- [[_COMMUNITY_Community 58|Community 58]]
+- [[_COMMUNITY_Community 59|Community 59]]
+- [[_COMMUNITY_Community 60|Community 60]]
+- [[_COMMUNITY_Community 61|Community 61]]
+- [[_COMMUNITY_Community 62|Community 62]]
+- [[_COMMUNITY_Community 63|Community 63]]
+- [[_COMMUNITY_Community 64|Community 64]]
+- [[_COMMUNITY_Community 65|Community 65]]
+- [[_COMMUNITY_Community 66|Community 66]]
+- [[_COMMUNITY_Community 67|Community 67]]
+- [[_COMMUNITY_Community 68|Community 68]]
+- [[_COMMUNITY_Community 69|Community 69]]
+- [[_COMMUNITY_Community 70|Community 70]]
+- [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 72|Community 72]]
+- [[_COMMUNITY_Community 73|Community 73]]
+- [[_COMMUNITY_Community 74|Community 74]]
+- [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 88|Community 88]]
+- [[_COMMUNITY_Community 89|Community 89]]
+- [[_COMMUNITY_Community 90|Community 90]]
+- [[_COMMUNITY_Community 91|Community 91]]
+- [[_COMMUNITY_Community 92|Community 92]]
+- [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 96|Community 96]]
+- [[_COMMUNITY_Community 97|Community 97]]
+- [[_COMMUNITY_Community 98|Community 98]]
+- [[_COMMUNITY_Community 99|Community 99]]
+- [[_COMMUNITY_Community 100|Community 100]]
+- [[_COMMUNITY_Community 101|Community 101]]
+- [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 103|Community 103]]
+- [[_COMMUNITY_Community 104|Community 104]]
+- [[_COMMUNITY_Community 105|Community 105]]
+- [[_COMMUNITY_Community 106|Community 106]]
+- [[_COMMUNITY_Community 107|Community 107]]
+- [[_COMMUNITY_Community 108|Community 108]]
+- [[_COMMUNITY_Community 109|Community 109]]
+- [[_COMMUNITY_Community 110|Community 110]]
+- [[_COMMUNITY_Community 111|Community 111]]
+- [[_COMMUNITY_Community 112|Community 112]]
+- [[_COMMUNITY_Community 113|Community 113]]
+- [[_COMMUNITY_Community 114|Community 114]]
+- [[_COMMUNITY_Community 115|Community 115]]
+- [[_COMMUNITY_Community 116|Community 116]]
+- [[_COMMUNITY_Community 117|Community 117]]
+- [[_COMMUNITY_Community 118|Community 118]]
+- [[_COMMUNITY_Community 119|Community 119]]
+- [[_COMMUNITY_Community 120|Community 120]]
+- [[_COMMUNITY_Community 121|Community 121]]
+- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 124|Community 124]]
+- [[_COMMUNITY_Community 125|Community 125]]
+- [[_COMMUNITY_Community 126|Community 126]]
+- [[_COMMUNITY_Community 127|Community 127]]
+- [[_COMMUNITY_Community 128|Community 128]]
+- [[_COMMUNITY_Community 129|Community 129]]
+- [[_COMMUNITY_Community 130|Community 130]]
+- [[_COMMUNITY_Community 131|Community 131]]
+- [[_COMMUNITY_Community 132|Community 132]]
+- [[_COMMUNITY_Community 133|Community 133]]
+- [[_COMMUNITY_Community 134|Community 134]]
+- [[_COMMUNITY_Community 135|Community 135]]
+- [[_COMMUNITY_Community 136|Community 136]]
+- [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 138|Community 138]]
+- [[_COMMUNITY_Community 139|Community 139]]
+- [[_COMMUNITY_Community 140|Community 140]]
+- [[_COMMUNITY_Community 141|Community 141]]
+- [[_COMMUNITY_Community 142|Community 142]]
+- [[_COMMUNITY_Community 143|Community 143]]
+- [[_COMMUNITY_Community 144|Community 144]]
+- [[_COMMUNITY_Community 145|Community 145]]
+- [[_COMMUNITY_Community 146|Community 146]]
+- [[_COMMUNITY_Community 147|Community 147]]
+- [[_COMMUNITY_Community 148|Community 148]]
+- [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
+- [[_COMMUNITY_Community 152|Community 152]]
+- [[_COMMUNITY_Community 153|Community 153]]
+- [[_COMMUNITY_Community 154|Community 154]]
+- [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 164|Community 164]]
+- [[_COMMUNITY_Community 165|Community 165]]
+- [[_COMMUNITY_Community 168|Community 168]]
+- [[_COMMUNITY_Community 169|Community 169]]
+- [[_COMMUNITY_Community 170|Community 170]]
+- [[_COMMUNITY_Community 172|Community 172]]
+- [[_COMMUNITY_Community 183|Community 183]]
+- [[_COMMUNITY_Community 184|Community 184]]
+- [[_COMMUNITY_Community 186|Community 186]]
+- [[_COMMUNITY_Community 187|Community 187]]
+- [[_COMMUNITY_Community 188|Community 188]]
+- [[_COMMUNITY_Community 192|Community 192]]
+- [[_COMMUNITY_Community 193|Community 193]]
+- [[_COMMUNITY_Community 194|Community 194]]
+- [[_COMMUNITY_Community 195|Community 195]]
+- [[_COMMUNITY_Community 196|Community 196]]
+- [[_COMMUNITY_Community 197|Community 197]]
+- [[_COMMUNITY_Community 198|Community 198]]
+- [[_COMMUNITY_Community 199|Community 199]]
+- [[_COMMUNITY_Community 201|Community 201]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `Profile` - 32 edges
-2. `TestProfileSettingsViews` - 28 edges
-3. `TestCleanHelpers` - 23 edges
-4. `Workspace` - 22 edges
-5. `TestProfile` - 17 edges
-6. `TagE2ETestCase` - 16 edges
-7. `create_collection()` - 16 edges
-8. `TestWorkspaceServices` - 13 edges
-9. `CleanHelpers` - 12 edges
-10. `TestPdfForms` - 12 edges
+1. `Pdf` - 170 edges
+2. `Profile` - 100 edges
+3. `Collection` - 98 edges
+4. `Tag` - 80 edges
+5. `PdfProcessingServices` - 70 edges
+6. `PdfComment` - 59 edges
+7. `PdfHighlight` - 59 edges
+8. `TagServices` - 58 edges
+9. `Workspace` - 40 edges
+10. `create_collection()` - 37 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `TestCleanHelpers` --uses--> `CleanHelpers`  [INFERRED]
-  pdfding/pdf/tests/test_forms.py → pdfding/pdf/forms.py
-- `create_collection()` --calls--> `WorkspaceError`  [INFERRED]
-  pdfding/pdf/services/workspace_services.py → pdfding/pdf/models/workspace_models.py
-- `create_personal_workspace()` --calls--> `WorkspaceError`  [INFERRED]
-  pdfding/pdf/services/workspace_services.py → pdfding/pdf/models/workspace_models.py
-- `TestMigrations` --uses--> `Workspace`  [INFERRED]
-  pdfding/pdf/tests/test_migrations.py → pdfding/pdf/models/workspace_models.py
-- `AnnotationsSortingChoice` --uses--> `Workspace`  [INFERRED]
-  pdfding/users/models.py → pdfding/pdf/models/workspace_models.py
+- `Migration` --uses--> `PdfProcessingServices`  [INFERRED]
+  pdfding/pdf/migrations/0009_readd_number_of_pages_with_new_default.py → pdfding/pdf/services/pdf_services.py
+- `Migration` --uses--> `PdfProcessingServices`  [INFERRED]
+  pdfding/pdf/migrations/0013_add_pdf_previews.py → pdfding/pdf/services/pdf_services.py
+- `Migration` --uses--> `PdfProcessingServices`  [INFERRED]
+  pdfding/pdf/migrations/0015_add_comments_highlights.py → pdfding/pdf/services/pdf_services.py
+- `Migration` --uses--> `PdfProcessingServices`  [INFERRED]
+  pdfding/pdf/migrations/0016_rename_pdfs_and_add_file_directory.py → pdfding/pdf/services/pdf_services.py
+- `Migration` --uses--> `PdfProcessingServices`  [INFERRED]
+  pdfding/users/migrations/0016_readd_show_progress_bars.py → pdfding/pdf/services/pdf_services.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (37 total, 5 thin omitted)
+## Hyperedges (group relationships)
+- **PDF Management Flow** — add_pdf, bulk_add_pdfs, pdf_overview, pdf_details [EXTRACTED 0.90]
+- **UI Navigation Structure** — sidebar_partial, collection_dropdown_partial, collection_details [EXTRACTED 0.85]
+- **User Settings Management** — account_settings, ui_settings, viewer_settings, danger_settings, settings_sidebar [EXTRACTED 1.00]
+- **Template Inheritance Hierarchy** — template_base, layout_blank, layout_box, layout_box_large, layout_add_box [EXTRACTED 1.00]
+
+## Communities (202 total, 104 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.05
-Nodes (14): CleanHelpers, NameForm, Form for changing the name of a PDF., Clean the submitted pdf name. Removes trailing and multiple whitespaces., Clean the submitted name. Removes trailing and multiple whitespaces., TestCase, TestCollectionForms, TestOther (+6 more)
+Cohesion: 0.06
+Nodes (94): Collection, The model for the collections used for organizing PDF files., MarkdownHelper, Meta, PdfAnnotation, PdfComment, PdfHighlight, Model for the base pdf annotation (+86 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.08
-Nodes (30): The workspace model. Workspaces are the top level hierarchy., Override default delete method so that workspace directory gets deleted after th, Workspace, create_workspace(), delete_orphan_tag(), handle_workspaces_after_user_delete(), Create the personal workspace when a user is created., Delete all workspaces belonging to the user. (+22 more)
+Nodes (32): CollectionError, Exceptions for collection related problems, CollectionDescriptionForm, CollectionForm, CollectionNameForm, Class for creating the form for creating collections., Clean the submitted collection name. Removes trailing and multiple whitespaces., Form for changing the name of a collection. (+24 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.06
-Nodes (3): BaseProfileView, TestProfileOtherViews, TestProfileSettingsViews
+Cohesion: 0.12
+Nodes (12): BaseDetails, BaseDetailsEdit, BaseOverviewQuery, BaseServe, Base view used for serving PDF files specified by the PDF id., Returns the specified file as a FileResponse          There is a revision parame, Base view for displaying the details page of an object., Display the details page. (+4 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.07
-Nodes (17): Get the collections of the workspace., QuerySet, Profile, Return dark mode property so that it can be used in templates., Return the current workspace associated of the profile., Return the current collection of the profile., Return the name of the current collection, Return all PDFs of all workspaces the user has access to. (+9 more)
+Cohesion: 0.14
+Nodes (10): Override default delete method so that the collection directory gets deleted aft, get_collection_dir(), get_collection_path(), get_workspace_dir(), Get the path of a collection., Get the directory of a workspace., Get the directory of a collection., get_file_path() (+2 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.07
-Nodes (5): create_collection(), Create a collection and add it to the workspace, TestWorkspace, TestCollectionServices, TestProfile
+Cohesion: 0.13
+Nodes (13): account_settings(), ChangeSorting, ChangeTreeMode, danger_settings(), View for changing the sorting settings for the overviews, Change the sorting setting., View for turning tag tree mode on and off., View for the account settings page (+5 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.09
-Nodes (15): add_file_to_minio(), backup_function(), backup_sqlite(), backup_task(), check_backup_requirements(), difference_local_minio(), Compare the local PDF and qr code files to the files in the minio bucket.      R, Add a file to minio. If an encryption key is provided the file will be encrypted (+7 more)
+Cohesion: 0.06
+Nodes (4): BaseProfileView, TestAuthRelated, TestProfileOtherViews, TestProfileSettingsViews
 
-### Community 7 - "Community 7"
-Cohesion: 0.12
-Nodes (12): TestMigrations, convert_hex_to_rgb(), convert_rgb_to_hex(), darken_color(), get_demo_pdf(), get_secondary_color(), get_viewer_theme_and_color(), Converts RGB color representation to a hex representation (+4 more)
+### Community 6 - "Community 6"
+Cohesion: 0.15
+Nodes (11): ChoiceField, BulkAddForm, BulkAddFormNoFile, get_collection_choices(), Meta, MultipleFileField, MultipleFileInput, PdfCollectionForm (+3 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.10
-Nodes (7): Exception, Exceptions for workspace related problems, The workspace user model. It is linked to both a workspace and a user profile., WorkspaceError, WorkspaceRoles, WorkspaceUser, TestWorkspaceServices
+Cohesion: 0.08
+Nodes (12): delete_empty_dirs_after_rename_or_delete(), get_preview_path(), get_thumbnail_path(), Pdf, Model for the pdf files., Get read progress of the pdf in percent., Get the current page for progress calculations. If there are zero views the curr, Delete empty directories in the users media/pdf directory that appear as a resul (+4 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.15
-Nodes (13): Collection, Pdf, adjust_pdf_path(), change_collection_of_pdf(), move_collection(), move_collection_file(), Change the collection of a PDF., Adjust path of PDF when the path of a collection is changed (+5 more)
+Cohesion: 0.07
+Nodes (14): Get the pdfs of the collection, QuerySet, Filter the objects when performing a search in the overview., Return all PDFs of all workspaces the user has access to., Return all PDFs of the current collections (all or single)., Return all collections of all workspaces the user has access to., Return all tags associated with the profile., Return all workspaces associated with the profile. (+6 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.18
-Nodes (10): BaseDelete, BaseDetailsEdit, The base view for editing fields of an object in the details page. The field, th, Triggered by htmx. Display an inline form for editing the correct field., POST: Change the specified field by submitting the form., Base view for deleting the object specified by its ID., Delete the specified object., Execute before deleting object. (+2 more)
+Cohesion: 0.31
+Nodes (17): AddForm, DescriptionForm, NameForm, Form for changing the description of a PDF., Add, BaseAddMixin, BaseMixin, Delete (+9 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.15
-Nodes (11): account_settings(), ChangeTreeMode, danger_settings(), View for turning tag tree mode on and off., Change the sorting setting., View for the account settings page, View for the ui settings page, View for the viewer settings page (+3 more)
-
-### Community 13 - "Community 13"
-Cohesion: 0.20
-Nodes (8): ChoiceField, get_collection_choices(), PdfCollectionForm, Adds the profile to the form. This is done, so we can access information about t, Form for changing the collection of a PDF., Adds the profile to the form. This is done, so we can access information about t, Adds the profile to the form. This is done, so we can access information about t, Adds the profile to the form. This is done, so we can access information about t
+Cohesion: 0.09
+Nodes (11): get further information that needs to be passed to the template., Get the pdf specified by the ID, Process fields that are not covered in the base edit view., Save the PDF based on the submitted form., Display the PDF file in the browser, Get a pdf's markdown notes as html, Change the current page., Triggered by htmx. Display an inline form for deleting the pdf. (+3 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.18
-Nodes (9): CollectionDescriptionForm, DescriptionForm, Meta, MultipleFileField, MultipleFileInput, NotesForm, Form for changing the description of a PDF., Form for changing the notes of a PDF. (+1 more)
-
-### Community 15 - "Community 15"
-Cohesion: 0.18
-Nodes (9): BaseOverviewQuery, Base view for performing searches in the overview pages., ChangeLayout, ChangeSorting, View for changing the sorting settings for the overviews, Change the sorting setting., View for changing the layout settings for the pdf overview, Change the layout setting. (+1 more)
+Cohesion: 0.11
+Nodes (10): pdfding_context(), HttpRequest, Get the sorting of the overview page., get further information that needs to be passed to the template., Get the pdf specified by the ID, Get the sorting of the overview page., Get the context needed to be passed to the template containing the form for addi, Simple view for redirecting to the pdf overview. This is used when the root url (+2 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.22
-Nodes (6): BaseDetails, BaseServe, Base view used for serving PDF files specified by the PDF id., Returns the specified file as a FileResponse          There is a revision parame, Base view for displaying the details page of an object., Display the details page.
-
-### Community 17 - "Community 17"
-Cohesion: 0.20
-Nodes (7): CollectionForm, CollectionNameForm, Class for creating the form for creating collections., Clean the submitted collection name. Removes trailing and multiple whitespaces., Form for changing the name of a collection., Clean the submitted collection name. Removes trailing and multiple whitespaces., Clean the submitted workspace name. Removes trailing and multiple whitespaces. C
+Cohesion: 0.14
+Nodes (17): Account Settings Page, Danger Settings Page, Flash Messages, Add Box Layout, Base Sidebar Layout, Blank Layout, Box Layout, Large Box Layout (+9 more)
 
 ### Community 18 - "Community 18"
-Cohesion: 0.22
-Nodes (5): PdfTagsForm, Form for changing the tags of a PDF., Form for changing the name of a tag., Clean the input string. Allowed are only alphanumeric chars and those in ['/', ', TagNameForm
+Cohesion: 0.13
+Nodes (5): TestSignals, TestCase, TestRecoverData, TestTaskHelpers, TestLoginRequired
 
 ### Community 19 - "Community 19"
-Cohesion: 0.25
-Nodes (4): AdminLoginView, View for gettings and setting signatures, Single-admin password login view., Signatures
+Cohesion: 0.16
+Nodes (12): ModelForm, TestUserForms, clean_hex_color(), create_user_field_form(), CustomThemeColorForm, EmailForm, GenericUserFieldForm, Meta (+4 more)
 
-### Community 20 - "Community 20"
+### Community 21 - "Community 21"
+Cohesion: 0.12
+Nodes (15): dependencies, alpinejs, boxicons, htmx.org, tailwindcss, terser, license, name (+7 more)
+
+### Community 24 - "Community 24"
+Cohesion: 0.19
+Nodes (7): BrowserContext, PdfDingE2ENoLoginTestCase, PdfDingE2ETestCase, UsersLoginE2ETestCase, Page, Playwright, StaticLiveServerTestCase
+
+### Community 26 - "Community 26"
+Cohesion: 0.25
+Nodes (10): backup_function(), backup_sqlite(), backup_task(), check_backup_requirements(), difference_local_minio(), Compare the local PDF and qr code files to the files in the minio bucket.      R, Periodic huey task for backing up the PDF and QR code files and (if used) the sq, If at least one user and one PDF are present in the database backup requirements (+2 more)
+
+### Community 28 - "Community 28"
+Cohesion: 0.14
+Nodes (13): Migration, Get the workspace the PDF belongs to., The workspace model. Workspaces are the top level hierarchy., Get the collections of the workspace., Workspace, AnnotationsSortingChoice, DarkMode, EnabledChoice (+5 more)
+
+### Community 32 - "Community 32"
+Cohesion: 0.08
+Nodes (10): Exception, fill_data(), Migration, Fill the collection and workspace data for existing users, Exceptions for workspace related problems, The workspace user model. It is linked to both a workspace and a user profile., WorkspaceError, WorkspaceRoles (+2 more)
+
+### Community 33 - "Community 33"
+Cohesion: 0.11
+Nodes (3): set_up(), TestTagMixin, TestTagViews
+
+### Community 34 - "Community 34"
+Cohesion: 0.18
+Nodes (4): BaseCommand, Command, Command, Command
+
+### Community 35 - "Community 35"
+Cohesion: 0.12
+Nodes (5): CleanHelpers, Clean the submitted pdf file. Checks if the file is a pdf., TestCollectionForms, TestTagForms, TestWorkspaceForms
+
+### Community 36 - "Community 36"
+Cohesion: 0.22
+Nodes (5): PdfDocument, Extract and set the thumbnail and the preview image of the pdf file., Set the highlights and comments of a pdf.          We need to have pdf_highlight, Extract the text from a highlight annotation, Process the pdf with pypdfium. This will extract the number of pages and optiona
+
+### Community 37 - "Community 37"
+Cohesion: 0.20
+Nodes (3): TestAddPDFMixin, get_demo_pdf(), Get the PDF file used for testing.
+
+### Community 39 - "Community 39"
+Cohesion: 0.24
+Nodes (8): parse_cron_schedule(), Parse a cron schedule so that it can be used as an input for a huey periodic tas, consume_function(), consume_task(), passes_consume_condition(), Periodic huey task for creating pdf instances from pdf files put into the consum, Create pdf instances for pdf files present in the consume folder., Check if the file is a pdf file. If existing files should be skipped also checks
+
+### Community 41 - "Community 41"
+Cohesion: 0.18
+Nodes (7): construct_query_overview_url(), construct_search_and_tag_queries(), process_raw_search_query(), Construct the search and tag queries for the overview pages.      - Tags in "new, Process the raw search query.      Example input: #tag1 #tag2 searchstring1 sear, Constructs the overview url after performing a search in the overview pages., TestService
+
+### Community 42 - "Community 42"
+Cohesion: 0.14
+Nodes (4): Collection, create_collection(), Create a collection and add it to the workspace, TestOther
+
+### Community 44 - "Community 44"
+Cohesion: 0.29
+Nodes (9): convert_hex_to_rgb(), convert_rgb_to_hex(), darken_color(), get_secondary_color(), get_viewer_theme_and_color(), Converts RGB color representation to a hex representation, Darkening a RGB color by the specified percentage, Get the secondary color of a custom color. (+1 more)
+
+### Community 45 - "Community 45"
+Cohesion: 0.11
+Nodes (14): adjust_pdf_path(), change_collection_of_pdf(), move_collection(), move_collection_file(), Change the collection of a PDF., Adjust path of PDF when the path of a collection is changed, Move the file of collection, e.g. the file belonging to a pdf., Change the name of a collection and rename the collection directory on file syst (+6 more)
+
+### Community 46 - "Community 46"
+Cohesion: 0.22
+Nodes (3): set_up(), TestDelete, TransactionTestCase
+
+### Community 48 - "Community 48"
+Cohesion: 0.17
+Nodes (12): File, Clean the submitted pdf file. Checks if the file is a pdf and not a duplicate., check_object_access_allowed(), compute_file_sha256(), create_name_from_file(), create_unique_name_from_file(), get_pdf_info_list(), Return a Http404 exception when getting an object (e.g a pdf or shared pdf) that (+4 more)
+
+### Community 50 - "Community 50"
+Cohesion: 0.33
+Nodes (7): get_remote_signatures(), send_pdf_file(), set_current_page(), set_remote_signatures(), update_pdf(), update_remote_page(), update_remote_signatures()
+
+### Community 53 - "Community 53"
+Cohesion: 0.17
+Nodes (13): decrypt_file(), encrypt_file(), generate_encryption_key(), get_encryption_key(), Get the encryption key if encryption is activated, otherwise return None., Generate the encryption key with PBKDF2 using a user provided password and salt., Encrypt the specified file using Fernet. Fernet is a symmetric encryption algori, Decrypt the specified file using Fernet. Fernet is a symmetric encryption algori (+5 more)
+
+### Community 55 - "Community 55"
+Cohesion: 0.20
+Nodes (9): Attribution, CI / Container image, Differences from upstream, Make the package public (one-time), Minimal example, newPdfDing, Running with Docker, Unraid deployment (+1 more)
+
+### Community 56 - "Community 56"
+Cohesion: 0.18
+Nodes (15): Process the specified tags. If the tag is existing it will simply be added to th, check_if_collection_part_of_workspace(), check_if_pdf_with_hash_exists(), check_if_pdf_with_name_exists(), create_personal_workspace(), create_workspace(), get_pdfs_of_workspace(), Create a personal workspace for a user including the workspace user and the defa (+7 more)
+
+### Community 58 - "Community 58"
+Cohesion: 0.22
+Nodes (6): AdminLoginForm, Form for single-admin password login., AdminLoginView, View for gettings and setting signatures, Single-admin password login view., Signatures
+
+### Community 60 - "Community 60"
+Cohesion: 0.29
+Nodes (4): Get the tag specified by the name, Get the pdf specified by the name and its children, POST: Change the Tag name., Delete the specified tag.
+
+### Community 61 - "Community 61"
+Cohesion: 0.29
+Nodes (3): AppConfig, PdfConfig, UsersConfig
+
+### Community 62 - "Community 62"
+Cohesion: 0.22
+Nodes (4): get_workspace_path(), Get the path of a workspace., Override default delete method so that workspace directory gets deleted after th, TestWorkspace
+
+### Community 63 - "Community 63"
 Cohesion: 0.38
 Nodes (4): BaseOverview, Base view for the overview pages. This view performs the searching and sorting., Display the overview., Do some action before rendering the overview
 
-### Community 21 - "Community 21"
+### Community 64 - "Community 64"
 Cohesion: 0.29
-Nodes (5): AddForm, AddFormNoFile, Class for creating the form for adding PDFs in the demo mode., Clean the submitted pdf name. Removes trailing and multiple whitespaces. Also ch, Class for creating the form for adding PDFs.
+Nodes (4): HealthView, View for the health check endpoint., Serve the service worker at root scope., ServiceWorkerView
 
-### Community 22 - "Community 22"
+### Community 65 - "Community 65"
+Cohesion: 0.33
+Nodes (5): add_pdf_stats(), Migration, Add PDF stats to all profiles., Set PDF stats of a profile, set_pdf_stats()
+
+### Community 66 - "Community 66"
+Cohesion: 0.14
+Nodes (8): AddFormNoFile, FileDirectoryForm, Class for creating the form for adding PDFs in the demo mode., Clean the submitted pdf name. Removes trailing and multiple whitespaces., Form for changing the directory of a PDF., Clean the submitted pdf file directory name., Clean the submitted file directory. Removes trailing, multiple whitespaces. Rais, Clean the submitted pdf name. Removes trailing and multiple whitespaces. Also ch
+
+### Community 67 - "Community 67"
 Cohesion: 0.29
-Nodes (4): FileDirectoryForm, Form for changing the directory of a PDF., Clean the submitted pdf file directory name., Clean the submitted file directory. Removes trailing, multiple whitespaces. Rais
+Nodes (6): create_workspace(), delete_orphan_tag(), handle_workspaces_after_user_delete(), Create the personal workspace when a user is created., Delete all workspaces belonging to the user., Makes sure that there are no orphaned tags. If a tag is only used in a pdf objec
 
-### Community 23 - "Community 23"
+### Community 71 - "Community 71"
+Cohesion: 0.38
+Nodes (3): TestCollectionDetails, TestWorkspaceMixin, WorkspaceTestCase
+
+### Community 72 - "Community 72"
+Cohesion: 0.25
+Nodes (5): NotesForm, PdfTagsForm, Form for changing the notes of a PDF., Clean the input string. Allowed are only alphanumeric chars and those in ['/', ', TagNameForm
+
+### Community 74 - "Community 74"
 Cohesion: 0.33
 Nodes (4): BaseAdd, View for adding new objects., Display the form for adding an object., Create the new object.
 
-### Community 24 - "Community 24"
-Cohesion: 0.40
-Nodes (4): BaseDownload, Base view for downloading the PDF specified by the ID., Get an empty suffix. This is currently used for pdf files as otherwise download, Return the specified file as a FileResponse.
-
-### Community 25 - "Community 25"
-Cohesion: 0.40
-Nodes (3): File, Clean the submitted pdf file. Checks if the file is a pdf., Clean the submitted pdf file. Checks if the file is a pdf and not a duplicate.
-
-### Community 26 - "Community 26"
+### Community 75 - "Community 75"
 Cohesion: 0.33
-Nodes (4): ChangeSetting, View for changing the settings., For a htmx request this will load a change pdfs per page form as a partial, Process the submitted change settings form
+Nodes (6): Collection Dropdown Partial, Annotation Overview, PDF Details, PDF Overview, PDF Viewer, Sidebar Partial
 
-### Community 27 - "Community 27"
+### Community 78 - "Community 78"
+Cohesion: 0.32
+Nodes (5): BaseDelete, Base view for deleting the object specified by its ID., Delete the specified object., Execute before deleting object., Execute after deleting object.
+
+### Community 79 - "Community 79"
 Cohesion: 0.40
-Nodes (4): BulkAddForm, BulkAddFormNoFile, Class for creating the form for bulk adding PDFs in the demo mode., Class for creating the form for bulk adding PDFs.
+Nodes (3): CollectionDetails, Display the collection page., View for displaying the collections page of a workspace.
 
-### Community 28 - "Community 28"
+### Community 80 - "Community 80"
+Cohesion: 0.18
+Nodes (13): AdminRequiredMixin, CreateTag, DeleteTag, _get_workspace_tag(), Information, Restrict access to superuser+staff. 404 otherwise., Return tag with tag_id in user's current workspace, or None., View for getting instance information (+5 more)
+
+### Community 81 - "Community 81"
+Cohesion: 0.40
+Nodes (3): PdfDingLocaleMiddleware, Local middleware for setting the language code via the profile model., LocaleMiddleware
+
+### Community 82 - "Community 82"
+Cohesion: 0.40
+Nodes (3): fill_number_of_pages(), Migration, Fill the number of pages for all pdfs.
+
+### Community 83 - "Community 83"
+Cohesion: 0.40
+Nodes (3): fill_thumbnails_and_previews(), Migration, Fill the thumbnails and previews for all pdfs.
+
+### Community 84 - "Community 84"
+Cohesion: 0.40
+Nodes (3): Migration, Set highlights and comments for all pdfs., set_highlights_and_comments()
+
+### Community 85 - "Community 85"
+Cohesion: 0.40
+Nodes (3): adjust_thumbnails(), Migration, Regenerate thumbnail images after changing thumbnail dimensions
+
+### Community 86 - "Community 86"
+Cohesion: 0.40
+Nodes (3): Migration, Rename pdfs, so that the file name is not a random ID but the pdf name., update_pdf_file_names()
+
+### Community 87 - "Community 87"
+Cohesion: 0.40
+Nodes (3): adjust_file_paths(), Migration, Adjust the file paths of all PDFs and shared PDFs so that the include the worksp
+
+### Community 88 - "Community 88"
+Cohesion: 0.40
+Nodes (3): creme_to_dark(), Migration, Switch creme theme to dark theme as creme theme is removed.
+
+### Community 89 - "Community 89"
+Cohesion: 0.33
+Nodes (4): DateTimeField, convert_to_natural_age(), Get the natural age of a file. This converts the creation date to a natural age,, Convert the creation date into a natural age, e.g: 2 minutes, 1 hour,  2 months,
+
+### Community 92 - "Community 92"
 Cohesion: 0.40
 Nodes (3): Delete, View for deleting a user profile., Display the page for deleting the user
 
-### Community 30 - "Community 30"
+### Community 94 - "Community 94"
 Cohesion: 0.50
 Nodes (3): get_qrcode_file_path(), Migration, Inline: was in shared_models.py, now deleted.
 
-### Community 31 - "Community 31"
+### Community 95 - "Community 95"
 Cohesion: 0.50
 Nodes (3): get_collection_qr_code_path(), Migration, Inline: was in shared_models.py, now deleted.
 
-### Community 32 - "Community 32"
+### Community 98 - "Community 98"
+Cohesion: 0.40
+Nodes (4): BaseDownload, Base view for downloading the PDF specified by the ID., Get an empty suffix. This is currently used for pdf files as otherwise download, Return the specified file as a FileResponse.
+
+### Community 99 - "Community 99"
+Cohesion: 0.67
+Nodes (3): Add PDF, Bulk Add PDFs, Tag Input Partial
+
+### Community 100 - "Community 100"
+Cohesion: 0.33
+Nodes (3): Converts markdown notes to html and sanitizes them, so that they can be displaye, Get the html tags that are allowed when sanitizing the markdown html, Get the html attributes that are allowed when sanitizing the markdown html
+
+### Community 164 - "Community 164"
+Cohesion: 0.33
+Nodes (4): ChangeSetting, View for changing the settings., For a htmx request this will load a change pdfs per page form as a partial, Process the submitted change settings form
+
+### Community 194 - "Community 194"
 Cohesion: 0.50
 Nodes (3): ChangeCollection, View for changing the current collection., Change the current workspace.
 
-### Community 33 - "Community 33"
+### Community 195 - "Community 195"
+Cohesion: 0.50
+Nodes (3): ChangeLayout, View for changing the layout settings for the pdf overview, Change the layout setting.
+
+### Community 196 - "Community 196"
 Cohesion: 0.50
 Nodes (3): OpenCollapseTags, View for opening and collapsing tags in the pdf overview, Open or collapse the tags in the pdf overview
 
-### Community 34 - "Community 34"
+### Community 197 - "Community 197"
 Cohesion: 0.50
 Nodes (3): View for updating the last time a user was nagged., Update the last time a user was nagged with the current datetime., UpdateLastTimeNagged
 
 ## Knowledge Gaps
-- **6 isolated node(s):** `Meta`, `Migration`, `Migration`, `Migration`, `WorkspaceRoles` (+1 more)
+- **97 isolated node(s):** `What is PdfDing?`, `Differences from upstream`, `Minimal example`, `Unraid deployment`, `Make the package public (one-time)` (+92 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **104 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Profile` connect `Community 3` to `Community 0`, `Community 1`, `Community 2`, `Community 32`, `Community 33`, `Community 34`, `Community 7`, `Community 12`, `Community 15`, `Community 19`, `Community 26`, `Community 28`?**
-  _High betweenness centrality (0.301) - this node is a cross-community bridge._
-- **Why does `Workspace` connect `Community 1` to `Community 8`, `Community 3`, `Community 4`, `Community 7`?**
-  _High betweenness centrality (0.187) - this node is a cross-community bridge._
-- **Why does `create_collection()` connect `Community 4` to `Community 8`, `Community 1`, `Community 9`, `Community 0`?**
-  _High betweenness centrality (0.108) - this node is a cross-community bridge._
-- **Are the 15 inferred relationships involving `Profile` (e.g. with `BaseProfileView` and `TestAuthRelated`) actually correct?**
-  _`Profile` has 15 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 10 inferred relationships involving `Workspace` (e.g. with `TestMigrations` and `AnnotationsSortingChoice`) actually correct?**
-  _`Workspace` has 10 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `Periodic huey task for backing up the PDF and QR code files and (if used) the sq`, `If at least one user and one PDF are present in the database backup requirements`, `Function for backing up the PDF and QR code files and (if used) the sqlite datab` to the rest of the system?**
-  _127 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.04875886524822695 - nodes in this community are weakly interconnected._
+- **Why does `Pdf` connect `Community 8` to `Community 0`, `Community 1`, `Community 3`, `Community 5`, `Community 6`, `Community 7`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 15`, `Community 20`, `Community 22`, `Community 23`, `Community 25`, `Community 27`, `Community 28`, `Community 29`, `Community 30`, `Community 31`, `Community 32`, `Community 33`, `Community 35`, `Community 36`, `Community 37`, `Community 38`, `Community 42`, `Community 43`, `Community 172`, `Community 45`, `Community 46`, `Community 47`, `Community 49`, `Community 51`, `Community 52`, `Community 54`, `Community 56`, `Community 57`, `Community 59`, `Community 193`, `Community 66`, `Community 70`, `Community 72`, `Community 76`, `Community 77`, `Community 80`, `Community 89`, `Community 90`, `Community 100`?**
+  _High betweenness centrality (0.258) - this node is a cross-community bridge._
+- **Why does `Profile` connect `Community 0` to `Community 1`, `Community 4`, `Community 5`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 18`, `Community 19`, `Community 25`, `Community 27`, `Community 28`, `Community 164`, `Community 44`, `Community 46`, `Community 54`, `Community 58`, `Community 65`, `Community 194`, `Community 195`, `Community 196`, `Community 197`, `Community 199`, `Community 73`, `Community 92`?**
+  _High betweenness centrality (0.129) - this node is a cross-community bridge._
+- **Why does `PdfProcessingServices` connect `Community 0` to `Community 36`, `Community 37`, `Community 70`, `Community 38`, `Community 8`, `Community 77`, `Community 15`, `Community 48`, `Community 49`, `Community 82`, `Community 83`, `Community 84`, `Community 85`, `Community 86`, `Community 52`, `Community 59`, `Community 28`?**
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+- **Are the 140 inferred relationships involving `Pdf` (e.g. with `Information` and `CommentOverviewE2ETestCase`) actually correct?**
+  _`Pdf` has 140 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 76 inferred relationships involving `Profile` (e.g. with `CommentOverviewE2ETestCase` and `HighlightOverviewE2ETestCase`) actually correct?**
+  _`Profile` has 76 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 84 inferred relationships involving `Collection` (e.g. with `TestCollectionE2ETestCase` and `Migration`) actually correct?**
+  _`Collection` has 84 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 74 inferred relationships involving `Tag` (e.g. with `PdfDetailsCommentsE2ETestCase` and `PdfDetailsE2ETestCase`) actually correct?**
+  _`Tag` has 74 INFERRED edges - model-reasoned connections that need verification._

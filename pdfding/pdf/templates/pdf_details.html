@@ -105,7 +105,29 @@
                            {% trans 'Archive' %}
                            {% endif %}
                         </a>
+                        <svg class="w-5! h-5!" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12.1" cy="12.1" r="1"></circle>
+                        </svg>
+                        {% if pdf.share %}
+                        <form method="post" action="{% url 'unshare_pdf' pdf.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="font-bold text-primary hover:text-secondary cursor-pointer bg-transparent">{% trans 'Unshare' %}</button>
+                        </form>
+                        {% else %}
+                        <form method="post" action="{% url 'share_pdf' pdf.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="font-bold text-primary hover:text-secondary cursor-pointer bg-transparent">{% trans 'Share' %}</button>
+                        </form>
+                        {% endif %}
                     </div>
+                    {% if pdf.share %}
+                    <div class="pt-2 text-sm">
+                        <span class="text-lg font-bold">{% trans 'Public link' %}</span>
+                        <div class="text-slate-600 dark:text-slate-400 break-all">
+                            <a class="text-primary hover:text-secondary" href="{% url 'view_shared_pdf' pdf.share.id %}">{{ request.scheme }}://{{ request.get_host }}{% url 'view_shared_pdf' pdf.share.id %}</a>
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="pt-2">
                       <span class="text-lg font-bold">{% trans 'Collection' %}</span>
                     </div>

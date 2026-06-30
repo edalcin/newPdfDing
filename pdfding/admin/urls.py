@@ -8,4 +8,6 @@ urlpatterns = [
     path('tags/rename', views.RenameTag.as_view(), name='admin_tag_rename'),
     path('tags/delete', views.DeleteTag.as_view(), name='admin_tag_delete'),
     path('tags/substitute', views.SubstituteTag.as_view(), name='admin_tag_substitute'),
+    path('shares', views.SharedPdfOverview.as_view(), name='admin_shared_overview'),
+    path('shares/revoke', views.RevokeShare.as_view(), name='admin_share_revoke'),
 ]

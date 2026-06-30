@@ -928,3 +928,61 @@ class TestAnnotationMixin(TestCase):
         }
 
         self.assertEqual(generated_extra_context, expected_extra_context)
+
+
+class TestSharedPdfViews(TestCase):
+    username = 'user'
+    password = '12345'
+
+    def setUp(self):
+        self.user = None
+        set_up(self)
+
+    def _create_pdf(self, name='mypdf'):
+        simple_file = SimpleUploadedFile(f'{name}.pdf', b'%PDF-1.4 test')
+        return Pdf.objects.create(collection=self.user.profile.current_collection, name=name, file=simple_file)
+
+    def test_share_creates_link(self):
+        from pdf.models.shared_models import SharedPdf
+        pdf = self._create_pdf()
+        response = self.client.post(reverse('share_pdf', args=[pdf.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(SharedPdf.objects.filter(pdf=pdf).exists())
+
+    def test_share_idempotent(self):
+        from pdf.models.shared_models import SharedPdf
+        pdf = self._create_pdf()
+        self.client.post(reverse('share_pdf', args=[pdf.id]))
+        self.client.post(reverse('share_pdf', args=[pdf.id]))
+        self.assertEqual(SharedPdf.objects.filter(pdf=pdf).count(), 1)
+
+    def test_unshare_deletes(self):
+        from pdf.models.shared_models import SharedPdf
+        pdf = self._create_pdf()
+        SharedPdf.objects.create(pdf=pdf)
+        self.client.post(reverse('unshare_pdf', args=[pdf.id]))
+        self.assertFalse(SharedPdf.objects.filter(pdf=pdf).exists())
+
+    def test_view_shared_no_login(self):
+        from pdf.models.shared_models import SharedPdf
+        pdf = self._create_pdf()
+        share = SharedPdf.objects.create(pdf=pdf)
+        anon = Client()
+        response = anon.get(reverse('view_shared_pdf', args=[share.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'viewer.html')
+        self.assertFalse(response.context['user_view_bool'])
+
+    def test_view_shared_404_bad_token(self):
+        from uuid import uuid4
+        anon = Client()
+        response = anon.get(reverse('view_shared_pdf', args=[uuid4()]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_serve_shared_no_login(self):
+        from pdf.models.shared_models import SharedPdf
+        pdf = self._create_pdf()
+        share = SharedPdf.objects.create(pdf=pdf)
+        anon = Client()
+        response = anon.get(reverse('serve_shared_pdf', args=[share.id]))
+        self.assertEqual(response.status_code, 200)

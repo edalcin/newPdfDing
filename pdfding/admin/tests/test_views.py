@@ -100,3 +100,45 @@ class TestAdminTagViews(TestCase):
         message = list(response.context['messages'])[0]
         self.assertEqual(message.tags, 'warning')
         self.assertTrue(Tag.objects.filter(id=tag.id).exists())
+
+
+class TestAdminSharedPdfViews(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='admin', password='password', email='a@a.com')
+        self.user.is_staff = True
+        self.user.is_superuser = True
+        self.user.save()
+        self.client.login(username='admin', password='password')
+
+    def _workspace(self):
+        return self.user.profile.current_workspace
+
+    def _create_pdf(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from pdf.models.pdf_models import Pdf
+        f = SimpleUploadedFile('x.pdf', b'%PDF-1.4')
+        return Pdf.objects.create(collection=self.user.profile.current_collection, name='x', file=f)
+
+    def test_overview_get(self):
+        response = self.client.get(reverse('admin_shared_overview'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'shared_pdf_management.html')
+
+    def test_non_admin_404(self):
+        other = User.objects.create_user(username='plain', password='password', email='b@b.com')
+        self.client.login(username='plain', password='password')
+        response = self.client.get(reverse('admin_shared_overview'))
+        self.assertEqual(response.status_code, 404)
+
+    def test_revoke(self):
+        from pdf.models.shared_models import SharedPdf
+        pdf = self._create_pdf()
+        share = SharedPdf.objects.create(pdf=pdf)
+        self.client.post(reverse('admin_share_revoke'), {'share_id': share.id})
+        self.assertFalse(SharedPdf.objects.filter(id=share.id).exists())
+
+    def test_revoke_not_found(self):
+        from uuid import uuid4
+        response = self.client.post(reverse('admin_share_revoke'), {'share_id': uuid4()}, follow=True)
+        messages = list(response.context['messages'])
+        self.assertEqual(messages[0].tags, 'warning')

@@ -1,0 +1,46 @@
+{% extends 'layouts/blank.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="flex justify-center p-4 md:p-8">
+    <div class="flex flex-col w-full max-w-2xl gap-y-6">
+
+        <div class="flex items-center justify-between">
+            <div class="text-2xl font-bold">{% trans 'Shared PDFs' %}</div>
+            <a href="{% url 'instance_info' %}" class="text-primary hover:text-secondary text-sm">{% trans 'Information' %}</a>
+        </div>
+
+        {% if messages %}
+        <div>
+            {% for message in messages %}
+            <div class="px-3 py-2 rounded-md bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-sm">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Shared PDF list -->
+        <div class="flex flex-col border border-slate-300 dark:border-slate-600 rounded-sm px-4 py-3 gap-y-1">
+            <div class="font-semibold pb-1">{% trans 'Shared PDFs' %}</div>
+            {% for share in shares %}
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 py-1 border-b border-slate-200 dark:border-slate-700 last:border-0">
+                <div class="flex-1 min-w-0 flex flex-col gap-y-0.5">
+                    <span class="font-medium truncate">{{ share.pdf.name }} <span class="text-sm text-slate-500">({{ share.views }} {% trans 'views' %})</span></span>
+                    <span class="text-xs text-slate-500">{{ share.creation_date|date }}</span>
+                    <a class="text-xs text-primary hover:text-secondary break-all" href="{% url 'view_shared_pdf' share.id %}">{{ request.scheme }}://{{ request.get_host }}{% url 'view_shared_pdf' share.id %}</a>
+                </div>
+                <!-- Revoke -->
+                <form method="post" action="{% url 'admin_share_revoke' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="share_id" value="{{ share.id }}">
+                    <button type="submit" class="font-semibold text-red-600 border-2 border-red-600 rounded-md px-2 py-0.5 text-sm hover:bg-red-600 hover:text-white"
+                            onclick="return confirm('{% trans 'Revoke this public link?' %}')">{% trans 'Revoke' %}</button>
+                </form>
+            </div>
+            {% empty %}
+            <div class="text-slate-500 text-sm">{% trans 'No shared PDFs.' %}</div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

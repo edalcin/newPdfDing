@@ -1,0 +1,1 @@
+{"nodes": [{"id": "layout_box", "label": "Box Layout", "file_type": "code", "source_file": "pdfding/templates/layouts/box.html", "source_location": null}], "edges": [{"source": "layout_box", "target": "template_base", "relation": "implements", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "pdfding/templates/layouts/box.html"}], "hyperedges": []}

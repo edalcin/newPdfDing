@@ -102,6 +102,14 @@
                         </svg>
                         {% trans 'Manage Tags' %}
                     </a>
+                    <a href="{% url 'admin_shared_overview' %}">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                            <!-- source: https://www.svgrepo.com/svg/471693/link-01 -->
+                            <!-- license: CC0 License-->
+                            <path d="M9 12H15M9 12C9 10.3431 7.65685 9 6 9H4C2.34315 9 1 10.3431 1 12C1 13.6569 2.34315 15 4 15H6C7.65685 15 9 13.6569 9 12ZM15 12C15 10.3431 16.3431 9 18 9H20C21.6569 9 23 10.3431 23 12C23 13.6569 21.6569 15 20 15H18C16.3431 15 15 13.6569 15 12Z"/>
+                        </svg>
+                        {% trans 'Shared PDFs' %}
+                    </a>
                     {% endif %}
                     <div class="my-1 border-b border-slate-300 dark:border-slate-600"></div>
                     <a href="{% url 'logout' %}">

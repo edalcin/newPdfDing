@@ -8,7 +8,10 @@ from django.db.models import Q, QuerySet
 from django.db.models.functions import Lower
 from django.forms import ValidationError
 from django.http import FileResponse, HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.views.static import serve
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh
@@ -16,6 +19,7 @@ from pdf import forms
 from pdf.models.collection_models import Collection
 from pdf.models.pdf_models import Pdf, PdfComment, PdfHighlight
 from pdf.models.tag_models import Tag
+from pdf.models.shared_models import SharedPdf
 from pdf.services import pdf_services
 from pdf.services.collection_services import change_collection_of_pdf
 from pdf.services.pdf_services import PdfProcessingServices, compute_file_sha256
@@ -523,6 +527,7 @@ class ViewerView(PdfMixin, View):
                 'theme_color': theme_color,
                 'user_view_bool': True,
                 'keep_screen_awake': request.user.profile.pdf_keep_screen_awake,
+                'serve_url': reverse('serve_pdf', args=[identifier, pdf.revision]),
             },
         )
 
@@ -617,6 +622,56 @@ class OverviewQuery(BasePdfMixin, base_views.BaseOverviewQuery):
 class Serve(PdfMixin, base_views.BaseServe):
     """View used for serving PDF files specified by the PDF id"""
 
+
+
+@method_decorator(login_not_required, name='dispatch')
+class ViewSharedPdf(View):
+    """Public, read-only viewer for a shared PDF."""
+
+    def get(self, request: HttpRequest, token):
+        shared = get_object_or_404(SharedPdf, id=token)
+        shared.views += 1
+        shared.save()
+        theme, theme_color = get_viewer_theme_and_color()
+        return render(
+            request,
+            'viewer.html',
+            {
+                'current_page': 1,
+                'serve_url': reverse('serve_shared_pdf', args=[token]),
+                'tab_title': shared.pdf.name.replace("'", ''),
+                'theme': theme,
+                'theme_color': theme_color,
+                'user_view_bool': False,
+            },
+        )
+
+
+@method_decorator(login_not_required, name='dispatch')
+class ServeSharedPdf(View):
+    """Public serve of the raw PDF bytes for a shared PDF."""
+
+    def get(self, request: HttpRequest, token):
+        shared = get_object_or_404(SharedPdf, id=token)
+        return serve(request, document_root=MEDIA_ROOT, path=shared.pdf.file.name)
+
+
+class SharePdf(PdfMixin, View):
+    """Create (or reuse) the share link for a PDF owned by the user."""
+
+    def post(self, request: HttpRequest, identifier: str):
+        pdf = self.get_object(request, identifier)
+        SharedPdf.objects.get_or_create(pdf=pdf)
+        return redirect('pdf_details', identifier=identifier)
+
+
+class UnsharePdf(PdfMixin, View):
+    """Revoke the share link for a PDF owned by the user."""
+
+    def post(self, request: HttpRequest, identifier: str):
+        pdf = self.get_object(request, identifier)
+        SharedPdf.objects.filter(pdf=pdf).delete()
+        return redirect('pdf_details', identifier=identifier)
 
 class Add(AddPdfMixin, base_views.BaseAdd):
     """View for adding new PDF files."""

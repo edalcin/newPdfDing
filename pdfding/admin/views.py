@@ -8,8 +8,10 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from pdf import forms
 from pdf.models.pdf_models import Pdf
+from pdf.models.shared_models import SharedPdf
 from pdf.models.tag_models import Tag
 from pdf.services.tag_services import TagServices
+from pdf.services.workspace_services import get_pdfs_of_workspace
 
 
 class AdminRequiredMixin:
@@ -100,3 +102,23 @@ class SubstituteTag(AdminRequiredMixin, View):
         else:
             TagServices.substitute_tag(source, target)
         return redirect('admin_tag_overview')
+
+
+class SharedPdfOverview(AdminRequiredMixin, View):
+    def get(self, request):
+        workspace = request.user.profile.current_workspace
+        shares = SharedPdf.objects.filter(pdf__in=get_pdfs_of_workspace(workspace)).order_by('-creation_date')
+        return render(request, 'shared_pdf_management.html', {'shares': shares})
+
+
+class RevokeShare(AdminRequiredMixin, View):
+    def post(self, request):
+        workspace = request.user.profile.current_workspace
+        share = SharedPdf.objects.filter(
+            id=request.POST.get('share_id', ''), pdf__in=get_pdfs_of_workspace(workspace)
+        ).first()
+        if share:
+            share.delete()
+        else:
+            messages.warning(request, _('Share not found!'))
+        return redirect('admin_shared_overview')
