@@ -2,7 +2,6 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.test import TestCase
 from pdf.models.pdf_models import Pdf
-from pdf.models.shared_models import SharedCollection, SharedPdf
 from pdf.models.workspace_models import WorkspaceError
 from pdf.services import workspace_services
 
@@ -114,42 +113,3 @@ class TestWorkspaceServices(TestCase):
 
         Pdf.objects.create(name='dummy', collection=self.user.profile.current_collection)
         self.assertTrue(workspace_services.check_if_pdf_with_name_exists('dummy', ws))
-
-    def test_get_shared_collections_of_workspace(self):
-        ws = self.user.profile.current_workspace
-        default_collection = self.user.profile.current_collection
-        other_collection = workspace_services.create_collection(ws, 'other')
-
-        ws_shared_collections = workspace_services.get_shared_collections_of_workspace(ws)
-        self.assertEqual(ws_shared_collections.count(), 0)
-
-        shared_1 = SharedCollection.objects.create(name='shared_1', collection=default_collection)
-        shared_2 = SharedCollection.objects.create(name='shared_2', collection=default_collection)
-        shared_3 = SharedCollection.objects.create(name='shared_3', collection=other_collection)
-
-        ws_shared_collections = workspace_services.get_shared_collections_of_workspace(ws)
-        self.assertEqual(ws_shared_collections.count(), 3)
-
-        for ws_shared_collection, shared_collection in zip(
-            ws_shared_collections.order_by('name'), [shared_1, shared_2, shared_3]
-        ):
-            self.assertEqual(ws_shared_collection, shared_collection)
-
-    def test_get_shared_pdfs_of_workspace(self):
-        ws = self.user.profile.current_workspace
-        default_collection = self.user.profile.current_collection
-        other_collection = workspace_services.create_collection(ws, 'other')
-
-        ws_pdfs = workspace_services.get_shared_pdfs_of_workspace(ws)
-        self.assertEqual(ws_pdfs.count(), 0)
-
-        pdf_1 = Pdf.objects.create(name='pdf_1', collection=default_collection)
-        pdf_2 = Pdf.objects.create(name='pdf_2', collection=other_collection)
-        shared_pdf_1 = SharedPdf.objects.create(name='shared_1', pdf=pdf_1)
-        shared_pdf_2 = SharedPdf.objects.create(name='shared_2', pdf=pdf_2)
-
-        ws_shared_pdfs = workspace_services.get_shared_pdfs_of_workspace(ws)
-        self.assertEqual(ws_shared_pdfs.count(), 2)
-
-        for ws_shared_pdf, shared_pdf in zip(ws_shared_pdfs.order_by('name'), [shared_pdf_1, shared_pdf_2]):
-            self.assertEqual(ws_shared_pdf, shared_pdf)

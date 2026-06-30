@@ -4,7 +4,6 @@ from core.settings import MEDIA_ROOT
 from django.contrib.auth.models import User
 from django.test import TestCase
 from pdf.models.pdf_models import Pdf
-from pdf.models.shared_models import SharedPdf
 from pdf.services import collection_services
 from pdf.services.workspace_services import create_collection
 
@@ -51,22 +50,16 @@ class TestCollectionServices(TestCase):
     def test_adjust_pdf_path_not_moving(self, mock_move_collection_file):
         collection = self.user.profile.current_collection
         pdf = Pdf.objects.create(collection=collection, name='pdf')
-        # make sure only the first occurence is replaced
+        # make sure only the first occurrence is replaced
         pdf.file.name = '1/old/pdf/old/pdf.pdf'
         pdf.preview.name = '1/old/previews/old/pdf'
         pdf.thumbnail.name = '1/old/thumbnails/old/pdf'
         pdf.save()
-        shared_pdf = SharedPdf.objects.create(pdf=pdf, name='shared_pdf')
-        shared_pdf.file.name = '1/old/qr/old/pdf'
-        shared_pdf.save()
 
         collection_services.adjust_pdf_path(pdf, '/old/', '/new/')
         assert pdf.file.name == '1/new/pdf/old/pdf.pdf'
         assert pdf.thumbnail.name == '1/new/thumbnails/old/pdf'
         assert pdf.preview.name == '1/new/previews/old/pdf'
-        # do not ask me why we need to fetch the shared pdf and not the normal one
-        changed_shared_pdf = SharedPdf.objects.get(id=shared_pdf.id)
-        assert changed_shared_pdf.file.name == '1/new/qr/old/pdf'
 
         mock_move_collection_file.assert_not_called()
 
@@ -74,31 +67,24 @@ class TestCollectionServices(TestCase):
     def test_adjust_pdf_path_moving(self, mock_move_collection_file):
         collection = self.user.profile.current_collection
         pdf = Pdf.objects.create(collection=collection, name='pdf')
-        # make sure only the first occurence is replaced
+        # make sure only the first occurrence is replaced
         pdf.file.name = '1/old/pdf/old/pdf.pdf'
         pdf.preview.name = '1/old/previews/old/pdf'
         pdf.thumbnail.name = '1/old/thumbnails/old/pdf'
         pdf.save()
-        shared_pdf = SharedPdf.objects.create(pdf=pdf, name='shared_pdf')
-        shared_pdf.file.name = '1/old/qr/old/pdf'
-        shared_pdf.save()
 
         collection_services.adjust_pdf_path(pdf, '/old/', '/new/', move_files=True)
         assert pdf.file.name == '1/new/pdf/old/pdf.pdf'
         assert pdf.thumbnail.name == '1/new/thumbnails/old/pdf'
         assert pdf.preview.name == '1/new/previews/old/pdf'
-        # do not ask me why we need to fetch the shared pdf and not the normal one
-        changed_shared_pdf = SharedPdf.objects.get(id=shared_pdf.id)
-        assert changed_shared_pdf.file.name == '1/new/qr/old/pdf'
 
-        assert mock_move_collection_file.call_count == 4
+        assert mock_move_collection_file.call_count == 3
 
         mock_move_collection_file.assert_has_calls(
             [
                 mock.call('1/old/pdf/old/pdf.pdf', '1/new/pdf/old/pdf.pdf'),
                 mock.call('1/old/thumbnails/old/pdf', '1/new/thumbnails/old/pdf'),
                 mock.call('1/old/previews/old/pdf', '1/new/previews/old/pdf'),
-                mock.call('1/old/qr/old/pdf', '1/new/qr/old/pdf'),
             ],
             any_order=True,
         )

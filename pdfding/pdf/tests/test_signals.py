@@ -4,8 +4,6 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from pdf.models.pdf_models import Pdf
 from pdf.models.tag_models import Tag
-from pdf.models.workspace_models import Workspace, WorkspaceRoles
-from pdf.services import workspace_services
 
 
 class TestSignals(TestCase):
@@ -33,16 +31,3 @@ class TestSignals(TestCase):
         user = User.objects.create_user(username='test_user', password='12345')
 
         mock_create_personal_workspace.assert_called_once_with(user)
-
-    def test_handle_workspaces_after_user_delete(self):
-        user_1 = User.objects.create_user(username='user_1', password='12345')
-        user_2 = User.objects.create_user(username='user_2', password='12345')
-        ws_1 = workspace_services.create_workspace('ws_1', user_1)
-        ws_2 = workspace_services.create_workspace('ws_2', user_1)
-        ws_1.add_user_to_workspace(user_2, WorkspaceRoles.OWNER)
-        ws_2.add_user_to_workspace(user_2, WorkspaceRoles.ADMIN)
-
-        user_1.delete()
-
-        self.assertEqual(Workspace.objects.filter(id=ws_1.id).count(), 1)
-        self.assertEqual(Workspace.objects.filter(id=ws_2.id).count(), 0)

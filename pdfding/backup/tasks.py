@@ -10,7 +10,6 @@ from huey import crontab
 from huey.contrib.djhuey import periodic_task
 from minio import Minio
 from pdf.models.pdf_models import Pdf
-from pdf.models.shared_models import SharedPdf
 
 logger = logging.getLogger('huey')
 
@@ -115,8 +114,7 @@ def difference_local_minio() -> tuple[set[str], set[str]]:
     """
 
     set_of_local_pdf_files = {pdf.file.name for pdf in Pdf.objects.all()}
-    set_of_local_qr_codes = {shared_pdf.file.name for shared_pdf in SharedPdf.objects.all() if not shared_pdf.deleted}
-    set_of_local_files = set_of_local_pdf_files.union(set_of_local_qr_codes)
+    set_of_local_files = set_of_local_pdf_files
 
     set_of_minio_files = {
         minio_object.object_name

@@ -2,9 +2,7 @@ from django.contrib.auth.models import User
 from django.db.models import QuerySet
 from pdf.models.collection_models import Collection
 from pdf.models.pdf_models import Pdf
-from pdf.models.shared_models import SharedCollection, SharedPdf
 from pdf.models.workspace_models import Workspace, WorkspaceError, WorkspaceRoles, WorkspaceUser
-from users.models import Profile
 
 
 def create_personal_workspace(creator: User) -> Workspace:
@@ -73,12 +71,6 @@ def get_pdfs_of_workspace(workspace: Workspace) -> QuerySet[Pdf]:
     return Pdf.objects.filter(collection__in=workspace.collections)
 
 
-def get_shared_collections_of_workspace(workspace: Workspace) -> QuerySet[SharedCollection]:
-    """Get all shared collections of a workspace."""
-
-    return SharedCollection.objects.filter(collection__in=workspace.collections)
-
-
 def check_if_pdf_with_name_exists(name: str, workspace: Workspace) -> bool:
     """Check if a PDF with the specified name exists in the workspace."""
 
@@ -87,13 +79,6 @@ def check_if_pdf_with_name_exists(name: str, workspace: Workspace) -> bool:
     else:
         return False
 
-
-def get_shared_pdfs_of_workspace(workspace: Workspace) -> QuerySet[SharedPdf]:
-    """Get all shared PDFs of the workspace."""
-
-    pdfs = get_pdfs_of_workspace(workspace)
-
-    return SharedPdf.objects.filter(pdf__in=pdfs)
 
 def check_if_pdf_with_hash_exists(sha256: str, workspace: Workspace) -> 'Pdf | None':
     """Return an existing Pdf in the workspace with the given sha256 hash, or None."""

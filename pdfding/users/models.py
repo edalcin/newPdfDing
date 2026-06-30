@@ -6,7 +6,6 @@ from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 from pdf.models.collection_models import Collection, CollectionError
 from pdf.models.pdf_models import Pdf
-from pdf.models.shared_models import SharedCollection, SharedPdf
 from pdf.models.workspace_models import Workspace
 
 newest_trans = _('Newest')
@@ -58,18 +57,6 @@ class Profile(models.Model):
         LEAST_VIEWED = 'Least_viewed', _('Least Viewed')
         RECENTLY_VIEWED = 'Recently_viewed', _('Recently Viewed')
 
-    class SharedPdfSortingChoice(models.TextChoices):
-        NEWEST = 'Newest', newest_trans
-        OLDEST = 'Oldest', oldest_trans
-        NAME_ASC = 'Name_asc', name_asc_trans
-        NAME_DESC = 'Name_desc', name_desc_trans
-
-    class UserSortingChoice(models.TextChoices):
-        NEWEST = 'Newest', newest_trans
-        OLDEST = 'Oldest', oldest_trans
-        EMAIL_ASC = 'Email_asc', _('Email Asc')
-        EMAIL_DESC = 'Email_desc', _('Email Desc')
-
     class AnnotationsSortingChoice(models.TextChoices):
         NEWEST = 'Newest', newest_trans
         OLDEST = 'Oldest', oldest_trans
@@ -102,15 +89,11 @@ class Profile(models.Model):
     )
     pdf_sorting = models.CharField(choices=PdfSortingChoice, max_length=15, default=PdfSortingChoice.NEWEST)
     show_progress_bars = models.CharField(choices=EnabledChoice.choices, max_length=8, default=EnabledChoice.ENABLED)
-    shared_pdf_sorting = models.CharField(
-        choices=SharedPdfSortingChoice, max_length=15, default=SharedPdfSortingChoice.NEWEST
-    )
     signatures = models.JSONField(default=dict)
     tags_open = models.BooleanField(default=False)
     tag_tree_mode = models.BooleanField(default=True)
     theme_color = models.CharField(choices=ThemeColor.choices, max_length=6, default=ThemeColor.RED)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    user_sorting = models.CharField(choices=UserSortingChoice, max_length=15, default=UserSortingChoice.NEWEST)
 
     def __str__(self):  # pragma: no cover
         return str(self.user.email)  # type: ignore
@@ -168,36 +151,12 @@ class Profile(models.Model):
         return pdfs
 
     @property
-    def all_shared_pdfs(self) -> QuerySet:
-        """Return all shared PDFs of all workspaces the profile has access to."""
-
-        shared_pdfs = SharedPdf.objects.filter(pdf__in=self.all_pdfs)
-
-        return shared_pdfs
-
-    @property
-    def current_shared_pdfs(self) -> QuerySet:
-        """Return all shared PDFs of the current collection (all or single)."""
-
-        shared_pdfs = SharedPdf.objects.filter(pdf__in=self.current_pdfs)
-
-        return shared_pdfs
-
-    @property
     def all_collections(self) -> QuerySet:
         """Return all collections of all workspaces the user has access to."""
 
         collections = Collection.objects.filter(workspace__in=self.workspaces)
 
         return collections
-
-    @property
-    def all_shared_collections(self) -> QuerySet:
-        """Return all shared collections of all workspaces the profile has access to."""
-
-        shared_pdfs = SharedCollection.objects.filter(collection__in=self.all_collections)
-
-        return shared_pdfs
 
     @property
     def tags(self) -> QuerySet:
@@ -250,10 +209,3 @@ class Profile(models.Model):
         else:
             return False
 
-    def has_access_to_workspace(self, workspace_id: str) -> bool:
-        """Check if the profile has access to the specified workspace"""
-
-        if self.workspaces.filter(id=workspace_id).count():
-            return True
-        else:
-            return False

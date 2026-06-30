@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from pdf.models.collection_models import Collection
 from pdf.models.pdf_models import Pdf
-from pdf.models.shared_models import SharedCollection, SharedPdf
 from pdf.services.workspace_services import create_collection, create_workspace
 from users.models import NAGGING_INTERVAL_WEEKS
 
@@ -119,52 +118,6 @@ class TestProfile(TestCase):
         for pdf_a, pdf_b in zip(self.user.profile.current_pdfs.order_by('name'), [pdf_1, pdf_2]):
             self.assertEqual(pdf_a, pdf_b)
 
-    def test_all_shared_pdfs_property(self):
-        collection = self.user.profile.current_collection
-        other_workspace = create_workspace('other_ws', self.user)
-        other_collection = create_collection(other_workspace, 'other')
-
-        pdf_1 = Pdf.objects.create(name='pdf_1', collection=collection)
-        pdf_2 = Pdf.objects.create(name='pdf_2', collection=other_collection)
-
-        shared_pdf_1 = SharedPdf.objects.create(pdf=pdf_1, name='shared_pdf_1')
-        shared_pdf_2 = SharedPdf.objects.create(pdf=pdf_2, name='shared_pdf_2')
-
-        self.assertEqual(self.user.profile.all_shared_pdfs.count(), 2)
-
-        for shared_pdf_a, shared_pdf_b in zip(
-            self.user.profile.all_shared_pdfs.order_by('name'), [shared_pdf_1, shared_pdf_2]
-        ):
-            self.assertEqual(shared_pdf_a, shared_pdf_b)
-
-    def test_all_shared_collections_property(self):
-        collection = self.user.profile.current_collection
-        other_workspace = create_workspace('other_ws', self.user)
-        other_collection = create_collection(other_workspace, 'other')
-
-        shared_1 = SharedCollection.objects.create(collection=collection, name='shared_1')
-        shared_2 = SharedCollection.objects.create(collection=other_collection, name='shared_2')
-
-        self.assertEqual(self.user.profile.all_shared_collections.count(), 2)
-
-        for shared_a, shared_b in zip(self.user.profile.all_shared_collections.order_by('name'), [shared_1, shared_2]):
-            self.assertEqual(shared_a, shared_b)
-
-    def test_shared_pdfs_property(self):
-        collection = self.user.profile.current_collection
-        other_workspace = create_workspace('other_ws', self.user)
-        other_collection = create_collection(other_workspace, 'other')
-
-        pdf_1 = Pdf.objects.create(name='pdf_1', collection=collection)
-        pdf_2 = Pdf.objects.create(name='pdf_2', collection=other_collection)
-
-        shared_pdf_1 = SharedPdf.objects.create(pdf=pdf_1, name='shared_pdf_1')
-        SharedPdf.objects.create(pdf=pdf_2, name='shared_pdf_2')
-
-        self.assertEqual(self.user.profile.current_shared_pdfs.count(), 1)
-
-        for shared_pdf_a, shared_pdf_b in zip(self.user.profile.current_shared_pdfs.order_by('name'), [shared_pdf_1]):
-            self.assertEqual(shared_pdf_a, shared_pdf_b)
 
     def test_current_workspace_property(self):
         self.assertEqual(self.user.profile.current_workspace.id, str(self.user.id))
@@ -195,14 +148,6 @@ class TestProfile(TestCase):
 
         self.assertEqual('All', self.user.profile.current_collection_name)
 
-
-    def test_has_access_to_workspace(self):
-        profile = self.user.profile
-        other_workspace = create_workspace('other_workspace', self.user)
-        other_user = User.objects.create_user(username='other_user', password='12345', email='a@aa.com')
-
-        self.assertTrue(profile.has_access_to_workspace(other_workspace.id))
-        self.assertFalse(profile.has_access_to_workspace(other_user.profile.current_workspace_id))
 
     def test_needs_nagging_needed(self):
         self.user.profile.last_time_nagged = datetime.now(tz=timezone.utc) - timedelta(

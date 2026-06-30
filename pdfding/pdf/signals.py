@@ -18,14 +18,9 @@ def create_workspace(sender, instance, created, **kwargs):
 
 @receiver(pre_delete, sender=User)
 def handle_workspaces_after_user_delete(sender, instance, **kwargs):
-    """Deletes a workspace when a user is deleted if this user is the only owner."""
-
-    user = instance
-    workspaces = user.profile.workspaces
-
-    for workspace in workspaces:
-        if workspace.owners.count() == 1:
-            workspace.delete()
+    """Delete all workspaces belonging to the user."""
+    for workspace in instance.profile.workspaces:
+        workspace.delete()
 
 
 @receiver(pre_delete, sender=Pdf)

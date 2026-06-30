@@ -11,7 +11,6 @@ from django.test import Client, TestCase
 from pdf import forms
 from pdf.forms import CleanHelpers
 from pdf.models.pdf_models import Pdf
-from pdf.models.shared_models import SharedCollection, SharedPdf
 
 from pdfding.pdf.services.workspace_services import create_collection
 
@@ -127,85 +126,6 @@ class TestPdfForms(TestCase):
     def test_pdf_collection_form_missing_pdf(self):
         with self.assertRaisesMessage(KeyError, 'instance'):
             forms.PdfCollectionForm()
-
-
-class TestShareForms(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='user', password='12345', email='a@a.com')
-
-    def test_add_form_valid(self):
-        form = forms.ShareForm(data={'name': 'Share Name'}, profile=self.user.profile)
-
-        self.assertTrue(form.is_valid())
-
-    def test_clean_missing_profile(self):
-        with self.assertRaisesMessage(KeyError, 'profile'):
-            forms.ShareForm(data={'name': 'Share Name'})
-
-    @mock.patch('pdf.forms.CleanHelpers.clean_name', return_value='existing name')
-    def test_pdf_clean_name_existing(self, mock_clean_name):
-        # create pdf for user
-        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_name')
-        SharedPdf.objects.create(pdf=pdf, name='existing name')
-        # create the form with the already existing pdf name
-        form = forms.ShareForm(data={'name': 'existing name'}, profile=self.user.profile)
-
-        self.assertFalse(form.is_valid())
-        self.assertEqual(form.errors['name'], ['A Share with this name already exists!'])
-        mock_clean_name.assert_called_once_with('existing name')
-
-    def test_pdf_clean_name_existing_but_deleted(self):
-        deletion_date = datetime.now(timezone.utc) - timedelta(minutes=5)
-
-        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_name')
-        SharedPdf.objects.create(pdf=pdf, name='existing name', deletion_date=deletion_date)
-        # create the form with the already existing pdf name
-        form = forms.ShareForm(data={'name': 'existing name'}, profile=self.user.profile)
-
-        self.assertTrue(form.is_valid())
-
-    def test_get_existing_with_same_name_pdf_existing(self):
-        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_name')
-        shared_pdf = SharedPdf.objects.create(pdf=pdf, name='existing_name')
-
-        form = forms.ShareForm(data={'name': 'existing_name'}, profile=self.user.profile)
-
-        assert shared_pdf == form.get_existing_with_same_name('existing_name')
-
-    def test_get_existing_with_same_name_pdf_not_existing(self):
-        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_name')
-        SharedPdf.objects.create(pdf=pdf, name='existing_name')
-
-        form = forms.ShareForm(data={'name': 'not_existing_name'}, profile=self.user.profile)
-
-        assert not form.get_existing_with_same_name('not_existing_name')
-
-    def test_get_existing_with_same_name_collection_existing(self):
-        collection = self.user.profile.current_collection
-        existing_shared_collection = SharedCollection.objects.create(collection=collection, name='shared_col')
-        form = forms.ShareCollectionForm(data={'name': existing_shared_collection.name}, profile=self.user.profile)
-
-        assert existing_shared_collection == form.get_existing_with_same_name(existing_shared_collection.name)
-
-    def test_get_existing_with_same_name_collection_not_existing(self):
-        collection = self.user.profile.current_collection
-        SharedCollection.objects.create(collection=collection, name='shared_col')
-        form = forms.ShareCollectionForm(data={'name': 'other'}, profile=self.user.profile)
-
-        assert not form.get_existing_with_same_name('other')
-
-
-class TestViewSharedPasswordForm(TestCase):
-    def test_clean_password_input_valid(self):
-        user = User.objects.create_user(username='user', password='12345', email='a@a.com')
-        pdf = Pdf.objects.create(collection=user.profile.current_collection, name='pdf_name')
-        hashed_password = make_password('password')
-        shared_pdf = SharedPdf.objects.create(pdf=pdf, name='existing name', password=hashed_password)
-
-        for password, expected_result in [('password', True), ('wrong_password', False)]:
-            form = forms.ViewSharedPasswordForm(data={'password_input': password}, shared_obj=shared_pdf)
-
-            self.assertEqual(form.is_valid(), expected_result)
 
 
 class TestTagForms(TestCase):

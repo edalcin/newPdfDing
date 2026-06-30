@@ -1,5 +1,4 @@
 import sqlite3
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -8,7 +7,6 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TestCase
 from pdf.models.pdf_models import Pdf
-from pdf.models.shared_models import SharedPdf
 from pdf.models.tag_models import Tag
 
 
@@ -22,14 +20,6 @@ class TestPeriodicBackup(TestCase):
         mock_object = mock.Mock()
         mock_object.object_name = f'2/default/pdf_{i}{i}.pdf'
         mock_objects.append(mock_object)
-
-    for i in range(1, 3):
-        mock_object = mock.Mock()
-        mock_object.object_name = f'{i}/default/qr/qr_{i}.svg'
-        mock_objects.append(mock_object)
-
-    mock_object = mock.Mock()
-    mock_object.object_name = 'backup.sqlite3'
 
     def test_check_backup_requirements_empty_db(self):
         self.assertFalse(tasks.check_backup_requirements())
@@ -91,17 +81,6 @@ class TestPeriodicBackup(TestCase):
             pdf = Pdf.objects.create(name=f'pdf_{i}{i}.pdf', collection=user_2.profile.current_collection)
             pdf.file.name = f'{pdf.collection.workspace.id}/{pdf.collection.name.lower()}/{pdf.name}'
             pdf.save()
-        for i in range(1, 4):
-            pdf = user_1.profile.all_pdfs.get(name='pdf_1.pdf')
-            shared_pdf = SharedPdf.objects.create(name=f'shared_pdf_{i}', pdf=pdf)
-            shared_pdf.file.name = f'{pdf.collection.workspace.id}/{pdf.collection.name.lower()}/qr/qr_{i}.svg'
-
-            # also add shared pdf with deletion date in the past
-            # the qr code of this shared pdf should not be added
-            if i == 3:
-                shared_pdf.deletion_date = datetime.now(timezone.utc) - timedelta(days=3, hours=2)
-
-            shared_pdf.save()
 
         generated_to_be_added, generated_to_be_deleted = tasks.difference_local_minio()
         expected_to_be_added = {
@@ -109,14 +88,12 @@ class TestPeriodicBackup(TestCase):
             '1/default/pdf_2.pdf',
             '1/default/pdf_3.pdf',
             '2/default/pdf_33.pdf',
-            '1/default/qr/qr_2.svg',
         }
         expected_to_be_deleted = {
             '1/default/pdf_7.pdf',
             '1/default/pdf_8.pdf',
             '2/default/pdf_00.pdf',
             '2/default/pdf_11.pdf',
-            '2/default/qr/qr_2.svg',
         }
 
         self.assertEqual(expected_to_be_added, generated_to_be_added)

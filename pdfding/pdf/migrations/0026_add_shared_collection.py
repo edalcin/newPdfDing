@@ -4,7 +4,13 @@ import uuid
 
 import django.db.models.deletion
 from django.db import migrations, models
-from pdf.models.shared_models import get_collection_qr_code_path
+
+
+def get_collection_qr_code_path(instance, _):
+    """Inline: was in shared_models.py, now deleted."""
+    file_name = f'shared_collections_qr/{instance.id}.svg'
+    ws_id = instance.collection.workspace.id
+    return f'{ws_id}/{file_name}'
 
 
 class Migration(migrations.Migration):

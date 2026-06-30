@@ -1,1 +1,0 @@
-{"nodes": [{"id": "admin_area", "label": "Admin Area", "file_type": "code", "source_file": "pdfding/admin/templates/information.html"}], "edges": [{"source": "admin_area", "target": "pdfding_app", "relation": "implements", "confidence": "INFERRED", "confidence_score": 0.9, "source_file": "pdfding/admin/templates/information.html"}], "hyperedges": []}

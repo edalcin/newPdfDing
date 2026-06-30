@@ -9,8 +9,6 @@ from pdf.models.tag_models import Tag
 from users import forms
 from users.models import Profile
 
-from pdfding.pdf.services.workspace_services import create_workspace
-
 
 class TestAuthRelated(TestCase):
     def test_login_required(self):
@@ -254,25 +252,6 @@ class TestProfileSettingsViews(BaseProfileView):
         changed_user = User.objects.get(id=self.user.id)
         self.assertTrue((datetime.now(timezone.utc) - changed_user.profile.last_time_nagged).total_seconds() < 0.1)
 
-    def test_change_sorting_post_shared_pdf(self):
-        self.assertEqual(self.user.profile.shared_pdf_sorting, Profile.SharedPdfSortingChoice.NEWEST)
-
-        headers = {'HTTP_HX-Request': 'true'}
-        self.client.post(
-            reverse('change_sorting', kwargs={'sorting_category': 'shared_pdf_sorting', 'sorting': 'oldest'}), **headers
-        )
-        changed_user = User.objects.get(id=self.user.id)
-        self.assertEqual(changed_user.profile.shared_pdf_sorting, Profile.SharedPdfSortingChoice.OLDEST)
-
-    def test_change_sorting_post_user(self):
-        self.assertEqual(self.user.profile.user_sorting, Profile.UserSortingChoice.NEWEST)
-
-        headers = {'HTTP_HX-Request': 'true'}
-        self.client.post(
-            reverse('change_sorting', kwargs={'sorting_category': 'user_sorting', 'sorting': 'oldest'}), **headers
-        )
-        changed_user = User.objects.get(id=self.user.id)
-        self.assertEqual(changed_user.profile.user_sorting, Profile.UserSortingChoice.OLDEST)
 
     def test_change_sorting_post_annotation(self):
         self.assertEqual(self.user.profile.annotation_sorting, Profile.AnnotationsSortingChoice.NEWEST)
