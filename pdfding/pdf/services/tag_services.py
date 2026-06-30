@@ -27,6 +27,13 @@ class TagServices:
 
         return tags
 
+    @staticmethod
+    def substitute_tag(source_tag: Tag, target_tag: Tag) -> None:
+        """Move all PDFs from source_tag to target_tag, then delete source_tag."""
+        for pdf in source_tag.pdf_set.all():
+            pdf.tags.add(target_tag)
+        source_tag.delete()
+
     @classmethod
     def get_tag_info_dict(cls, profile: Profile) -> dict[str, dict]:
         """

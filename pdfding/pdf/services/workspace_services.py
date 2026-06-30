@@ -3,6 +3,7 @@ from django.db.models import QuerySet
 from pdf.models.collection_models import Collection
 from pdf.models.pdf_models import Pdf
 from pdf.models.workspace_models import Workspace, WorkspaceError, WorkspaceRoles, WorkspaceUser
+from users.models import Profile
 
 
 def create_personal_workspace(creator: User) -> Workspace:

@@ -1,0 +1,82 @@
+{% extends 'layouts/blank.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="flex justify-center p-4 md:p-8">
+    <div class="flex flex-col w-full max-w-2xl gap-y-6">
+
+        <div class="flex items-center justify-between">
+            <div class="text-2xl font-bold">{% trans 'Manage Tags' %}</div>
+            <a href="{% url 'instance_info' %}" class="text-primary hover:text-secondary text-sm">{% trans 'Information' %}</a>
+        </div>
+
+        {% if messages %}
+        <div>
+            {% for message in messages %}
+            <div class="px-3 py-2 rounded-md bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-sm">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Create -->
+        <div class="flex flex-col border border-slate-300 dark:border-slate-600 rounded-sm px-4 py-3 gap-y-2">
+            <div class="font-semibold">{% trans 'Create Tag' %}</div>
+            <form method="post" action="{% url 'admin_tag_create' %}" class="flex gap-x-2">
+                {% csrf_token %}
+                <input type="text" name="name" class="form-control flex-1" placeholder="{% trans 'New tag name' %}" required>
+                <button type="submit" class="btn-primary px-3 py-1">{% trans 'Create' %}</button>
+            </form>
+        </div>
+
+        <!-- Substitute -->
+        {% if tags %}
+        <div class="flex flex-col border border-slate-300 dark:border-slate-600 rounded-sm px-4 py-3 gap-y-2">
+            <div class="font-semibold">{% trans 'Substitute Tag' %}</div>
+            <form method="post" action="{% url 'admin_tag_substitute' %}" class="flex flex-wrap items-center gap-2">
+                {% csrf_token %}
+                <label class="text-sm">{% trans 'Replace tag' %}</label>
+                <select name="source_id" class="form-control">
+                    {% for tag in tags %}
+                    <option value="{{ tag.id }}">{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+                <label class="text-sm">{% trans 'with tag' %}</label>
+                <select name="target_id" class="form-control">
+                    {% for tag in tags %}
+                    <option value="{{ tag.id }}">{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-primary px-3 py-1">{% trans 'Substitute' %}</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Tag list -->
+        <div class="flex flex-col border border-slate-300 dark:border-slate-600 rounded-sm px-4 py-3 gap-y-1">
+            <div class="font-semibold pb-1">{% trans 'Tags' %}</div>
+            {% for tag in tags %}
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 py-1 border-b border-slate-200 dark:border-slate-700 last:border-0">
+                <span class="flex-1 min-w-0 truncate font-medium">{{ tag.name }} <span class="text-sm text-slate-500">({{ tag.pdf_set.count }})</span></span>
+                <!-- Rename -->
+                <form method="post" action="{% url 'admin_tag_rename' %}" class="flex gap-x-1">
+                    {% csrf_token %}
+                    <input type="hidden" name="tag_id" value="{{ tag.id }}">
+                    <input type="text" name="name" value="{{ tag.name }}" class="form-control text-sm py-0.5 px-1 w-36">
+                    <button type="submit" class="btn-primary px-2 py-0.5 text-sm">{% trans 'Rename' %}</button>
+                </form>
+                <!-- Delete -->
+                <form method="post" action="{% url 'admin_tag_delete' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="tag_id" value="{{ tag.id }}">
+                    <button type="submit" class="font-semibold text-red-600 border-2 border-red-600 rounded-md px-2 py-0.5 text-sm hover:bg-red-600 hover:text-white"
+                            onclick="return confirm('{% trans 'Delete this tag?' %}')">{% trans 'Delete' %}</button>
+                </form>
+            </div>
+            {% empty %}
+            <div class="text-slate-500 text-sm">{% trans 'No tags yet.' %}</div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

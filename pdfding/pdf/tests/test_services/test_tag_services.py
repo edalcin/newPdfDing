@@ -29,6 +29,18 @@ class TestTagServices(TestCase):
 
         self.assertEqual(tags, [])
 
+    def test_substitute_tag(self):
+        pdf = Pdf.objects.create(collection=self.user.profile.current_collection, name='pdf_1')
+        source = Tag.objects.create(name='source', workspace=self.user.profile.current_workspace)
+        target = Tag.objects.create(name='target', workspace=self.user.profile.current_workspace)
+        pdf.tags.add(source)
+
+        TagServices.substitute_tag(source, target)
+
+        pdf.refresh_from_db()
+        self.assertFalse(Tag.objects.filter(id=source.id).exists())
+        self.assertIn(target, pdf.tags.all())
+
     @mock.patch('pdf.services.tag_services.TagServices.get_tag_info_dict_tree_mode')
     def test_get_tag_info_dict_tree_mode_enabled(self, mock_get_tag_info_dict_tree_mode):
         profile = self.user.profile
