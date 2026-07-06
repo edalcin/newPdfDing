@@ -108,8 +108,8 @@ class PdfProcessingServices:
             pdf_document.close()
             pdf.save()
         except Exception as e:  # nosec # noqa
-            logger.info(f'Could not process "{pdf.name}" of workspace "{pdf.collection.workspace.id}" with Pypdfium')
-            logger.info(traceback.format_exc())
+            logger.error(f'Could not process "{pdf.name}" of workspace "{pdf.collection.workspace.id}" with Pypdfium')
+            logger.error(traceback.format_exc())
 
     @staticmethod
     def set_thumbnail_and_preview(
@@ -156,8 +156,8 @@ class PdfProcessingServices:
             pdf.preview = File(file=image_files['preview'], name='preview')
 
         except Exception as e:  # nosec # noqa
-            logger.info(f'Could not extract thumbnail for "{pdf.name}" of workspace "{pdf.collection.workspace.id}"')
-            logger.info(traceback.format_exc())
+            logger.error(f'Could not extract thumbnail for "{pdf.name}" of workspace "{pdf.collection.workspace.id}"')
+            logger.error(traceback.format_exc())
 
         return pdf
 
@@ -207,18 +207,18 @@ class PdfProcessingServices:
                     except Exception as e:  # nosec # noqa # pragma: no cover
                         workspace_id = pdf.collection.workspace.id
 
-                        logger.info(
+                        logger.error(
                             f'Could not extract highlights and comments for "{pdf.name}" of workspace "{workspace_id}"'
                         )
-                        logger.info(traceback.format_exc())
+                        logger.error(traceback.format_exc())
 
             pyreadium_pdf.close()
 
         except Exception as e:  # nosec # noqa
             workspace_id = pdf.collection.workspace.id
 
-            logger.info(f'Could not extract highlights and comments for "{pdf.name}" of workspace "{workspace_id}"')
-            logger.info(traceback.format_exc())
+            logger.error(f'Could not extract highlights and comments for "{pdf.name}" of workspace "{workspace_id}"')
+            logger.error(traceback.format_exc())
 
     @staticmethod
     def extract_pdf_highlight_text(annotation, pdfium_page):

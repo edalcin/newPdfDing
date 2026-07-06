@@ -59,8 +59,8 @@ def consume_function(skip_existing: bool):
                         )
 
             except Exception as e:  # pragma: no cover # nosec # noqa
-                logger.info(f'Could not create pdf from "{file_path.name}" of user "{user.id}"')
-                logger.info(traceback.format_exc())
+                logger.error(f'Could not create pdf from "{file_path.name}" of user "{user.id}"')
+                logger.error(traceback.format_exc())
 
             file_path.unlink()
 
