@@ -21,3 +21,4 @@ pdfding/static/pdfjs
 
 **/htmlcov
 **/.coverage
+graphify-out/
