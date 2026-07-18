@@ -5,7 +5,6 @@ from django.test import TestCase, override_settings
 from pdf.models.collection_models import Collection
 from pdf.models.pdf_models import Pdf
 from pdf.services.workspace_services import create_collection, create_workspace
-from users.models import NAGGING_INTERVAL_WEEKS
 
 
 class TestProfile(TestCase):
@@ -148,17 +147,3 @@ class TestProfile(TestCase):
 
         self.assertEqual('All', self.user.profile.current_collection_name)
 
-
-    def test_needs_nagging_needed(self):
-        self.user.profile.last_time_nagged = datetime.now(tz=timezone.utc) - timedelta(
-            weeks=(NAGGING_INTERVAL_WEEKS + 1)
-        )
-        self.user.profile.save()
-
-        self.assertEqual(self.user.profile.needs_nagging, True)
-
-    def test_needs_nagging_not_needed(self):
-        self.user.profile.last_time_nagged = datetime.now(tz=timezone.utc) - timedelta(weeks=NAGGING_INTERVAL_WEEKS - 1)
-        self.user.profile.save()
-
-        self.assertEqual(self.user.profile.needs_nagging, False)

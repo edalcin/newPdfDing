@@ -5,7 +5,6 @@ from django.test import override_settings
 from django.urls import reverse
 from helpers import PdfDingE2ENoLoginTestCase, PdfDingE2ETestCase
 from playwright.sync_api import expect, sync_playwright
-from users.models import NAGGING_INTERVAL_WEEKS
 
 
 class UsersE2ETestCase(PdfDingE2ETestCase):
@@ -222,30 +221,6 @@ class UsersE2ETestCase(PdfDingE2ETestCase):
         with sync_playwright() as p:
             self.open(reverse('pdf_overview'), p)
             expect(self.page.get_by_role("banner")).to_contain_text("Admin")
-
-    def test_nagging_banner_needs_nagging(self):
-        self.user.profile.last_time_nagged = datetime.now(tz=timezone.utc) - timedelta(weeks=NAGGING_INTERVAL_WEEKS + 1)
-        self.user.profile.save()
-
-        self.assertTrue(self.user.profile.needs_nagging)
-
-        with sync_playwright() as p:
-            self.open(reverse('pdf_overview'), p)
-            expect(self.page.locator("#nagging_banner")).to_be_visible()
-
-            self.page.locator("#close_nagging_banner").click()
-            expect(self.page.locator("#nagging_banner")).not_to_be_visible()
-
-        changed_user = User.objects.get(id=self.user.id)
-        self.assertFalse(changed_user.profile.needs_nagging)
-
-    def test_nagging_banner_needs_no_nagging(self):
-        self.user.profile.last_time_nagged = datetime.now(tz=timezone.utc) - timedelta(weeks=NAGGING_INTERVAL_WEEKS - 1)
-        self.user.profile.save()
-
-        with sync_playwright() as p:
-            self.open(reverse('pdf_overview'), p)
-            expect(self.page.locator("#nagging_banner")).not_to_be_visible()
 
 
 class UsersLoginE2ETestCase(PdfDingE2ENoLoginTestCase):

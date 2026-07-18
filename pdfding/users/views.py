@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timezone
 
 from django.conf import settings as django_settings
 from django.contrib import messages
@@ -217,22 +216,6 @@ class OpenCollapseTags(View):
 
         return redirect('account_settings')
 
-
-class UpdateLastTimeNagged(View):
-    """View for updating the last time a user was nagged."""
-
-    def post(self, request: HttpRequest):
-        """Update the last time a user was nagged with the current datetime."""
-
-        if request.htmx:  # type: ignore
-            user_profile = request.user.profile  # type: ignore
-            user_profile.last_time_nagged = datetime.now(tz=timezone.utc)
-
-            user_profile.save()
-
-            return HttpResponseClientRefresh()
-
-        return redirect('pdf_overview')
 
 
 class Signatures(View):
