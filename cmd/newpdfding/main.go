@@ -42,6 +42,15 @@ func main() {
 
 	log.Printf("schema ready at %s", cfg.DBPath)
 
+	if err := os.MkdirAll(cfg.Files, 0o750); err != nil {
+		fmt.Fprintf(os.Stderr, "newpdfding: failed to create FILES directory: %v\n", err)
+		os.Exit(1)
+	}
+	if err := store.NewCollectionStore(db).EnsureDefault(); err != nil {
+		fmt.Fprintf(os.Stderr, "newpdfding: failed to seed default collection: %v\n", err)
+		os.Exit(1)
+	}
+
 	srv := server.New(cfg, db)
 
 	httpSrv := &http.Server{

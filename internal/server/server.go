@@ -12,25 +12,34 @@ import (
 
 	"github.com/edalcin/newpdfding/internal/config"
 	"github.com/edalcin/newpdfding/internal/security"
+	"github.com/edalcin/newpdfding/internal/storage"
 	"github.com/edalcin/newpdfding/internal/store"
 )
 
 // Server wraps the HTTP router and its dependencies.
 type Server struct {
-	cfg      *config.Config
-	db       *sql.DB
-	sessions *store.SessionStore
-	throttle *security.LoginThrottle
-	router   http.Handler
+	cfg         *config.Config
+	db          *sql.DB
+	files       *storage.LocalBackend
+	sessions    *store.SessionStore
+	collections *store.CollectionStore
+	tags        *store.TagStore
+	pdfs        *store.PDFStore
+	throttle    *security.LoginThrottle
+	router      http.Handler
 }
 
 // New builds the chi router with all middleware and routes wired up.
 func New(cfg *config.Config, db *sql.DB) *Server {
 	s := &Server{
-		cfg:      cfg,
-		db:       db,
-		sessions: store.NewSessionStore(db),
-		throttle: security.NewLoginThrottle(cfg.TrustProxyHeaders),
+		cfg:         cfg,
+		db:          db,
+		files:       storage.NewLocalBackend(cfg.Files),
+		sessions:    store.NewSessionStore(db),
+		collections: store.NewCollectionStore(db),
+		tags:        store.NewTagStore(db),
+		pdfs:        store.NewPDFStore(db),
+		throttle:    security.NewLoginThrottle(cfg.TrustProxyHeaders),
 	}
 	s.router = s.buildRouter()
 	return s

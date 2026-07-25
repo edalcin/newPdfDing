@@ -6,9 +6,6 @@ import (
 	"time"
 )
 
-// ErrNotFound is returned when a store lookup finds no matching row.
-var ErrNotFound = errors.New("not found")
-
 const timeFormat = time.RFC3339Nano
 
 // SessionStore provides CRUD over the sessions table (ver

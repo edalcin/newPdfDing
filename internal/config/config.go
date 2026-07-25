@@ -14,12 +14,14 @@ type Config struct {
 	// Required
 	DBPath        string
 	AdminPassword string
+	Files         string
 
 	// Optional with defaults
 	ListenAddr         string
 	LogLevel           string
 	SessionIdleMinutes int
 	TrustProxyHeaders  bool
+	MaxUploadMB        int64
 }
 
 // Load reads configuration from environment variables. It returns an error
@@ -35,13 +37,20 @@ func Load() (*Config, error) {
 		return nil, errors.New("ADMIN_PASSWORD is required")
 	}
 
+	files := os.Getenv("FILES")
+	if files == "" {
+		return nil, errors.New("FILES is required")
+	}
+
 	cfg := &Config{
 		DBPath:             dbPath,
 		AdminPassword:      adminPassword,
+		Files:              files,
 		ListenAddr:         ":8000",
 		LogLevel:           "info",
 		SessionIdleMinutes: 43200,
 		TrustProxyHeaders:  false,
+		MaxUploadMB:        200,
 	}
 
 	if v := os.Getenv("LISTEN_ADDR"); v != "" {
@@ -66,6 +75,14 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("TRUST_PROXY_HEADERS must be a boolean, got %q", v)
 		}
 		cfg.TrustProxyHeaders = b
+	}
+
+	if v := os.Getenv("MAX_UPLOAD_MB"); v != "" {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || n <= 0 {
+			return nil, fmt.Errorf("MAX_UPLOAD_MB must be a positive integer, got %q", v)
+		}
+		cfg.MaxUploadMB = n
 	}
 
 	return cfg, nil
