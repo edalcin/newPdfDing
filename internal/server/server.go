@@ -28,6 +28,7 @@ type Server struct {
 	pdfs        *store.PDFStore
 	annotations *store.AnnotationStore
 	signatures  *store.SignatureStore
+	shares      *store.ShareStore
 	throttle    *security.LoginThrottle
 	gemini      *store.GeminiClient // nil when GEMINI_API_KEY is unset — semantic search/embed disabled
 	embedMu     sync.Mutex          // serializes POST .../embed so only one Gemini call runs at a time
@@ -46,6 +47,7 @@ func New(cfg *config.Config, db *sql.DB) *Server {
 		pdfs:        store.NewPDFStore(db, cfg.EmbedModel),
 		annotations: store.NewAnnotationStore(db),
 		signatures:  store.NewSignatureStore(db),
+		shares:      store.NewShareStore(db),
 		throttle:    security.NewLoginThrottle(cfg.TrustProxyHeaders),
 		gemini:      store.NewGeminiClient(cfg.GeminiAPIKey, cfg.EmbedModel),
 	}

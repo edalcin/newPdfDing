@@ -25,6 +25,10 @@ func (s *Server) buildRouter() http.Handler {
 	r.Post("/api/auth/login", s.handleLogin)
 	r.Get("/api/auth/session", s.handleSession)
 
+	r.Get("/s/{id}", s.handlePublicShareView)
+	r.Get("/api/shared/{id}", s.handleGetSharedPDF)
+	r.Get("/api/shared/{id}/file", s.handleGetSharedFile)
+
 	r.Group(func(protected chi.Router) {
 		protected.Use(s.AuthRequired)
 
@@ -64,6 +68,10 @@ func (s *Server) buildRouter() http.Handler {
 		protected.Get("/api/signatures", s.handleListSignatures)
 		protected.Post("/api/signatures", s.handleCreateSignature)
 		protected.Delete("/api/signatures/{id}", s.handleDeleteSignature)
+
+		protected.Post("/api/pdfs/{id}/share", s.handleCreateShare)
+		protected.Delete("/api/pdfs/{id}/share", s.handleDeleteShare)
+		protected.Get("/api/shares", s.handleListShares)
 	})
 
 	return r

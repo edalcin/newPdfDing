@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Config holds runtime configuration loaded from environment variables.
@@ -24,6 +25,7 @@ type Config struct {
 	MaxUploadMB        int64
 	GeminiAPIKey       string // empty disables semantic search entirely
 	EmbedModel         string
+	BaseURL            string // empty = derive from the incoming request's Host header
 }
 
 // Load reads configuration from environment variables. It returns an error
@@ -94,6 +96,10 @@ func Load() (*Config, error) {
 
 	if v := os.Getenv("EMBED_MODEL"); v != "" {
 		cfg.EmbedModel = v
+	}
+
+	if v := os.Getenv("BASE_URL"); v != "" {
+		cfg.BaseURL = strings.TrimRight(v, "/")
 	}
 
 	return cfg, nil
