@@ -4,6 +4,26 @@
 
 As 14 etapas abaixo são o contrato de execução da refatoração, na ordem em que devem ser realizadas. Cada uma traz objetivo, entregas, dependências e o critério de aceitação que prova que a etapa está concluída.
 
+
+## Status
+
+| Etapa | Status |
+|---|---|
+| ETAPA-0-LIMPEZA | ✅ Concluída |
+| ETAPA-1-FUNDACAO | ⬜ Pendente |
+| ETAPA-2-AUTH | ⬜ Pendente |
+| ETAPA-3-STORAGE | ⬜ Pendente |
+| ETAPA-4-DOMINIO-PDF | ⬜ Pendente |
+| ETAPA-5-ANOTACOES | ⬜ Pendente |
+| ETAPA-6-BUSCA | ⬜ Pendente |
+| ETAPA-7-COMPARTILHAMENTO | ⬜ Pendente |
+| ETAPA-8-BACKGROUND | ⬜ Pendente |
+| ETAPA-9-UI-BASE | ⬜ Pendente |
+| ETAPA-10-UI-COMPLETA | ⬜ Pendente |
+| ETAPA-11-DOCKER-CI | ⬜ Pendente |
+| ETAPA-12-IMPORTACAO | ⬜ Pendente |
+| ETAPA-13-VALIDACAO | ⬜ Pendente |
+
 ## ETAPA-0-LIMPEZA
 
 **Objetivo**
