@@ -17,7 +17,7 @@ As 14 etapas abaixo são o contrato de execução da refatoração, na ordem em 
 | ETAPA-6-BUSCA | ✅ Concluída |
 | ETAPA-7-COMPARTILHAMENTO | ✅ Concluída |
 | ETAPA-8-BACKGROUND | ✅ Concluída |
-| ETAPA-9-UI-BASE | ⬜ Pendente |
+| ETAPA-9-UI-BASE | ✅ Concluída |
 | ETAPA-10-UI-COMPLETA | ⬜ Pendente |
 | ETAPA-11-DOCKER-CI | ⬜ Pendente |
 | ETAPA-12-IMPORTACAO | ⬜ Pendente |

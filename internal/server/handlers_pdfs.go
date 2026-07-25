@@ -412,6 +412,7 @@ func (s *Server) handleCreatePDF(w http.ResponseWriter, r *http.Request) {
 		FileDirectory: r.FormValue("file_directory"),
 		TagNames:      store.ParseTagString(r.FormValue("tags")),
 		Text:          r.FormValue("text"),
+		NumPages:      parsePositiveIntForm(r.FormValue("num_pages")),
 		File:          file,
 		Thumbnail:     thumb,
 		Preview:       preview,
@@ -476,6 +477,7 @@ func (s *Server) handleBulkCreatePDFs(w http.ResponseWriter, r *http.Request) {
 			FileDirectory: r.FormValue("file_directory" + suffix),
 			TagNames:      store.ParseTagString(r.FormValue("tags" + suffix)),
 			Text:          r.FormValue("text" + suffix),
+			NumPages:      parsePositiveIntForm(r.FormValue("num_pages" + suffix)),
 			File:          f,
 		}
 
@@ -788,6 +790,19 @@ func (s *Server) handleBulkActions(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------
 // small helpers
 // ---------------------------------------------------------------------
+
+// parsePositiveIntForm parses a form field as a page count, treating any
+// missing/invalid/non-positive value as "unknown" (0) rather than an
+// upload error — num_pages is best-effort metadata from client-side pdf.js
+// (browser upload) or the watch-dir's pure-Go extraction (ver
+// consumer.go), never a required field.
+func parsePositiveIntForm(v string) int {
+	n, err := strconv.Atoi(v)
+	if err != nil || n <= 0 {
+		return 0
+	}
+	return n
+}
 
 func modTime(rfc3339Nano string) time.Time {
 	t, err := time.Parse(time.RFC3339Nano, rfc3339Nano)

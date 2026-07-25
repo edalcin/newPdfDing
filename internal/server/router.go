@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/edalcin/newpdfding/internal/security"
 	"github.com/go-chi/chi/v5"
@@ -17,7 +18,7 @@ func (s *Server) buildRouter() http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(security.Headers)
+	r.Use(security.Headers(extractScriptHashes(webRoot())))
 	r.Use(CSRF)
 
 	r.Get("/healthz", s.handleHealthz)
@@ -72,9 +73,28 @@ func (s *Server) buildRouter() http.Handler {
 		protected.Post("/api/pdfs/{id}/share", s.handleCreateShare)
 		protected.Delete("/api/pdfs/{id}/share", s.handleDeleteShare)
 		protected.Get("/api/shares", s.handleListShares)
+
+		protected.Get("/api/settings", s.handleGetSettings)
+		protected.Patch("/api/settings", s.handlePatchSettings)
 	})
 
+	// SPA estática embutida via go:embed — fallback para index.html em
+	// qualquer rota que não comece por /api (ver 06-frontend.md, "Saída de
+	// build e integração com go:embed"). Registrada por último: rotas /api
+	// já cadastradas acima têm prioridade no roteamento do chi.
+	r.Get("/*", s.handleSPA)
+
 	return r
+}
+
+// handleSPA serves the embedded frontend build. An unmatched /api/* path
+// still gets a proper 404 JSON error, never the SPA shell.
+func (s *Server) handleSPA(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		writeJSONError(w, http.StatusNotFound, "not found")
+		return
+	}
+	spaHandler(webRoot())(w, r)
 }
 
 // handleHealthz reports "ok" once the database responds to a trivial query.
