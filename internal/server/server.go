@@ -25,6 +25,8 @@ type Server struct {
 	collections *store.CollectionStore
 	tags        *store.TagStore
 	pdfs        *store.PDFStore
+	annotations *store.AnnotationStore
+	signatures  *store.SignatureStore
 	throttle    *security.LoginThrottle
 	router      http.Handler
 }
@@ -39,6 +41,8 @@ func New(cfg *config.Config, db *sql.DB) *Server {
 		collections: store.NewCollectionStore(db),
 		tags:        store.NewTagStore(db),
 		pdfs:        store.NewPDFStore(db),
+		annotations: store.NewAnnotationStore(db),
+		signatures:  store.NewSignatureStore(db),
 		throttle:    security.NewLoginThrottle(cfg.TrustProxyHeaders),
 	}
 	s.router = s.buildRouter()

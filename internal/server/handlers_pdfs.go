@@ -800,3 +800,58 @@ func sanitizeFilename(name string) string {
 	}
 	return b.String()
 }
+
+// ---------------------------------------------------------------------
+// PUT /api/pdfs/{id}/file — file revision
+// ---------------------------------------------------------------------
+
+// handlePutPDFFile replaces a PDF's content in place and bumps its
+// revision (ver 05-api.md, "PUT .../file"; 10-inventario-funcionalidades.md,
+// "Salvar PDF editado com revisão").
+func (s *Server) handlePutPDFFile(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	pdf, err := s.pdfs.GetByID(id)
+	if errors.Is(err, store.ErrNotFound) {
+		writeJSONError(w, http.StatusNotFound, "pdf not found")
+		return
+	}
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, s.cfg.MaxUploadMB*1024*1024)
+	var buf bytes.Buffer
+	n, err := io.Copy(&buf, r.Body)
+	if err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeJSONError(w, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_MB")
+			return
+		}
+		writeJSONError(w, http.StatusBadRequest, "failed to read request body")
+		return
+	}
+
+	data := buf.Bytes()
+	if len(data) < len(pdfMagic) || string(data[:len(pdfMagic)]) != pdfMagic {
+		writeJSONError(w, http.StatusUnsupportedMediaType, "file is not a PDF")
+		return
+	}
+
+	hasher := sha256.New()
+	hasher.Write(data)
+	sum := hex.EncodeToString(hasher.Sum(nil))
+
+	if err := s.files.Put(r.Context(), pdf.StorageKey, bytes.NewReader(data), n, "application/pdf"); err != nil {
+		writeJSONError(w, http.StatusInsufficientStorage, "failed to write file to storage")
+		return
+	}
+
+	revision, err := s.pdfs.Revise(id, sum, n)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]int{"revision": revision})
+}

@@ -52,6 +52,17 @@ func (s *Server) buildRouter() http.Handler {
 		protected.Get("/api/pdfs/{id}/preview", s.handleServePreview)
 		protected.Post("/api/pdfs/{id}/thumbnail", s.handleUploadThumbnail)
 		protected.Get("/api/pdfs/{id}/download", s.handleDownloadPDF)
+		protected.Put("/api/pdfs/{id}/file", s.handlePutPDFFile)
+
+		protected.Get("/api/annotations", s.handleListAnnotations)
+		protected.Get("/api/annotations/export", s.handleExportAnnotations)
+		protected.Post("/api/pdfs/{id}/annotations", s.handleCreateAnnotation)
+		protected.Patch("/api/annotations/{id}", s.handlePatchAnnotation)
+		protected.Delete("/api/annotations/{id}", s.handleDeleteAnnotation)
+
+		protected.Get("/api/signatures", s.handleListSignatures)
+		protected.Post("/api/signatures", s.handleCreateSignature)
+		protected.Delete("/api/signatures/{id}", s.handleDeleteSignature)
 	})
 
 	return r

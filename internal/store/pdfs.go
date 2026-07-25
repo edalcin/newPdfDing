@@ -483,10 +483,17 @@ func (s *PDFStore) RecordView(id string) error {
 	return err
 }
 
-// Revise increments revision — called by PUT .../file when the PDF content
-// itself is replaced (ver 05-api.md, "PUT .../file").
-func (s *PDFStore) Revise(id string) (int, error) {
-	if _, err := s.db.Exec(`UPDATE pdfs SET revision = revision + 1 WHERE id = ?`, id); err != nil {
+// Revise increments revision and updates sha256/size_bytes — called by
+// PUT .../file when the PDF content itself is replaced (ver 05-api.md,
+// "PUT .../file").
+func (s *PDFStore) Revise(id, sha256 string, sizeBytes int64) (int, error) {
+	if _, err := s.db.Exec(
+		`UPDATE pdfs SET revision = revision + 1, sha256 = ?, size_bytes = ? WHERE id = ?`,
+		sha256, sizeBytes, id,
+	); err != nil {
+		if isUniqueViolation(err) {
+			return 0, ErrConflict
+		}
 		return 0, err
 	}
 	var revision int
