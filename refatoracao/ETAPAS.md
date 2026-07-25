@@ -10,7 +10,7 @@ As 14 etapas abaixo são o contrato de execução da refatoração, na ordem em 
 | Etapa | Status |
 |---|---|
 | ETAPA-1-FUNDACAO | ✅ Concluída |
-| ETAPA-2-AUTH | ⬜ Pendente |
+| ETAPA-2-AUTH | ✅ Concluída |
 | ETAPA-3-STORAGE | ⬜ Pendente |
 | ETAPA-4-DOMINIO-PDF | ⬜ Pendente |
 | ETAPA-5-ANOTACOES | ⬜ Pendente |

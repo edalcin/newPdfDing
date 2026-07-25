@@ -42,7 +42,7 @@ func main() {
 
 	log.Printf("schema ready at %s", cfg.DBPath)
 
-	srv := server.New(db)
+	srv := server.New(cfg, db)
 
 	httpSrv := &http.Server{
 		Addr:         cfg.ListenAddr,
@@ -54,6 +54,7 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	srv.StartSessionCleanup(ctx)
 
 	go func() {
 		log.Printf("listening on %s", cfg.ListenAddr)
