@@ -2,9 +2,7 @@
 
 ## Decisão
 
-O acervo de PDFs mora **exclusivamente no filesystem local**, sob o caminho externo apontado por `FILES`. Não existe backend S3 para os arquivos do acervo, não existe comutação de backend em tempo de execução, e não existe tela de migração de storage na interface (decisão 3 de [Visão geral](00-visao-geral.md)).
-
-O único ponto do produto que fala com S3/MinIO é o **destino do job de backup** — funcionalidade já existente hoje, preservada sem mudança de escopo, com bucket e credenciais próprios em variáveis `BACKUP_*`. Backup é cópia de segurança, não é o storage do acervo.
+O acervo de PDFs mora **exclusivamente no filesystem local**, sob o caminho externo apontado por `FILES`. Não existe backend S3 para os arquivos do acervo, não existe comutação de backend em tempo de execução, e não existe tela de migração de storage na interface (decisão 3 de [Visão geral](00-visao-geral.md)). O produto **não tem nenhuma integração com Amazon S3, MinIO ou qualquer outro object storage** — nem para o acervo, nem para backup.
 
 ## Esquema de chaves
 
@@ -58,18 +56,8 @@ Isso **não é opcional**: o viewer pdf.js depende de requisições parciais par
 
 O upload grava o arquivo em disco antes de fazer commit da transação SQL; se o commit falhar por qualquer motivo após o arquivo já estar gravado, o arquivo é apagado — nunca fica um arquivo órfão em disco sem linha correspondente no banco.
 
-## Backup em S3/MinIO — o único uso de S3 no produto
+## Backup — removido desta refatoração
 
-Funcionalidade já existente hoje, preservada sem mudança: job periódico, executado a cada `BACKUP_INTERVAL_HOURS`, usando **AWS SDK Go v2** (ver dependências em [Arquitetura](01-arquitetura.md)). Bucket e credenciais são próprios do backup, em variáveis `BACKUP_*` (lista completa em [Docker, CI e Deploy](07-docker-ci-deploy.md)) — não têm relação com o storage do acervo.
+O produto atual tem um job de backup periódico que envia o banco SQLite e os arquivos do acervo para um bucket S3/MinIO. Essa funcionalidade **foi removida do escopo desta refatoração**, por decisão do usuário de eliminar toda integração com Amazon S3 do produto — ver [Funcionalidades intencionalmente removidas](10-inventario-funcionalidades.md). Não há job de backup, criptografia de backup, nem comando de restauração via CLI nesta versão.
 
-- **O que é enviado**: o arquivo do banco SQLite (`DB_PATH`) e todos os arquivos sob `FILES`.
-- **Deduplicação de envio**: comparação por nome + tamanho contra o que já está no bucket, para não reenviar o que já foi copiado.
-- **Criptografia opcional** (`BACKUP_ENCRYPTION_ENABLE`): AES-256-GCM, com chave derivada por `scrypt` a partir de `BACKUP_ENCRYPTION_PASSWORD` e um salt aleatório gravado no próprio cabeçalho do arquivo cifrado — substitui o Fernet usado hoje pelo Python. **Backups cifrados com Fernet pela versão antiga não são legíveis pela versão nova**; se houver backups Fernet existentes, devem ser restaurados com a versão antiga do produto antes de migrar para esta.
-- **Compatibilidade com MinIO**: via `BACKUP_ENDPOINT`, usando `BaseEndpoint` do SDK com `UsePathStyle: true`.
-- **Restauração**: flag de CLI `-restore-backup`, que baixa tudo do bucket, decifra (se cifrado) e sobrescreve `DB_PATH` e `FILES` — exige confirmação interativa antes de executar, por ser destrutiva.
-
-## Ponto de extensão (não implementado agora)
-
-O objetivo original de "adotar a mesma estratégia de storage em Amazon S3 do `pkd`" foi retirado do escopo desta refatoração: os arquivos do acervo ficam no filesystem sob `FILES`, e S3 permanece só como destino do backup.
-
-Se um dia for necessário reintroduzir armazenamento remoto para o acervo, o ponto de extensão já existe: a interface `storage.Backend`. Bastaria uma segunda implementação da interface voltada a armazenamento remoto e um mecanismo de escolha de qual backend usar. Nenhuma outra parte deste plano precisaria mudar, e **nenhuma alteração de schema seria necessária** — `pdfs.storage_key` (ver [Modelo de dados](02-modelo-de-dados.md)) já é relativo e independente de backend.
+Backup, se necessário, é responsabilidade do operador do host — por exemplo, um `cron` ou `rsync` externo copiando periodicamente `DB_PATH` e o conteúdo de `FILES` para outro destino. Isso está fora do escopo do binário `newpdfding`.

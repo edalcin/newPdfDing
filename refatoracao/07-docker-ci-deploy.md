@@ -2,7 +2,7 @@
 
 Este documento fixa o conteúdo alvo de empacotamento e entrega: o `Dockerfile` de três estágios, o `.dockerignore`, o workflow de CI/CD (`.github/workflows/docker-publish.yaml`), o `.github/dependabot.yml`, a lista fechada de variáveis de ambiente — incluindo as eliminadas na migração —, o `.env.example` e o conteúdo alvo de `UNRAID.md`. É o dono de todo `nome | obrigatória | default | significado` de configuração do produto; nenhum outro documento define uma variável de ambiente nova.
 
-Para a árvore de diretórios e as dependências Go fixadas, ver [Arquitetura](01-arquitetura.md). Para o mecanismo de backup S3/MinIO que consome as variáveis `BACKUP_*` abaixo, ver [Storage](03-storage.md). Para o detalhamento dos headers de segurança, rate limiting e o checklist de segurança que cita a imagem `nonroot`, ver [Segurança](08-seguranca.md). Para a lista do que é apagado/reescrito no repositório atual, ver [Limpeza do repositório](09-limpeza-repositorio.md).
+Para a árvore de diretórios e as dependências Go fixadas, ver [Arquitetura](01-arquitetura.md). Para o detalhamento dos headers de segurança, rate limiting e o checklist de segurança que cita a imagem `nonroot`, ver [Segurança](08-seguranca.md). Para a lista do que é apagado/reescrito no repositório atual, ver [Limpeza do repositório](09-limpeza-repositorio.md).
 
 ## Dockerfile de três estágios
 
@@ -241,17 +241,8 @@ Lista final e fechada — nenhuma variável fora desta tabela é lida pelo biná
 | `CONSUME_INTERVAL_MINUTES` | Não | `5` | Intervalo, em minutos, do ticker que varre `CONSUME_DIR`. |
 | `CONSUME_TAGS` | Não | `""` | Tags aplicadas automaticamente aos PDFs importados pela watch-dir. |
 | `CONSUME_SKIP_EXISTING` | Não | `true` | Pula (não importa) um arquivo cujo hash já exista no acervo. |
-| `BACKUP_ENABLE` | Não | `false` | Habilita o job periódico de backup para S3/MinIO. |
-| `BACKUP_BUCKET` | Sim, se `BACKUP_ENABLE=true` | — | Bucket S3/MinIO de destino do backup. |
-| `BACKUP_ENDPOINT` | Não | *(vazio = AWS S3 padrão)* | Endpoint customizado — usado para apontar para um MinIO. |
-| `BACKUP_REGION` | Não | `us-east-1` | Região do bucket. |
-| `BACKUP_ACCESS_KEY_ID` | Sim, se `BACKUP_ENABLE=true` | — | Credencial de acesso do backup. |
-| `BACKUP_SECRET_ACCESS_KEY` | Sim, se `BACKUP_ENABLE=true` | — | Credencial secreta do backup. |
-| `BACKUP_INTERVAL_HOURS` | Não | `24` | Intervalo, em horas, do ticker de backup. |
-| `BACKUP_ENCRYPTION_ENABLE` | Não | `false` | Habilita criptografia AES-256-GCM do backup. |
-| `BACKUP_ENCRYPTION_PASSWORD` | Sim, se `BACKUP_ENCRYPTION_ENABLE=true` | — | Senha usada para derivar a chave de criptografia via `scrypt` (salt aleatório gravado no cabeçalho do arquivo cifrado). |
 
-Mecânica completa do job de backup (deduplicação, compatibilidade MinIO, restauração via `-restore-backup`) em [Storage](03-storage.md). Mecânica completa da busca semântica sob demanda em [Busca Híbrida](04-busca-hibrida.md).
+Mecânica completa da busca semântica sob demanda em [Busca Híbrida](04-busca-hibrida.md).
 
 ## Variáveis eliminadas
 
@@ -277,10 +268,9 @@ Variáveis do produto Django atual que **não têm equivalente** na versão Go �
 | `WORKER_TIMEOUT` | Substituída por `LISTEN_ADDR`; não há gunicorn nem workers para configurar timeout. |
 | `ALLOW_PDF_SUB_DIRECTORIES` | Deixa de ser um interruptor — subdiretórios passam a ser sempre permitidos. |
 | `E2E_TESTS` | Sem equivalente no novo stack de testes/CI (ver job `test` do workflow acima). |
-| `BACKUP_SECURE` | Sem equivalente — o SDK AWS Go v2 sempre exige TLS no endpoint de backup; não é uma opção a desligar. |
-| `BACKUP_ENCRYPTION_SALT` | Substituída por derivação `scrypt` com salt aleatório gravado no próprio cabeçalho do arquivo cifrado — deixa de precisar ser configurado. |
+| `BACKUP_ENABLE`, `BACKUP_BUCKET`, `BACKUP_ENDPOINT`, `BACKUP_REGION`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY`, `BACKUP_INTERVAL_HOURS`, `BACKUP_ENCRYPTION_ENABLE`, `BACKUP_ENCRYPTION_PASSWORD`, `BACKUP_SECURE`, `BACKUP_ENCRYPTION_SALT` | O job de backup automático para nuvem (S3/MinIO) foi **removido do escopo desta refatoração** — decisão do usuário de eliminar toda integração com Amazon S3. Backup externo, se necessário, é responsabilidade do operador do host (ver [Storage](03-storage.md)). |
 
-**Não existe nenhuma variável `S3_*`.** Os arquivos do acervo residem exclusivamente no filesystem local, sob `FILES` (ver [Storage](03-storage.md)). O único uso de S3/MinIO em todo o produto é o destino do job de backup — já existente na versão atual —, configurado inteiramente pelas variáveis com prefixo `BACKUP_` listadas na tabela de [Variáveis de ambiente](#variáveis-de-ambiente) acima.
+**Não existe nenhuma variável `S3_*` nem `BACKUP_*`.** Os arquivos do acervo residem exclusivamente no filesystem local, sob `FILES` (ver [Storage](03-storage.md)). O produto **não tem nenhuma integração com Amazon S3, MinIO ou qualquer outro object storage** — o job de backup para nuvem que existia na versão atual foi removido nesta refatoração (ver [Funcionalidades intencionalmente removidas](10-inventario-funcionalidades.md)).
 
 ## `.env.example`
 
@@ -311,16 +301,6 @@ CONSUME_INTERVAL_MINUTES=5
 CONSUME_TAGS=
 CONSUME_SKIP_EXISTING=true
 
-# ─── Backup S3/MinIO (opcional) ────────────────────────────────────────────────
-BACKUP_ENABLE=false
-BACKUP_BUCKET=<BACKUP_BUCKET>
-BACKUP_ENDPOINT=
-BACKUP_REGION=us-east-1
-BACKUP_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID
-BACKUP_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY
-BACKUP_INTERVAL_HOURS=24
-BACKUP_ENCRYPTION_ENABLE=false
-BACKUP_ENCRYPTION_PASSWORD=YOUR_BACKUP_ENCRYPTION_PASSWORD
 ```
 
 ## Conteúdo de UNRAID.md
@@ -344,22 +324,6 @@ BACKUP_ENCRYPTION_PASSWORD=YOUR_BACKUP_ENCRYPTION_PASSWORD
 | `DB_PATH` | `/data/newpdfding.db` |
 | `FILES` | `/files` |
 | `ADMIN_PASSWORD` | Senha escolhida pelo usuário — nunca deixar em branco. |
-
-### Bloco opcional — backup S3/MinIO
-
-Preencher somente se for usar backup automático. Descrição completa de cada campo na tabela de [Variáveis de ambiente](#variáveis-de-ambiente) acima.
-
-| Variável | Valor sugerido |
-|---|---|
-| `BACKUP_ENABLE` | `true` |
-| `BACKUP_BUCKET` | Nome do bucket de destino. |
-| `BACKUP_ENDPOINT` | Endpoint do MinIO — deixar vazio se for AWS S3. |
-| `BACKUP_REGION` | Região do bucket. |
-| `BACKUP_ACCESS_KEY_ID` | Credencial de acesso. |
-| `BACKUP_SECRET_ACCESS_KEY` | Credencial secreta. |
-| `BACKUP_INTERVAL_HOURS` | `24` |
-| `BACKUP_ENCRYPTION_ENABLE` | `true`, para backup cifrado. |
-| `BACKUP_ENCRYPTION_PASSWORD` | Senha de cifragem — obrigatória se `BACKUP_ENCRYPTION_ENABLE=true`. |
 
 ### Bloco opcional — busca semântica (Gemini)
 

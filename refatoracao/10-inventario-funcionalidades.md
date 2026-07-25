@@ -111,9 +111,6 @@ Este é o contrato de "nenhuma funcionalidade perdida" da refatoração. Cada li
 |---|---|---|---|
 | Watch-dir de consumo | `pdfding/pdf/tasks.py:consume_task` | goroutine com `time.Ticker` a cada `CONSUME_INTERVAL_MINUTES`, lendo `CONSUME_DIR` — [Arquitetura](01-arquitetura.md) (`internal/server/consumer.go`); variáveis `CONSUME_*` — [Docker/CI/Deploy](07-docker-ci-deploy.md) | ETAPA-8-BACKGROUND |
 | Tags automáticas na consumo | `pdfding/pdf/tasks.py:consume_task` (usa `settings.CONSUME_TAG_STRING`) | variável `CONSUME_TAGS` aplicada às tags do PDF importado pelo `consumer.go` — [Docker/CI/Deploy](07-docker-ci-deploy.md), [Arquitetura](01-arquitetura.md) | ETAPA-8-BACKGROUND |
-| Backup S3/MinIO agendado | `pdfding/backup/tasks.py` | job periódico a cada `BACKUP_INTERVAL_HOURS`, bucket e credenciais próprios em `BACKUP_*`, via AWS SDK Go v2 — [Storage](03-storage.md), [Docker/CI/Deploy](07-docker-ci-deploy.md) | ETAPA-8-BACKGROUND |
-| Criptografia de backup | `pdfding/backup/service.py` | AES-256-GCM com chave derivada por `scrypt` de `BACKUP_ENCRYPTION_PASSWORD` e salt gravado no cabeçalho do arquivo cifrado; backups Fernet antigos não são legíveis pela nova versão — [Storage](03-storage.md) | ETAPA-8-BACKGROUND |
-| Restauração manual | `pdfding/backup/management/commands/recover_data.py` | flag de CLI `-restore-backup`, com confirmação interativa, sobrescreve `DB_PATH` e `FILES` — [Storage](03-storage.md) | ETAPA-8-BACKGROUND |
 | Regeneração de thumbnails | `pdfding/pdf/management/commands/regenerate_thumbnails.py` | substituído por `POST /api/admin/reindex` (reconstrói somente o índice FTS5) — [API](05-api.md), [Busca Híbrida](04-busca-hibrida.md) — combinado com geração de thumbnail sob demanda pelo pdf.js do navegador na primeira abertura do viewer — [Frontend](06-frontend.md) | ETAPA-8-BACKGROUND |
 
 ### Infraestrutura
@@ -135,3 +132,6 @@ Removidas por decisão explícita do briefing ou do plano de refatoração — n
 | PostgreSQL | simplicidade — SQLite puro Go é o único banco suportado |
 | Paginação numerada | substituída por rolagem infinita em todas as listagens |
 | `ALLOW_PDF_SUB_DIRECTORIES` como interruptor | subdiretórios passam a ser sempre permitidos, sem variável de ambiente para desligar |
+| Backup S3/MinIO agendado (`pdfding/backup/tasks.py`) | decisão do usuário de eliminar toda armazenagem/integração com Amazon S3 desta refatoração; o produto não envia mais nada para nuvem. Backup externo, se necessário, é responsabilidade do operador do host — ver [Storage](03-storage.md) |
+| Criptografia de backup (`pdfding/backup/service.py`) | dependia do job de backup em nuvem, removido junto |
+| Restauração manual de backup (`pdfding/backup/management/commands/recover_data.py`) | dependia do backup em S3/MinIO, removido; sem backup automático não há do que restaurar via este comando |

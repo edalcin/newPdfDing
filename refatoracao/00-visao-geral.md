@@ -6,8 +6,8 @@ Este documento resume o *porquê* da refatoração antes de descer aos detalhes 
 
 1. Reescrever o newPdfDing em Go + SvelteKit espelhando a arquitetura de `pkd`, visando simplicidade e imagem Docker mínima.
 2. Adotar a mesma estratégia de busca híbrida (FTS5 + embeddings Gemini + RRF) de `pkd`.
-   > **Nota de escopo:** o objetivo original também citava "adotar a mesma estratégia de Storage em Amazon S3 do `pkd`". Esse item foi **retirado do escopo** por decisão do usuário durante o planejamento — ver "Assumptions & contingencies" do plano de origem e [Storage](03-storage.md). Os arquivos PDF permanecem exclusivamente no filesystem local; S3 continua existindo apenas como destino do job de backup, que já existia antes desta refatoração.
-3. Preservar 100% das funcionalidades hoje em produção, **exceto** multi-usuário, tema configurável por variável de ambiente e verificação de e-mail, que são explicitamente eliminados.
+   > **Nota de escopo:** o objetivo original também citava "adotar a mesma estratégia de Storage em Amazon S3 do `pkd`". Esse item foi **retirado do escopo por completo** por decisão do usuário: os arquivos PDF residem exclusivamente no filesystem local (`FILES`), sem nenhuma opção de armazenamento em nuvem. O produto **não tem nenhuma integração com Amazon S3, MinIO ou qualquer outro object storage** — inclusive o job de backup automático que hoje envia banco+arquivos a um bucket S3/MinIO foi removido nesta refatoração (ver [Funcionalidades intencionalmente removidas](10-inventario-funcionalidades.md)).
+3. Preservar 100% das funcionalidades hoje em produção, **exceto** multi-usuário, tema configurável por variável de ambiente, verificação de e-mail e o backup automático para armazenamento em nuvem (S3/MinIO), que são explicitamente eliminados.
 
 ## Princípios de desenvolvimento
 
@@ -51,12 +51,12 @@ As onze decisões abaixo já foram tomadas e não devem ser reabertas durante a 
 |---|---------|--------|---------------|
 | 1 | Backend: Go + chi + `modernc.org/sqlite` (SQLite puro Go, sem CGO). | Binário estático em distroless, imagem ~30–50 MB contra ~400 MB hoje; espelha `pkd`. | `CGO_ENABLED=0` em todo o build; nenhuma dependência C nas camadas de dados. |
 | 2 | Processamento de PDF: pdf.js no navegador no momento do upload. O browser renderiza a página 1 para PNG (thumbnail + preview) e extrai o texto, enviando os três artefatos (PDF, PNG, texto) no mesmo `multipart/form-data`. | Mantém `CGO_ENABLED=0` — nenhuma biblioteca nativa de renderização de PDF no servidor. | Importações pela watch-dir (sem browser) usam extração de texto pura-Go e ficam sem thumbnail até a primeira abertura no viewer, quando o browser gera e faz `POST` do PNG. |
-| 3 | Armazenamento: filesystem local, e só. Não existe backend S3 para os arquivos, não existe comutação de backend, não existe tela de migração de storage. | O acervo vive sob `FILES`; o único uso de S3/MinIO no produto é o destino do job de backup, que já existe hoje e permanece (bucket e credenciais próprios em `BACKUP_*`). | A abstração `storage.Backend` existe mesmo assim, com uma única implementação, porque isola a validação de caminho e o `Range` do resto do código — nenhuma interface especulativa além dela. Ver [Storage](03-storage.md). |
+| 3 | Armazenamento: filesystem local, e só. Não existe backend S3 para os arquivos, não existe comutação de backend, não existe tela de migração de storage, e não há nenhuma integração do produto com Amazon S3, MinIO ou qualquer outro object storage. | O acervo vive sob `FILES`; não há backup automático para nuvem nesta refatoração — funcionalidade removida, ver [Inventário de Funcionalidades](10-inventario-funcionalidades.md). | A abstração `storage.Backend` existe mesmo assim, com uma única implementação, porque isola a validação de caminho e o `Range` do resto do código — nenhuma interface especulativa além dela. Ver [Storage](03-storage.md). |
 | 4 | Busca: caixa única com fusão RRF de FTS5 (léxico) + cosseno sobre embeddings (semântico). | Diverge de `pkd`, que mantém dois modos separados; a fusão custa ~30 linhas e melhora a UX. | Uma única caixa de busca na interface; sem seletor de modo léxico/semântico. Ver [Busca híbrida](04-busca-hibrida.md). |
 | 5 | Embeddings via API Gemini (`batchEmbedContents`), igual a `pkd` — nenhum modelo local, imagem permanece mínima. Execução exclusivamente sob demanda. | Não existe worker de varredura, não existe embedding no upload, não existe fila automática. | Cada documento tem um botão "Embedar" que chama `POST /api/pdfs/{id}/embed` e embeda apenas aquele documento, naquele instante. Sem `GEMINI_API_KEY` a busca semântica fica desligada, o botão aparece desabilitado com tooltip explicando, e a busca cai para FTS5 puro. |
 | 6 | Vetores como BLOB em SQLite, com cosseno calculado em Go, igual a `pkd`. | Sem `sqlite-vec`/`vss` (exigiriam CGO). | KNN é varredura completa em memória; teto documentado em [Busca híbrida](04-busca-hibrida.md). |
 | 7 | UUIDv7 (`github.com/google/uuid`, `uuid.NewV7()`) para todos os IDs de entidade. | IDs ordenáveis por tempo de criação sem coluna auxiliar. | Todo `id` de tabela é `TEXT` gerado por `uuid.NewV7()`. |
-| 8 | Agendamento por intervalo simples (`CONSUME_INTERVAL_MINUTES`, `BACKUP_INTERVAL_HOURS`), não cron. | Elimina dependência de parser de cron. | Esses são os únicos dois processos periódicos do produto; embedding não é um deles. |
+| 8 | Agendamento por intervalo simples (`CONSUME_INTERVAL_MINUTES`), não cron. | Elimina dependência de parser de cron. | Este é o único processo periódico do produto; embedding não é um deles, e não há job de backup nesta refatoração. |
 | 9 | Workspace e WorkspaceUser são eliminados. Com usuário único, `Collection` sobe a entidade de topo. | Não há multi-usuário no produto alvo. | Coleções, incluindo a coleção padrão, permanecem como funcionalidade. Ver seção "Não-multiusuário" abaixo. |
 | 10 | `PdfComment` e `PdfHighlight` fundem-se numa tabela `pdf_annotations` com coluna `kind`. | Os dois modelos Django eram subclasses da mesma abstrata `PdfAnnotation`, com campos idênticos. | Uma única tabela, um único conjunto de rotas de anotação, diferenciados por `kind IN ('comment','highlight')`. Ver [Modelo de dados](02-modelo-de-dados.md). |
 | 11 | Sem migração de dados do banco Django. | A refatoração é um recomeço de schema. | Um documento descreve o script de importação única (ver `ETAPA-12-IMPORTACAO` em [ETAPAS.md](ETAPAS.md)). |
@@ -68,7 +68,7 @@ As onze decisões abaixo já foram tomadas e não devem ser reabertas durante a 
 | Roteamento HTTP | Django | chi |
 | Acesso a dados | Django ORM | SQL direto com `database/sql` |
 | Migrações de schema | Migrations Django | `schema.sql` embutido + migrações idempotentes de coluna |
-| Processos em segundo plano | huey + supervisord | Duas goroutines com `time.Ticker` (consumo e backup, só isso) |
+| Processos em segundo plano | huey + supervisord | Uma goroutine com `time.Ticker` (consumo por watch-dir) |
 | Servidor de aplicação | gunicorn | `net/http` |
 | Camada de apresentação | HTMX + templates Django | SvelteKit SPA |
 | Arquivos estáticos | WhiteNoise | `go:embed` + `http.FileServer` |
@@ -76,7 +76,6 @@ As onze decisões abaixo já foram tomadas e não devem ser reabertas durante a 
 | Autenticação/sessão | allauth / sessões Django | Sessão própria em SQLite |
 | Processamento de PDF | Pillow + pypdfium2 | pdf.js no navegador |
 | Busca | RapidFuzz | FTS5 + embeddings sob demanda com fusão RRF |
-| Cliente de object storage | minio-py | AWS SDK Go v2 (somente no backup) |
 | Gerenciamento de dependências | Poetry | Go modules + npm |
 
 ## Não-multiusuário

@@ -162,7 +162,7 @@ O vetor é gravado em `pdf_embeddings.embedding` como `float32` little-endian co
 
 ## Sem worker, sem automatismo
 
-Decisão explícita, não um detalhe de implementação em aberto: **não existe** goroutine de varredura, `time.Ticker`, canal `notify()`, nem varredura no boot para embedding. `EMBED_SWEEP_MINUTES` **não existe** como variável de ambiente — os únicos dois processos periódicos do produto são o consumo (`CONSUME_INTERVAL_MINUTES`) e o backup (`BACKUP_INTERVAL_HOURS`); embedding não é um deles (decisão 8 em [Visão geral](00-visao-geral.md)).
+Decisão explícita, não um detalhe de implementação em aberto: **não existe** goroutine de varredura, `time.Ticker`, canal `notify()`, nem varredura no boot para embedding. `EMBED_SWEEP_MINUTES` **não existe** como variável de ambiente — o único processo periódico do produto é o consumo por watch-dir (`CONSUME_INTERVAL_MINUTES`); embedding não é ele, e não há job de backup nesta refatoração (decisão 8 em [Visão geral](00-visao-geral.md)).
 
 O **único** caminho de código que grava em `pdf_embeddings` é o handler de `POST /api/pdfs/{id}/embed` (contrato completo em [API](05-api.md)). Um `sync.Mutex` no servidor serializa os acionamentos do botão: nunca há duas chamadas simultâneas à API Gemini. Um segundo clique enquanto o primeiro ainda está em curso recebe `409`.
 

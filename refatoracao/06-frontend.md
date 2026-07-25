@@ -149,4 +149,4 @@ Tabela de mapeamento entre cada rota nova da SPA e as telas/views do produto atu
 | `/login` | `frontend/src/routes/login/+page.svelte` | Login do `django-allauth` | Autenticação por senha única (`ADMIN_PASSWORD`), substitui o login multiusuário |
 | `/s/[share]` | `frontend/src/routes/s/[share]/+page.svelte` | `view_shared_pdf` (`ViewSharedPdf`), `serve_shared_pdf` (`ServeSharedPdf`) | Viewer público somente-leitura, contador de visualizações do compartilhamento |
 
-Itens do inventário sem tela própria na SPA — consumo por watch-dir, backup agendado com criptografia, restauração via CLI, `/healthz` — não têm interface dedicada e estão documentados em [Storage](03-storage.md) e em [Inventário de Funcionalidades](10-inventario-funcionalidades.md), não repetidos aqui.
+Itens do inventário sem tela própria na SPA — consumo por watch-dir, `/healthz` — não têm interface dedicada e estão documentados em [Storage](03-storage.md) e em [Inventário de Funcionalidades](10-inventario-funcionalidades.md), não repetidos aqui.

@@ -82,9 +82,8 @@ Justificativa de cada relaxamento, nenhum é gratuito:
 
 ## Segredos
 
-- **Nada embutido na imagem**: nenhuma credencial, chave ou senha é copiada para a imagem Docker em nenhum estágio do build. Todas as credenciais (`ADMIN_PASSWORD`, `GEMINI_API_KEY`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY`, `BACKUP_ENCRYPTION_PASSWORD`) chegam exclusivamente por variável de ambiente em tempo de execução.
+- **Nada embutido na imagem**: nenhuma credencial, chave ou senha é copiada para a imagem Docker em nenhum estágio do build. Todas as credenciais (`ADMIN_PASSWORD`, `GEMINI_API_KEY`) chegam exclusivamente por variável de ambiente em tempo de execução.
 - **`.env` fora do git**: o arquivo `.env` real (com valores de produção) está no `.gitignore`; apenas `.env.example`, com placeholders genéricos, é versionado (ver [07-docker-ci-deploy.md](07-docker-ci-deploy.md)).
-- **Rotação de credenciais AWS**: instrução explícita, a repetir em `UNRAID.md`, de rotacionar periodicamente `BACKUP_ACCESS_KEY_ID`/`BACKUP_SECRET_ACCESS_KEY` e de usar uma credencial com permissão restrita apenas ao bucket de backup (nunca uma chave de conta root ou de administrador amplo).
 
 ## CI
 
@@ -109,7 +108,7 @@ Justificativa de cada relaxamento, nenhum é gratuito:
 - [ ] Notas Markdown passam por `goldmark` + `bluemonday.UGCPolicy()` antes de qualquer resposta JSON.
 - [ ] Imagem final é `distroless:nonroot` (uid 65532), sem shell.
 - [ ] Instruções de deploy recomendam `--read-only --cap-drop=ALL`.
-- [ ] Nenhuma credencial embutida na imagem; `.env` fora do git; rotação de credenciais AWS documentada.
+- [ ] Nenhuma credencial embutida na imagem; `.env` fora do git.
 - [ ] `govulncheck` no job de teste do CI.
 - [ ] Trivy falha o pipeline em `CRITICAL,HIGH`.
 - [ ] Dependabot configurado semanalmente para `gomod`, `npm`, `docker`, `github-actions`.

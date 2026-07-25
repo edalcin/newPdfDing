@@ -9,7 +9,7 @@ Esta pasta contém o **plano de documentação** da refatoração completa do ne
 | [00-visao-geral.md](00-visao-geral.md) | Objetivos do projeto, princípios de desenvolvimento (versionamento, frontend, dados, Docker, segurança), as 11 decisões arquiteturais fechadas, tabela stack antigo→novo, e o que muda com a eliminação do multiusuário | Antes de iniciar qualquer etapa, para entender o "porquê" por trás das escolhas |
 | [01-arquitetura.md](01-arquitetura.md) | Árvore de diretórios alvo, regra de dependência entre camadas, assinatura da interface `storage.Backend`, configuração obrigatória do SQLite, mecanismo de migração de schema, e a tabela de dependências Go fixadas | Ao estruturar o repositório Go (ETAPA-1) ou ao decidir onde um novo arquivo/pacote deve viver |
 | [02-modelo-de-dados.md](02-modelo-de-dados.md) | O `schema.sql` completo e final, o mapeamento de cada modelo Django para a tabela nova, as chaves de `settings` com seus defaults e valores válidos, e a regra de normalização de tags | Ao criar ou alterar o schema do banco, ou ao mapear um campo do Django antigo |
-| [03-storage.md](03-storage.md) | Esquema de chaves de arquivo no filesystem, a interface `storage.Backend`/`Seeker`, a implementação `LocalBackend`, tratamento de falhas de disco, e o job de backup para S3/MinIO | Ao implementar `internal/storage` (ETAPA-3) ou o job de backup (ETAPA-8) |
+| [03-storage.md](03-storage.md) | Esquema de chaves de arquivo no filesystem, a interface `storage.Backend`/`Seeker`, a implementação `LocalBackend`, e tratamento de falhas de disco | Ao implementar `internal/storage` (ETAPA-3) |
 | [04-busca-hibrida.md](04-busca-hibrida.md) | Índice FTS5, geração de embeddings sob demanda via API Gemini, formato do BLOB vetorial, fórmula de fusão RRF, e os três estados de `embedding_status` (`none`/`current`/`stale`) | Ao implementar a busca (ETAPA-6) ou o botão de embedding sob demanda |
 | [05-api.md](05-api.md) | Contrato REST completo: toda rota, método, payload, resposta e status de erro possível | Ao implementar qualquer handler HTTP ou ao consumir a API pelo frontend |
 | [06-frontend.md](06-frontend.md) | Stack SvelteKit fixado, rotas da SPA, padrão de rolagem infinita por cursor, tema claro/escuro, PWA, fluxo de upload com pdf.js no navegador, ponte do viewer, e o comportamento do botão de embedding na UI | Ao implementar qualquer tela ou componente do frontend (ETAPA-9, ETAPA-10) |
@@ -32,6 +32,6 @@ Stack em produção hoje versus o stack alvo desta refatoração:
 | Backend | Django 5.2.14 | Go 1.25 + chi + `modernc.org/sqlite` |
 | Banco de dados | SQLite ou PostgreSQL | Somente SQLite |
 | Frontend | HTMX + templates Django | SvelteKit (SPA estática) |
-| Processos em segundo plano | huey + supervisord | Duas goroutines com `time.Ticker` (consumo e backup) |
+| Processos em segundo plano | huey + supervisord | Uma goroutine com `time.Ticker` (consumo por watch-dir) |
 | Servidor HTTP | gunicorn | `net/http` |
 | Viewer de PDF | pdf.js 5.5.207 | pdf.js 5.5.207 |

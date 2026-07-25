@@ -170,14 +170,11 @@ Implementar o compartilhamento público de PDFs: criação, revogação, rotas p
 ## ETAPA-8-BACKGROUND
 
 **Objetivo**
-Implementar os dois processos periódicos de background — consumo por watch-dir e backup criptografado — e a restauração via CLI.
+Implementar o único processo periódico de background do produto: consumo automático de PDFs por watch-dir.
 
 **Entregas**
 - Watch-dir de consumo
-- Job de backup do banco + arquivos (criptografia AES-256-GCM)
-- Restauração via flag de CLI
-- AWS SDK Go v2 entra no `go.mod` nesta etapa, exclusivamente para o backup
-- Variáveis lidas: `CONSUME_ENABLE`, `CONSUME_DIR`, `CONSUME_INTERVAL_MINUTES`, `CONSUME_TAGS`, `CONSUME_SKIP_EXISTING`, `BACKUP_ENABLE`, `BACKUP_BUCKET`, `BACKUP_ENDPOINT`, `BACKUP_REGION`, `BACKUP_ACCESS_KEY_ID`, `BACKUP_SECRET_ACCESS_KEY`, `BACKUP_INTERVAL_HOURS`, `BACKUP_ENCRYPTION_ENABLE`, `BACKUP_ENCRYPTION_PASSWORD` — ver [07-docker-ci-deploy.md](07-docker-ci-deploy.md).
+- Variáveis lidas: `CONSUME_ENABLE`, `CONSUME_DIR`, `CONSUME_INTERVAL_MINUTES`, `CONSUME_TAGS`, `CONSUME_SKIP_EXISTING` — ver [07-docker-ci-deploy.md](07-docker-ci-deploy.md).
 
 **Depende de**
 - ETAPA-4-DOMINIO-PDF
@@ -185,8 +182,7 @@ Implementar os dois processos periódicos de background — consumo por watch-di
 
 **Critério de aceitação**
 - Colocar um PDF em `CONSUME_DIR` e, no ciclo seguinte, ele aparece em `GET /api/pdfs` e sumiu do diretório.
-- Rodar o backup manualmente contra um MinIO local e listar os objetos no bucket.
-- Restaurar num diretório vazio e reabrir a aplicação com o mesmo acervo.
+- `grep -rn "aws-sdk\|minio\|S3\|Backup" internal/` sem resultado — não existe job de backup nesta refatoração.
 
 ## ETAPA-9-UI-BASE
 

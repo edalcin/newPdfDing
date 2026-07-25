@@ -2,7 +2,7 @@
 
 Este documento descreve a árvore de diretórios alvo, as camadas do sistema e a regra de dependência entre elas, a interface de armazenamento a ser implementada, a configuração obrigatória do SQLite, o mecanismo de migração de schema e a tabela fixa de dependências Go que serve de ponto de partida para o `go.mod`.
 
-Para o schema completo e o detalhamento da migração de dados, ver [Modelo de Dados](02-modelo-de-dados.md). Para o detalhamento da implementação de armazenamento (`LocalBackend`, esquema de chaves, backup), ver [Storage](03-storage.md).
+Para o schema completo e o detalhamento da migração de dados, ver [Modelo de Dados](02-modelo-de-dados.md). Para o detalhamento da implementação de armazenamento (`LocalBackend`, esquema de chaves), ver [Storage](03-storage.md).
 
 ## Árvore de diretórios alvo
 
@@ -19,7 +19,7 @@ internal/server/           server.go router.go middleware.go
                            handlers_pdfs.go handlers_tags.go handlers_collections.go
                            handlers_annotations.go handlers_search.go handlers_share.go
                            handlers_settings.go handlers_admin.go handlers_auth.go
-                           consumer.go backup.go
+                           consumer.go
                            web/dist/           (saída do build do frontend, go:embed)
 internal/security/         tokens.go headers.go ratelimit.go sanitize.go
 frontend/                  src/ static/ svelte.config.js vite.config.ts
@@ -39,7 +39,7 @@ Justificativa: manter `store` e `storage` livres de qualquer referência a `serv
 
 ## Interface `storage.Backend`
 
-Assinatura exata a implementar, copiada da referência `pkd` (`internal/storage/storage.go`, somente leitura, ignorando tudo que for específico de S3 nesse arquivo):
+Assinatura exata a implementar, inspirada na referência `pkd` (`internal/storage/storage.go`, somente leitura) — apenas os métodos abaixo são usados por este projeto:
 
 ```go
 type Backend interface {
@@ -47,7 +47,7 @@ type Backend interface {
     Get(ctx context.Context, key string) (io.ReadCloser, int64, error)
     Delete(ctx context.Context, key string) error
     List(ctx context.Context, prefix string) ([]string, error)
-    Name() string // "local" | "s3"
+    Name() string // "local"
 }
 
 type Seeker interface {
@@ -55,7 +55,7 @@ type Seeker interface {
 }
 ```
 
-Neste projeto existe uma única implementação, `LocalBackend`, com raiz em `FILES`. Detalhes de esquema de chaves, validação de path traversal, entrega via `http.ServeContent`, tratamento de falhas e o job de backup estão em [Storage](03-storage.md).
+Neste projeto existe uma única implementação, `LocalBackend`, com raiz em `FILES`. Detalhes de esquema de chaves, validação de path traversal, entrega via `http.ServeContent` e tratamento de falhas estão em [Storage](03-storage.md).
 
 ## Configuração SQLite obrigatória
 
@@ -91,10 +91,3 @@ Versões que `pkd` usa hoje — piso, não teto. Confirmar com `go get` na execu
 | `github.com/microcosm-cc/bluemonday` | `v1.0.27` | Sanitização de HTML (notas em Markdown) |
 | `github.com/yuin/goldmark` | (piso a confirmar) | Renderização de Markdown → HTML das notas, substitui `Markdown`+`nh3` do Python |
 | `github.com/ledongthuc/pdf` | (piso a confirmar) | Extração de texto pura-Go, usada apenas no caminho da watch-dir |
-| `github.com/aws/aws-sdk-go-v2` | `v1.41.7` | Usado só pelo job de backup |
-| `github.com/aws/aws-sdk-go-v2/config` | `v1.32.17` | Usado só pelo job de backup |
-| `github.com/aws/aws-sdk-go-v2/credentials` | `v1.19.16` | Usado só pelo job de backup |
-| `github.com/aws/aws-sdk-go-v2/feature/s3/manager` | `v1.22.18` | Usado só pelo job de backup |
-| `github.com/aws/aws-sdk-go-v2/service/s3` | `v1.101.0` | Usado só pelo job de backup |
-
-Nota: as cinco últimas dependências (`aws-sdk-go-v2` e submódulos) entram no `go.mod` exclusivamente pelo job de backup para S3/MinIO (ver [Storage](03-storage.md)) — não há nenhum outro uso de S3 no produto, já que os arquivos residem exclusivamente no filesystem local sob `FILES`.
