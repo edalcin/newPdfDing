@@ -208,6 +208,7 @@ type uploadItem struct {
 	FileDirectory string
 	TagNames      []string
 	Text          string
+	NumPages      int // 0 when unknown; set by the watch-dir consumer (ver consumer.go)
 	File          multipart.File
 	Thumbnail     multipart.File
 	Preview       multipart.File
@@ -326,6 +327,7 @@ func (s *Server) createPDFFromUpload(ctx context.Context, item uploadItem) (stor
 		PreviewKey:    previewKey,
 		SHA256:        sum,
 		SizeBytes:     size,
+		NumPages:      item.NumPages,
 		TagNames:      item.TagNames,
 		Text:          item.Text,
 	})

@@ -64,6 +64,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	srv.StartSessionCleanup(ctx)
+	srv.StartConsumer(ctx)
 
 	go func() {
 		log.Printf("listening on %s", cfg.ListenAddr)

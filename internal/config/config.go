@@ -18,14 +18,19 @@ type Config struct {
 	Files         string
 
 	// Optional with defaults
-	ListenAddr         string
-	LogLevel           string
-	SessionIdleMinutes int
-	TrustProxyHeaders  bool
-	MaxUploadMB        int64
-	GeminiAPIKey       string // empty disables semantic search entirely
-	EmbedModel         string
-	BaseURL            string // empty = derive from the incoming request's Host header
+	ListenAddr          string
+	LogLevel            string
+	SessionIdleMinutes  int
+	TrustProxyHeaders   bool
+	MaxUploadMB         int64
+	GeminiAPIKey        string // empty disables semantic search entirely
+	EmbedModel          string
+	BaseURL             string // empty = derive from the incoming request's Host header
+	ConsumeEnable       bool
+	ConsumeDir          string // default <FILES>/consume, resolved after FILES is known
+	ConsumeInterval     int    // minutes
+	ConsumeTags         string
+	ConsumeSkipExisting bool
 }
 
 // Load reads configuration from environment variables. It returns an error
@@ -47,15 +52,18 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		DBPath:             dbPath,
-		AdminPassword:      adminPassword,
-		Files:              files,
-		ListenAddr:         ":8000",
-		LogLevel:           "info",
-		SessionIdleMinutes: 43200,
-		TrustProxyHeaders:  false,
-		MaxUploadMB:        200,
-		EmbedModel:         "models/gemini-embedding-001",
+		DBPath:              dbPath,
+		AdminPassword:       adminPassword,
+		Files:               files,
+		ListenAddr:          ":8000",
+		LogLevel:            "info",
+		SessionIdleMinutes:  43200,
+		TrustProxyHeaders:   false,
+		MaxUploadMB:         200,
+		EmbedModel:          "models/gemini-embedding-001",
+		ConsumeDir:          files + string(os.PathSeparator) + "consume",
+		ConsumeInterval:     5,
+		ConsumeSkipExisting: true,
 	}
 
 	if v := os.Getenv("LISTEN_ADDR"); v != "" {
@@ -100,6 +108,38 @@ func Load() (*Config, error) {
 
 	if v := os.Getenv("BASE_URL"); v != "" {
 		cfg.BaseURL = strings.TrimRight(v, "/")
+	}
+
+	if v := os.Getenv("CONSUME_ENABLE"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, fmt.Errorf("CONSUME_ENABLE must be a boolean, got %q", v)
+		}
+		cfg.ConsumeEnable = b
+	}
+
+	if v := os.Getenv("CONSUME_DIR"); v != "" {
+		cfg.ConsumeDir = v
+	}
+
+	if v := os.Getenv("CONSUME_INTERVAL_MINUTES"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
+			return nil, fmt.Errorf("CONSUME_INTERVAL_MINUTES must be a positive integer, got %q", v)
+		}
+		cfg.ConsumeInterval = n
+	}
+
+	if v := os.Getenv("CONSUME_TAGS"); v != "" {
+		cfg.ConsumeTags = v
+	}
+
+	if v := os.Getenv("CONSUME_SKIP_EXISTING"); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, fmt.Errorf("CONSUME_SKIP_EXISTING must be a boolean, got %q", v)
+		}
+		cfg.ConsumeSkipExisting = b
 	}
 
 	return cfg, nil

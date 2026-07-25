@@ -82,6 +82,7 @@ type CreateParams struct {
 	PreviewKey    string
 	SHA256        string
 	SizeBytes     int64
+	NumPages      int // 0 when unknown (browser uploads don't report it; watch-dir imports do)
 	TagNames      []string
 	Text          string // extracted text, optional — empty means no pdf_text row
 }
@@ -100,9 +101,9 @@ func (s *PDFStore) Create(p CreateParams) (PDF, error) {
 		id, name, description, notes, collection_id, file_directory,
 		storage_key, thumbnail_key, preview_key, sha256, size_bytes, num_pages,
 		current_page, views, revision, starred, archived, created_at, last_viewed_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 0, 1, 0, 0, ?, NULL)`,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1, 0, 0, ?, NULL)`,
 		p.ID, p.Name, p.Description, p.Notes, p.CollectionID, p.FileDirectory,
-		p.StorageKey, p.ThumbnailKey, p.PreviewKey, p.SHA256, p.SizeBytes, now,
+		p.StorageKey, p.ThumbnailKey, p.PreviewKey, p.SHA256, p.SizeBytes, p.NumPages, now,
 	)
 	if err != nil {
 		tx.Rollback()
