@@ -58,9 +58,8 @@ type pdfResponse struct {
 }
 
 // toPDFResponse builds the API representation of a PDF, rendering+sanitizing
-// notes to HTML. embedding_status is always "none" here — the real
-// none/current/stale derivation lands in ETAPA-6-BUSCA, which owns
-// pdf_embeddings semantics.
+// notes to HTML. embedding_status is derived by the store layer on every
+// read (ver 04-busca-hibrida.md, "Estado de embedding").
 func toPDFResponse(p store.PDF) (pdfResponse, error) {
 	html, err := security.RenderNotes(p.Notes)
 	if err != nil {
@@ -77,7 +76,7 @@ func toPDFResponse(p store.PDF) (pdfResponse, error) {
 		SHA256: p.SHA256, SizeBytes: p.SizeBytes, NumPages: p.NumPages,
 		CurrentPage: p.CurrentPage, Views: p.Views, Revision: p.Revision,
 		Starred: p.Starred, Archived: p.Archived, CreatedAt: p.CreatedAt,
-		Tags: tags, EmbeddingStatus: "none",
+		Tags: tags, EmbeddingStatus: p.EmbeddingStatus,
 	}
 	if p.LastViewedAt.Valid {
 		resp.LastViewedAt = &p.LastViewedAt.String
@@ -157,6 +156,17 @@ func (s *Server) handleListPDFs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		params.Limit = n
+	}
+
+	if query := q.Get("q"); query != "" {
+		params.Query = query
+		if s.gemini != nil {
+			if vec, err := s.gemini.Embed(r.Context(), query); err == nil {
+				params.QueryVector = vec
+			} else {
+				log.Printf("warning: gemini query embed failed, falling back to lexical-only search: %v", err)
+			}
+		}
 	}
 
 	items, next, err := s.pdfs.List(params)

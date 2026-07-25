@@ -53,6 +53,7 @@ func (s *Server) buildRouter() http.Handler {
 		protected.Post("/api/pdfs/{id}/thumbnail", s.handleUploadThumbnail)
 		protected.Get("/api/pdfs/{id}/download", s.handleDownloadPDF)
 		protected.Put("/api/pdfs/{id}/file", s.handlePutPDFFile)
+		protected.Post("/api/pdfs/{id}/embed", s.handleEmbedPDF)
 
 		protected.Get("/api/annotations", s.handleListAnnotations)
 		protected.Get("/api/annotations/export", s.handleExportAnnotations)

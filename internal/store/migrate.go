@@ -61,5 +61,14 @@ func Open(dbPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("store.Open commit: %w", err)
 	}
 
+	// Rebuild the FTS5 index from current table state on every boot — cheap
+	// at personal-library scale, and it corrects any accumulated divergence
+	// without incremental tracking (ver 04-busca-hibrida.md, "Rebuild total
+	// no boot"; 01-arquitetura.md, "Mecanismo de migração").
+	if err := RebuildFTS(db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("store.Open rebuild fts: %w", err)
+	}
+
 	return db, nil
 }

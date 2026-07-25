@@ -34,6 +34,9 @@ type PDF struct {
 	CreatedAt     string
 	LastViewedAt  sql.NullString
 	Tags          []Tag
+	// EmbeddingStatus is derived on every read, never persisted (ver
+	// 04-busca-hibrida.md, "Estado de embedding"): "none"|"current"|"stale".
+	EmbeddingStatus string
 }
 
 const pdfColumns = `id, name, description, notes, collection_id, file_directory, storage_key, thumbnail_key, preview_key, sha256, size_bytes, num_pages, current_page, views, revision, starred, archived, created_at, last_viewed_at`
@@ -56,12 +59,14 @@ func scanPDF(row interface{ Scan(...any) error }) (PDF, error) {
 
 // PDFStore provides CRUD, listing and cursor pagination over the pdfs table.
 type PDFStore struct {
-	db *sql.DB
+	db         *sql.DB
+	embedModel string
 }
 
-// NewPDFStore wraps db in a PDFStore.
-func NewPDFStore(db *sql.DB) *PDFStore {
-	return &PDFStore{db: db}
+// NewPDFStore wraps db in a PDFStore. embedModel is used to derive
+// embedding_status on every read (ver 04-busca-hibrida.md).
+func NewPDFStore(db *sql.DB, embedModel string) *PDFStore {
+	return &PDFStore{db: db, embedModel: embedModel}
 }
 
 // CreateParams is the input to Create.
@@ -128,6 +133,18 @@ func (s *PDFStore) Create(p CreateParams) (PDF, error) {
 		}
 	}
 
+	fresh, ok, err := loadFTSRow(tx, p.ID)
+	if err != nil {
+		tx.Rollback()
+		return PDF{}, err
+	}
+	if ok {
+		if err := insertFTSRow(tx, fresh); err != nil {
+			tx.Rollback()
+			return PDF{}, err
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return PDF{}, err
 	}
@@ -149,7 +166,11 @@ func (s *PDFStore) GetByID(id string) (PDF, error) {
 		return PDF{}, err
 	}
 	p.Tags = tags[p.ID]
-	return p, nil
+	batch := []PDF{p}
+	if err := s.attachEmbeddingStatus(batch); err != nil {
+		return PDF{}, err
+	}
+	return batch[0], nil
 }
 
 // GetBySHA256 returns the PDF matching hash, or ErrNotFound (ver 05-api.md,
@@ -228,6 +249,14 @@ type ListParams struct {
 	Sort         string
 	Cursor       string
 	Limit        int
+
+	// Query, when non-empty, switches List into hybrid-search mode (ver
+	// 04-busca-hibrida.md): Sort/Cursor are ignored, results are ranked by
+	// RRF fusion of lexical (FTS5/LIKE) and semantic (QueryVector cosine)
+	// candidates, and next_cursor is always "" — the fused result is a
+	// single bounded page, not an infinite-scroll sequence.
+	Query       string
+	QueryVector []float32
 }
 
 // List returns a page of PDFs (tags loaded) plus the opaque cursor for the
@@ -236,6 +265,9 @@ type ListParams struct {
 // (sort key, id), compared with SQLite row values so results never repeat
 // or skip under concurrent inserts.
 func (s *PDFStore) List(p ListParams) ([]PDF, string, error) {
+	if p.Query != "" {
+		return s.searchList(p)
+	}
 	spec, ok := sortSpecs[p.Sort]
 	if !ok {
 		spec = sortSpecs["newest"]
@@ -332,8 +364,119 @@ func (s *PDFStore) List(p ListParams) ([]PDF, string, error) {
 	for i := range items {
 		items[i].Tags = tagsByID[items[i].ID]
 	}
+	if err := s.attachEmbeddingStatus(items); err != nil {
+		return nil, "", err
+	}
 
 	return items, nextCursor, nil
+}
+
+// searchList implements the q!="" branch of List: fuse lexical + semantic
+// candidates by RRF, apply the same tag/collection/starred/archived filters
+// as browse mode on top of the fused order, and return up to Limit (default
+// 50) results — a single bounded page, never paginated (ver
+// 04-busca-hibrida.md, "Fusão RRF", "Filtros combinados com a busca").
+func (s *PDFStore) searchList(p ListParams) ([]PDF, string, error) {
+	lexical, err := SearchLexical(s.db, p.Query)
+	if err != nil {
+		return nil, "", err
+	}
+
+	var semantic []string
+	if len(p.QueryVector) > 0 {
+		semantic, err = SemanticSearch(s.db, p.QueryVector)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
+	limit := p.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+
+	fused := FuseRRF(lexical, semantic, 200)
+	if len(fused) == 0 {
+		return []PDF{}, "", nil
+	}
+
+	items, err := s.fetchFilteredOrdered(fused, p, limit)
+	if err != nil {
+		return nil, "", err
+	}
+
+	ids := make([]string, len(items))
+	for i, p := range items {
+		ids[i] = p.ID
+	}
+	tagsByID, err := s.tagsFor(ids)
+	if err != nil {
+		return nil, "", err
+	}
+	for i := range items {
+		items[i].Tags = tagsByID[items[i].ID]
+	}
+	if err := s.attachEmbeddingStatus(items); err != nil {
+		return nil, "", err
+	}
+
+	return items, "", nil
+}
+
+// fetchFilteredOrdered fetches the pdfs in orderedIDs matching the browse
+// filters, then reorders the result to match orderedIDs (SQL IN does not
+// preserve order) and cuts it to limit.
+func (s *PDFStore) fetchFilteredOrdered(orderedIDs []string, p ListParams, limit int) ([]PDF, error) {
+	placeholders, args := idPlaceholders(orderedIDs)
+	where := []string{fmt.Sprintf("id IN (%s)", placeholders)}
+
+	if p.CollectionID != "" {
+		where = append(where, "collection_id = ?")
+		args = append(args, p.CollectionID)
+	}
+	if p.Tag != "" {
+		where = append(where, `id IN (SELECT pt.pdf_id FROM pdf_tags pt JOIN tags t ON t.id = pt.tag_id WHERE t.name = ? COLLATE NOCASE)`)
+		args = append(args, p.Tag)
+	}
+	if p.Starred != nil {
+		where = append(where, "starred = ?")
+		args = append(args, boolToInt(*p.Starred))
+	}
+	if p.Archived != nil {
+		where = append(where, "archived = ?")
+		args = append(args, boolToInt(*p.Archived))
+	}
+
+	query := fmt.Sprintf(`SELECT %s FROM pdfs WHERE %s`, pdfColumns, strings.Join(where, " AND "))
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	byID := make(map[string]PDF)
+	for rows.Next() {
+		p, err := scanPDF(rows)
+		if err != nil {
+			rows.Close()
+			return nil, err
+		}
+		byID[p.ID] = p
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, err
+	}
+	rows.Close()
+
+	items := make([]PDF, 0, limit)
+	for _, id := range orderedIDs {
+		if p, ok := byID[id]; ok {
+			items = append(items, p)
+			if len(items) == limit {
+				break
+			}
+		}
+	}
+	return items, nil
 }
 
 func cursorValue(spec sortSpec, p PDF) string {
@@ -405,19 +548,30 @@ func (s *PDFStore) Update(id string, p UpdateParams) (PDF, error) {
 		add("current_page", *p.CurrentPage)
 	}
 
+	// Reindexing FTS5 needs the OLD indexed values (name/description/notes/
+	// tags/body) before this write changes them, and the NEW values after —
+	// all inside one transaction (ver 04-busca-hibrida.md, "Reindexação").
+	tx, err := s.db.Begin()
+	if err != nil {
+		return PDF{}, err
+	}
+
+	oldRow, hadRow, err := loadFTSRow(tx, id)
+	if err != nil {
+		tx.Rollback()
+		return PDF{}, err
+	}
+
 	if len(sets) > 0 {
 		args = append(args, id)
 		query := fmt.Sprintf(`UPDATE pdfs SET %s WHERE id = ?`, strings.Join(sets, ", "))
-		if _, err := s.db.Exec(query, args...); err != nil {
+		if _, err := tx.Exec(query, args...); err != nil {
+			tx.Rollback()
 			return PDF{}, err
 		}
 	}
 
 	if p.Tags != nil {
-		tx, err := s.db.Begin()
-		if err != nil {
-			return PDF{}, err
-		}
 		if _, err := tx.Exec(`DELETE FROM pdf_tags WHERE pdf_id = ?`, id); err != nil {
 			tx.Rollback()
 			return PDF{}, err
@@ -435,11 +589,18 @@ func (s *PDFStore) Update(id string, p UpdateParams) (PDF, error) {
 				}
 			}
 		}
-		if err := tx.Commit(); err != nil {
+	}
+
+	if hadRow {
+		if err := reindexPDF(tx, id, oldRow, false); err != nil {
+			tx.Rollback()
 			return PDF{}, err
 		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return PDF{}, err
+	}
 	return s.GetByID(id)
 }
 
@@ -451,7 +612,27 @@ func (s *PDFStore) Delete(id string) (PDF, error) {
 	if err != nil {
 		return PDF{}, err
 	}
-	if _, err := s.db.Exec(`DELETE FROM pdfs WHERE id = ?`, id); err != nil {
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return PDF{}, err
+	}
+	oldRow, hadRow, err := loadFTSRow(tx, id)
+	if err != nil {
+		tx.Rollback()
+		return PDF{}, err
+	}
+	if _, err := tx.Exec(`DELETE FROM pdfs WHERE id = ?`, id); err != nil {
+		tx.Rollback()
+		return PDF{}, err
+	}
+	if hadRow {
+		if err := deleteFTSRow(tx, oldRow); err != nil {
+			tx.Rollback()
+			return PDF{}, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
 		return PDF{}, err
 	}
 	return p, nil
@@ -552,7 +733,28 @@ func (s *PDFStore) BulkDelete(ids []string) ([]PDF, error) {
 	}
 	rows.Close()
 
-	if _, err := s.db.Exec(fmt.Sprintf(`DELETE FROM pdfs WHERE id IN (%s)`, placeholders), args...); err != nil {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range deleted {
+		oldRow, hadRow, err := loadFTSRow(tx, p.ID)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		if hadRow {
+			if err := deleteFTSRow(tx, oldRow); err != nil {
+				tx.Rollback()
+				return nil, err
+			}
+		}
+	}
+	if _, err := tx.Exec(fmt.Sprintf(`DELETE FROM pdfs WHERE id IN (%s)`, placeholders), args...); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	return deleted, nil

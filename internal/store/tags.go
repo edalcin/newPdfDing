@@ -126,33 +126,135 @@ func (s *TagStore) Get(id string) (Tag, error) {
 	return t, err
 }
 
+// pdfIDsForTag returns the pdf ids currently associated with tagID —
+// captured before a rename/delete/substitute changes them, so the affected
+// PDFs can be reindexed in FTS5 afterward.
+func pdfIDsForTag(tx *sql.Tx, tagID string) ([]string, error) {
+	rows, err := tx.Query(`SELECT pdf_id FROM pdf_tags WHERE tag_id = ?`, tagID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// captureOldFTSRows reads the pre-change FTS state for each pdf id, keyed
+// by id, skipping any that has no row yet.
+func captureOldFTSRows(tx *sql.Tx, pdfIDs []string) (map[string]ftsRow, error) {
+	old := make(map[string]ftsRow, len(pdfIDs))
+	for _, pid := range pdfIDs {
+		row, ok, err := loadFTSRow(tx, pid)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			old[pid] = row
+		}
+	}
+	return old, nil
+}
+
+// reindexAffected reindexes every pdf id in old, using its captured
+// pre-change state.
+func reindexAffected(tx *sql.Tx, old map[string]ftsRow) error {
+	for pid, row := range old {
+		if err := reindexPDF(tx, pid, row, false); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Rename updates a tag's name. Returns ErrConflict if the new name (case
-// insensitive) is already taken by another tag.
+// insensitive) is already taken by another tag. Every PDF carrying this tag
+// is reindexed in FTS5 in the same transaction (ver 05-api.md, "Tags").
 func (s *TagStore) Rename(id, name string) (Tag, error) {
 	if _, err := s.Get(id); err != nil {
 		return Tag{}, err
 	}
-	if _, err := s.db.Exec(`UPDATE tags SET name = ? WHERE id = ?`, name, id); err != nil {
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return Tag{}, err
+	}
+
+	pdfIDs, err := pdfIDsForTag(tx, id)
+	if err != nil {
+		tx.Rollback()
+		return Tag{}, err
+	}
+	old, err := captureOldFTSRows(tx, pdfIDs)
+	if err != nil {
+		tx.Rollback()
+		return Tag{}, err
+	}
+
+	if _, err := tx.Exec(`UPDATE tags SET name = ? WHERE id = ?`, name, id); err != nil {
+		tx.Rollback()
 		if isUniqueViolation(err) {
 			return Tag{}, ErrConflict
 		}
+		return Tag{}, err
+	}
+
+	if err := reindexAffected(tx, old); err != nil {
+		tx.Rollback()
+		return Tag{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return Tag{}, err
 	}
 	return s.Get(id)
 }
 
 // Delete removes a tag; pdf_tags rows referencing it cascade automatically.
+// Every previously-tagged PDF is reindexed in FTS5 in the same transaction.
 func (s *TagStore) Delete(id string) error {
 	if _, err := s.Get(id); err != nil {
 		return err
 	}
-	_, err := s.db.Exec(`DELETE FROM tags WHERE id = ?`, id)
-	return err
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	pdfIDs, err := pdfIDsForTag(tx, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	old, err := captureOldFTSRows(tx, pdfIDs)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if _, err := tx.Exec(`DELETE FROM tags WHERE id = ?`, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := reindexAffected(tx, old); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // Substitute moves every PDF association from fromID to toID without
 // duplicating a (pdf_id, tag_id) row, then removes fromID (ver 05-api.md,
-// "Tags").
+// "Tags"). Every affected PDF is reindexed in FTS5 in the same transaction.
 func (s *TagStore) Substitute(fromID, toID string) error {
 	if _, err := s.Get(fromID); err != nil {
 		return err
@@ -164,6 +266,18 @@ func (s *TagStore) Substitute(fromID, toID string) error {
 	if err != nil {
 		return err
 	}
+
+	pdfIDs, err := pdfIDsForTag(tx, fromID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	old, err := captureOldFTSRows(tx, pdfIDs)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if _, err := tx.Exec(
 		`INSERT OR IGNORE INTO pdf_tags (pdf_id, tag_id) SELECT pdf_id, ? FROM pdf_tags WHERE tag_id = ?`,
 		toID, fromID,
@@ -175,5 +289,11 @@ func (s *TagStore) Substitute(fromID, toID string) error {
 		tx.Rollback()
 		return err
 	}
+
+	if err := reindexAffected(tx, old); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	return tx.Commit()
 }

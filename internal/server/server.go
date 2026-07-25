@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/edalcin/newpdfding/internal/config"
@@ -28,6 +29,8 @@ type Server struct {
 	annotations *store.AnnotationStore
 	signatures  *store.SignatureStore
 	throttle    *security.LoginThrottle
+	gemini      *store.GeminiClient // nil when GEMINI_API_KEY is unset — semantic search/embed disabled
+	embedMu     sync.Mutex          // serializes POST .../embed so only one Gemini call runs at a time
 	router      http.Handler
 }
 
@@ -40,10 +43,11 @@ func New(cfg *config.Config, db *sql.DB) *Server {
 		sessions:    store.NewSessionStore(db),
 		collections: store.NewCollectionStore(db),
 		tags:        store.NewTagStore(db),
-		pdfs:        store.NewPDFStore(db),
+		pdfs:        store.NewPDFStore(db, cfg.EmbedModel),
 		annotations: store.NewAnnotationStore(db),
 		signatures:  store.NewSignatureStore(db),
 		throttle:    security.NewLoginThrottle(cfg.TrustProxyHeaders),
+		gemini:      store.NewGeminiClient(cfg.GeminiAPIKey, cfg.EmbedModel),
 	}
 	s.router = s.buildRouter()
 	return s

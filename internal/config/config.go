@@ -22,6 +22,8 @@ type Config struct {
 	SessionIdleMinutes int
 	TrustProxyHeaders  bool
 	MaxUploadMB        int64
+	GeminiAPIKey       string // empty disables semantic search entirely
+	EmbedModel         string
 }
 
 // Load reads configuration from environment variables. It returns an error
@@ -51,6 +53,7 @@ func Load() (*Config, error) {
 		SessionIdleMinutes: 43200,
 		TrustProxyHeaders:  false,
 		MaxUploadMB:        200,
+		EmbedModel:         "models/gemini-embedding-001",
 	}
 
 	if v := os.Getenv("LISTEN_ADDR"); v != "" {
@@ -83,6 +86,14 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("MAX_UPLOAD_MB must be a positive integer, got %q", v)
 		}
 		cfg.MaxUploadMB = n
+	}
+
+	if v := os.Getenv("GEMINI_API_KEY"); v != "" {
+		cfg.GeminiAPIKey = v
+	}
+
+	if v := os.Getenv("EMBED_MODEL"); v != "" {
+		cfg.EmbedModel = v
 	}
 
 	return cfg, nil
