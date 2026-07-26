@@ -96,10 +96,6 @@ func TestETAPA12_ImportLegacy(t *testing.T) {
 	if err := os.MkdirAll(filesDir, 0o750); err != nil {
 		t.Fatalf("mkdir files: %v", err)
 	}
-	if err := store.NewCollectionStore(db).EnsureDefault(); err != nil {
-		t.Fatalf("EnsureDefault: %v", err)
-	}
-
 	cfg := &config.Config{
 		DBPath: filepath.Join(dir, "db.sqlite"), AdminPassword: "correcthorse", Files: filesDir,
 		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200, EmbedModel: "mock-embed-model",
@@ -111,11 +107,6 @@ func TestETAPA12_ImportLegacy(t *testing.T) {
 		t.Fatalf("ImportLegacy: %v", err)
 	}
 
-	// The legacy "Default" collection merges into the schema's seeded
-	// default (EnsureDefault already created one named "Default").
-	if report.Collections != 1 {
-		t.Fatalf("expected 1 collection imported, got %d", report.Collections)
-	}
 	if report.Tags != 1 {
 		t.Fatalf("expected 1 tag imported, got %d", report.Tags)
 	}

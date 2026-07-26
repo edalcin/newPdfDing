@@ -3,7 +3,7 @@
 	// compartilhamento e anotações do documento (ver refatoracao/06-frontend.md,
 	// linha "/pdf/[id]", e refatoracao/10-inventario-funcionalidades.md,
 	// "Metadados do documento", "Ações sobre o PDF", "Entrega de arquivo e
-	// progresso de leitura", "Anotações e assinaturas", "Compartilhamento e
+	// progresso de leitura", "Anotações", "Compartilhamento e
 	// administração").
 	import { onDestroy, tick } from 'svelte';
 	import { page } from '$app/state';
@@ -16,10 +16,17 @@
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { formatBytes, formatDate } from '$lib/utils';
-	import type { Collection, PDF, Share } from '$lib/types';
+	import type { PDF, Share } from '$lib/types';
 	import { Editor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
 	import TurndownService from 'turndown';
+
+	const ANNOTATION_COLOR_CLASS: Record<string, string> = {
+		yellow: 'bg-yellow-400',
+		green: 'bg-green-400',
+		blue: 'bg-blue-400',
+		pink: 'bg-pink-400'
+	};
 
 	const id = $derived(page.params.id ?? '');
 
@@ -32,7 +39,6 @@
 	let notFound = $state(false);
 	let loadError = $state('');
 
-	let collections = $state<Collection[]>([]);
 
 	let nameInput = $state('');
 	let descriptionInput = $state('');
@@ -125,11 +131,6 @@
 			editor = new Editor({ element: editorEl, extensions: [StarterKit], content: fetched.notes_html });
 		}
 
-		try {
-			collections = await apiJSON<Collection[]>('/collections');
-		} catch {
-			// coleção fica sem opções — o resto da página continua funcionando
-		}
 
 		try {
 			const shares = await apiJSON<Share[]>('/shares');
@@ -195,9 +196,6 @@
 		if (updated) fileDirectoryInput = updated.file_directory;
 	}
 
-	async function changeCollection(e: Event) {
-		await patchPdf({ collection_id: (e.currentTarget as HTMLSelectElement).value });
-	}
 
 	async function toggleStarred() {
 		if (pdf) await patchPdf({ starred: !pdf.starred });
@@ -374,25 +372,10 @@
 				></textarea>
 			</div>
 
-			<div class="grid gap-4 sm:grid-cols-2">
-				<div>
-					<label for="pdf-tags" class="text-sm font-medium">Tags</label>
-					<div class="mt-1">
-						<TagPicker id="pdf-tags" value={tagsInput} onChange={saveTags} />
-					</div>
-				</div>
-				<div>
-					<label for="pdf-collection" class="text-sm font-medium">Coleção</label>
-					<select
-						id="pdf-collection"
-						value={currentPdf.collection_id}
-						onchange={changeCollection}
-						class="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-					>
-						{#each collections as collection (collection.id)}
-							<option value={collection.id}>{collection.name}</option>
-						{/each}
-					</select>
+			<div>
+				<label for="pdf-tags" class="text-sm font-medium">Tags</label>
+				<div class="mt-1">
+					<TagPicker id="pdf-tags" value={tagsInput} onChange={saveTags} />
 				</div>
 			</div>
 
@@ -458,9 +441,15 @@
 					<ul class="space-y-2">
 						{#each highlights.items as ann (ann.id)}
 							<li class="flex items-start justify-between gap-2 text-sm">
-								<p class="min-w-0 flex-1">
-									<span class="font-medium">p. {ann.page}</span>
-									<span class="text-muted-foreground">— {truncate(ann.text)}</span>
+								<p class="flex min-w-0 flex-1 items-start gap-1.5">
+									<span
+										class={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ANNOTATION_COLOR_CLASS[ann.color] ?? ANNOTATION_COLOR_CLASS.yellow}`}
+									></span>
+									<span class="min-w-0">
+										<span class="font-medium">p. {ann.page}</span>
+										<span class="text-muted-foreground">— {truncate(ann.text)}</span>
+										{#if ann.note}<span class="block text-xs italic text-muted-foreground">{truncate(ann.note)}</span>{/if}
+									</span>
 								</p>
 								<button
 									type="button"
@@ -486,9 +475,15 @@
 					<ul class="space-y-2">
 						{#each comments.items as ann (ann.id)}
 							<li class="flex items-start justify-between gap-2 text-sm">
-								<p class="min-w-0 flex-1">
-									<span class="font-medium">p. {ann.page}</span>
-									<span class="text-muted-foreground">— {truncate(ann.text)}</span>
+								<p class="flex min-w-0 flex-1 items-start gap-1.5">
+									<span
+										class={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ANNOTATION_COLOR_CLASS[ann.color] ?? ANNOTATION_COLOR_CLASS.yellow}`}
+									></span>
+									<span class="min-w-0">
+										<span class="font-medium">p. {ann.page}</span>
+										<span class="text-muted-foreground">— {truncate(ann.text)}</span>
+										{#if ann.note}<span class="block text-xs italic text-muted-foreground">{truncate(ann.note)}</span>{/if}
+									</span>
 								</p>
 								<button
 									type="button"

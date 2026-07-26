@@ -20,7 +20,6 @@
 		{ href: '/', icon: 'bx-library', label: 'Biblioteca' },
 		{ href: '/highlights', icon: 'bx-highlight', label: 'Destaques' },
 		{ href: '/comments', icon: 'bx-comment-detail', label: 'Comentários' },
-		{ href: '/collections', icon: 'bx-collection', label: 'Coleções' },
 		{ href: '/tags', icon: 'bx-purchase-tag', label: 'Tags' },
 		{ href: '/settings', icon: 'bx-cog', label: 'Configurações' },
 		{ href: '/admin', icon: 'bx-shield-quarter', label: 'Administração' }

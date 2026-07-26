@@ -47,10 +47,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "newpdfding: failed to create FILES directory: %v\n", err)
 		os.Exit(1)
 	}
-	if err := store.NewCollectionStore(db).EnsureDefault(); err != nil {
-		fmt.Fprintf(os.Stderr, "newpdfding: failed to seed default collection: %v\n", err)
-		os.Exit(1)
-	}
 
 	srv := server.New(cfg, db)
 
@@ -65,8 +61,8 @@ func main() {
 			os.Exit(1)
 		}
 		log.Printf(
-			"import complete: %d collections, %d tags, %d pdfs (%d skipped), %d annotations, %d shares",
-			report.Collections, report.Tags, report.PDFs, report.Skipped, report.Annotations, report.Shares,
+			"import complete: %d tags, %d pdfs (%d skipped), %d annotations, %d shares",
+			report.Tags, report.PDFs, report.Skipped, report.Annotations, report.Shares,
 		)
 		return
 	}
@@ -83,6 +79,7 @@ func main() {
 	defer stop()
 	srv.StartSessionCleanup(ctx)
 	srv.StartConsumer(ctx)
+	srv.StartEmbedWorker(ctx)
 
 	go func() {
 		log.Printf("listening on %s", cfg.ListenAddr)

@@ -19,6 +19,9 @@ type Annotation struct {
 	Kind      string
 	Page      int
 	Text      string
+	Note      string
+	Color     string
+	Rects     string
 	CreatedAt string
 }
 
@@ -32,16 +35,18 @@ func NewAnnotationStore(db *sql.DB) *AnnotationStore {
 	return &AnnotationStore{db: db}
 }
 
-// Create inserts a new annotation for pdfID.
-func (s *AnnotationStore) Create(pdfID, kind string, page int, text string) (Annotation, error) {
+// Create inserts a new annotation for pdfID. color must already be
+// validated by the caller (handlers_annotations.go); rects is '' for an
+// unanchored annotation.
+func (s *AnnotationStore) Create(pdfID, kind string, page int, text, note, color, rects string) (Annotation, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return Annotation{}, err
 	}
 	now := time.Now().UTC().Format(timeFormat)
 	_, err = s.db.Exec(
-		`INSERT INTO pdf_annotations (id, pdf_id, kind, page, text, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-		id.String(), pdfID, kind, page, text, now,
+		`INSERT INTO pdf_annotations (id, pdf_id, kind, page, text, note, color, rects, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id.String(), pdfID, kind, page, text, note, color, rects, now,
 	)
 	if err != nil {
 		return Annotation{}, err
@@ -65,23 +70,55 @@ func (s *AnnotationStore) Import(id, pdfID, kind string, page int, text, created
 func (s *AnnotationStore) Get(id string) (Annotation, error) {
 	var a Annotation
 	err := s.db.QueryRow(
-		`SELECT id, pdf_id, kind, page, text, created_at FROM pdf_annotations WHERE id = ?`, id,
-	).Scan(&a.ID, &a.PDFID, &a.Kind, &a.Page, &a.Text, &a.CreatedAt)
+		`SELECT id, pdf_id, kind, page, text, note, color, rects, created_at FROM pdf_annotations WHERE id = ?`, id,
+	).Scan(&a.ID, &a.PDFID, &a.Kind, &a.Page, &a.Text, &a.Note, &a.Color, &a.Rects, &a.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Annotation{}, ErrNotFound
 	}
 	return a, err
 }
 
-// UpdateText updates an annotation's text.
-func (s *AnnotationStore) UpdateText(id, text string) (Annotation, error) {
+// Update applies a partial update to an annotation's text and/or note —
+// nil fields are left unchanged (ver 05-api.md, "PATCH /api/annotations/{id}").
+func (s *AnnotationStore) Update(id string, text, note *string) (Annotation, error) {
 	if _, err := s.Get(id); err != nil {
 		return Annotation{}, err
 	}
-	if _, err := s.db.Exec(`UPDATE pdf_annotations SET text = ? WHERE id = ?`, text, id); err != nil {
-		return Annotation{}, err
+	var sets []string
+	var args []any
+	if text != nil {
+		sets = append(sets, "text = ?")
+		args = append(args, *text)
+	}
+	if note != nil {
+		sets = append(sets, "note = ?")
+		args = append(args, *note)
+	}
+	if len(sets) > 0 {
+		args = append(args, id)
+		query := fmt.Sprintf(`UPDATE pdf_annotations SET %s WHERE id = ?`, strings.Join(sets, ", "))
+		if _, err := s.db.Exec(query, args...); err != nil {
+			return Annotation{}, err
+		}
 	}
 	return s.Get(id)
+}
+
+// UpdateAnchor stores the geometry resolved for an annotation that was
+// created without one (legacy rows). Returns ErrNotFound if absent.
+func (s *AnnotationStore) UpdateAnchor(id, rects string) error {
+	res, err := s.db.Exec(`UPDATE pdf_annotations SET rects = ? WHERE id = ?`, rects, id)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // Delete removes an annotation.
@@ -142,7 +179,7 @@ func (s *AnnotationStore) query(p AnnotationListParams, all bool) ([]Annotation,
 		whereSQL = strings.Join(where, " AND ")
 	}
 
-	query := fmt.Sprintf(`SELECT id, pdf_id, kind, page, text, created_at FROM pdf_annotations WHERE %s ORDER BY created_at DESC, id DESC`, whereSQL)
+	query := fmt.Sprintf(`SELECT id, pdf_id, kind, page, text, note, color, rects, created_at FROM pdf_annotations WHERE %s ORDER BY created_at DESC, id DESC`, whereSQL)
 
 	limit := p.Limit
 	if !all {
@@ -162,7 +199,7 @@ func (s *AnnotationStore) query(p AnnotationListParams, all bool) ([]Annotation,
 	var items []Annotation
 	for rows.Next() {
 		var a Annotation
-		if err := rows.Scan(&a.ID, &a.PDFID, &a.Kind, &a.Page, &a.Text, &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.PDFID, &a.Kind, &a.Page, &a.Text, &a.Note, &a.Color, &a.Rects, &a.CreatedAt); err != nil {
 			return nil, "", err
 		}
 		items = append(items, a)

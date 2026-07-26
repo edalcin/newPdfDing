@@ -31,10 +31,6 @@ func TestETAPA8_ConsumeWatchDir(t *testing.T) {
 	if err := os.MkdirAll(consumeDir, 0o750); err != nil {
 		t.Fatalf("mkdir consume: %v", err)
 	}
-	if err := store.NewCollectionStore(db).EnsureDefault(); err != nil {
-		t.Fatalf("EnsureDefault: %v", err)
-	}
-
 	cfg := &config.Config{
 		DBPath: filepath.Join(dir, "db.sqlite"), AdminPassword: "correcthorse", Files: filesDir,
 		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200, EmbedModel: "mock-embed-model",
@@ -110,10 +106,6 @@ func TestETAPA8_ConsumeDuplicateSkipped(t *testing.T) {
 	consumeDir := filepath.Join(dir, "consume")
 	os.MkdirAll(filesDir, 0o750)
 	os.MkdirAll(consumeDir, 0o750)
-	if err := store.NewCollectionStore(db).EnsureDefault(); err != nil {
-		t.Fatalf("EnsureDefault: %v", err)
-	}
-
 	cfg := &config.Config{
 		DBPath: filepath.Join(dir, "db.sqlite"), AdminPassword: "correcthorse", Files: filesDir,
 		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200, EmbedModel: "mock-embed-model",

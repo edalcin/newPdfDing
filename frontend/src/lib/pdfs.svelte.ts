@@ -12,7 +12,8 @@ export class PDFListStore {
 	done = $state(false);
 	sort = $state<PDFSort>('newest');
 	query = $state('');
-	tag = $state('');
+	tags = $state<string[]>([]);
+	archived = $state(false);
 
 	async reset() {
 		this.items = [];
@@ -28,7 +29,8 @@ export class PDFListStore {
 			const params = new URLSearchParams({ sort: this.sort, limit: '50' });
 			if (this.cursor) params.set('cursor', this.cursor);
 			if (this.query) params.set('q', this.query);
-			if (this.tag) params.set('tag', this.tag);
+			params.set('archived', this.archived ? 'true' : 'false');
+			for (const t of this.tags) params.append('tag', t);
 			const page = await apiJSON<PDFListPage>(`/pdfs?${params.toString()}`);
 			this.items = [...this.items, ...page.items];
 			this.cursor = page.next_cursor;

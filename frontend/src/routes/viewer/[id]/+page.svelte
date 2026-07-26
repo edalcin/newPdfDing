@@ -1,16 +1,16 @@
 <script lang="ts">
 	// Host da ponte postMessage do viewer pdf.js (ver "Contrato: PDF viewer
 	// iframe"). Este componente possui: busca de metadados do PDF e das
-	// assinaturas, o <iframe> estático em /pdfjs/viewer.html, os toggles de
-	// modo invertido e "manter tela ligada", o seletor de assinatura, e o
-	// tratamento de toda mensagem vinda do iframe (salvar página atual,
-	// criar comentário/destaque, erro de carregamento).
+	// anotações existentes, o <iframe> estático em /pdfjs/viewer.html, os
+	// toggles de modo invertido e "manter tela ligada", e o tratamento de
+	// toda mensagem vinda do iframe (salvar página atual, criar/atualizar
+	// anotação, resolver âncora legada, erro de carregamento).
 	import { page } from '$app/state';
 	import { apiJSON, apiRequest } from '$lib/api';
 	import { extractAssetsFromUrl } from '$lib/pdf-process';
-	import { createAnnotation } from '$lib/annotations.svelte';
+	import { createAnnotation, patchAnnotation } from '$lib/annotations.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import type { PDF, Signature } from '$lib/types';
+	import type { Annotation, PDF } from '$lib/types';
 
 	// page.params tipa como `string | undefined` porque LayoutParams é
 	// compartilhado entre todas as rotas de '/' — nesta rota o segmento
@@ -18,14 +18,13 @@
 	const id = $derived(page.params.id ?? '');
 
 	let pdf = $state<PDF | null>(null);
-	let signatures = $state<Signature[]>([]);
-	let selectedSignatureId = $state('');
 	let inverted = $state(false);
 	let keepAwake = $state(false);
 	let viewerReady = $state(false);
 	let errorMsg = $state('');
 	let iframeEl = $state<HTMLIFrameElement>();
 	let wakeLock: WakeLockSentinel | null = null;
+	let annotations: Annotation[] = [];
 
 	const wakeLockSupported = typeof navigator !== 'undefined' && 'wakeLock' in navigator;
 
@@ -36,15 +35,19 @@
 	);
 
 	type HostToViewerMessage =
-		| { type: 'pdfjs:apply-signature'; dataUrl: string }
 		| { type: 'pdfjs:set-inverted'; value: boolean }
-		| { type: 'pdfjs:goto-page'; page: number };
+		| { type: 'pdfjs:goto-page'; page: number }
+		| { type: 'pdfjs:load-annotations'; items: Annotation[] }
+		| { type: 'pdfjs:annotation-created'; annotation: Annotation };
 
 	type ViewerToHostMessage =
 		| { type: 'pdfjs:ready'; numPages: number }
 		| { type: 'pdfjs:page-changed'; page: number }
-		| { type: 'pdfjs:create-comment'; page: number; text: string }
-		| { type: 'pdfjs:create-highlight'; page: number; text: string }
+		| { type: 'pdfjs:create-comment'; page: number; text: string; note: string; rects: string }
+		| { type: 'pdfjs:create-highlight'; page: number; text: string; rects: string; color: string }
+		| { type: 'pdfjs:update-annotation'; id: string; note: string }
+		| { type: 'pdfjs:anchor-resolved'; id: string; rects: string }
+		| { type: 'pdfjs:annotation-click'; id: string }
 		| { type: 'pdfjs:error'; message: string };
 
 	function isViewerMessage(data: unknown): data is ViewerToHostMessage {
@@ -74,21 +77,40 @@
 		wakeLock = null;
 	}
 
+	/** Busca todas as anotações do PDF, paginando até o fim — a lista de um
+	 * documento nunca é grande o bastante para justificar rolagem infinita
+	 * aqui (ao contrário de /highlights e /comments). */
+	async function loadAnnotations(pdfId: string): Promise<Annotation[]> {
+		const items: Annotation[] = [];
+		let cursor = '';
+		for (;;) {
+			const params = new URLSearchParams({ pdf_id: pdfId });
+			if (cursor) params.set('cursor', cursor);
+			const pageResult = await apiJSON<{ items: Annotation[]; next_cursor: string | null }>(
+				`/annotations?${params.toString()}`
+			);
+			items.push(...pageResult.items);
+			if (!pageResult.next_cursor) break;
+			cursor = pageResult.next_cursor;
+		}
+		return items;
+	}
+
 	async function loadData(pdfId: string) {
 		pdf = null;
 		errorMsg = '';
 		viewerReady = false;
+		annotations = [];
 		await releaseWakeLock(); // evita vazar o sentinel se o componente for reaproveitado para outro [id]
 		if (!pdfId) return;
 		try {
-			const [pdfData, sigData, settings] = await Promise.all([
+			const [pdfData, settings, annotationItems] = await Promise.all([
 				apiJSON<PDF>(`/pdfs/${pdfId}`),
-				apiJSON<Signature[]>('/signatures'),
-				apiJSON<Record<string, string>>('/settings')
+				apiJSON<Record<string, string>>('/settings'),
+				loadAnnotations(pdfId)
 			]);
 			pdf = pdfData;
-			signatures = sigData;
-			selectedSignatureId = sigData.length > 0 ? sigData[0].id : '';
+			annotations = annotationItems;
 			inverted = settings['viewer.inverted'] === '1';
 			keepAwake = settings['viewer.keep_awake'] === '1';
 			if (keepAwake) await requestWakeLock();
@@ -98,23 +120,23 @@
 		}
 	}
 
-	/** Extrai texto e um thumbnail em resolução atual no navegador (mesmo
+	/** Extrai texto e um preview em resolução atual no navegador (mesmo
 	 * pdf.js do upload) e envia ao servidor: texto para documentos que
-	 * chegaram sem ele (import do banco legado, watch-dir), thumbnail sempre
-	 * — reprocessa até thumbnails antigos de baixa resolução herdados do
+	 * chegaram sem ele (import do banco legado, watch-dir), preview sempre
+	 * — reprocessa até previews antigos de baixa resolução herdados do
 	 * import legado. Melhor-esforço: silencioso em qualquer falha, nunca
 	 * bloqueia ou interrompe a abertura do viewer (ver
 	 * refatoracao/06-frontend.md, "Degradação graciosa"). */
 	async function backfillAssets(pdfId: string, hadText: boolean) {
 		try {
-			const { text, thumbnail } = await extractAssetsFromUrl(`/api/pdfs/${pdfId}/file`);
+			const { text, preview } = await extractAssetsFromUrl(`/api/pdfs/${pdfId}/file`);
 			if (!hadText && text) {
 				await apiJSON(`/pdfs/${pdfId}/text`, { method: 'POST', body: { text } });
 				if (pdf && pdf.id === pdfId) pdf = { ...pdf, has_text: true };
 			}
 			const form = new FormData();
-			form.append('thumbnail', thumbnail, 'thumbnail.png');
-			await apiRequest(`/pdfs/${pdfId}/thumbnail`, { method: 'POST', body: form });
+			form.append('preview', preview, 'preview.png');
+			await apiRequest(`/pdfs/${pdfId}/preview`, { method: 'POST', body: form });
 		} catch {
 			// PDF corrompido/protegido, ou alguma requisição falhou — nada
 			// atualizado desta vez; a próxima abertura tenta de novo.
@@ -148,11 +170,6 @@
 		}
 	}
 
-	function applySelectedSignature() {
-		const sig = signatures.find((s) => s.id === selectedSignatureId);
-		if (sig) postToIframe({ type: 'pdfjs:apply-signature', dataUrl: sig.data });
-	}
-
 	function handleMessage(event: MessageEvent) {
 		if (event.origin !== window.location.origin) return;
 		if (!isViewerMessage(event.data)) return;
@@ -160,23 +177,48 @@
 		switch (msg.type) {
 			case 'pdfjs:ready':
 				viewerReady = true;
-				// Sincroniza o estado persistido de inversão assim que o
-				// listener do iframe está garantidamente pronto.
+				// Sincroniza o estado persistido de inversão e as anotações
+				// já carregadas assim que o listener do iframe está
+				// garantidamente pronto.
 				postToIframe({ type: 'pdfjs:set-inverted', value: inverted });
+				postToIframe({ type: 'pdfjs:load-annotations', items: annotations });
 				break;
 			case 'pdfjs:page-changed':
 				// Já debounced em 2s pelo iframe — sem debounce adicional aqui.
 				apiJSON(`/pdfs/${id}`, { method: 'PATCH', body: { current_page: msg.page } }).catch(() => {});
 				break;
 			case 'pdfjs:create-comment':
-				createAnnotation(id, 'comment', msg.page, msg.text).catch((err) => {
-					errorMsg = err instanceof Error ? err.message : 'Falha ao criar comentário.';
-				});
+				createAnnotation(id, 'comment', msg.page, msg.text, { note: msg.note, rects: msg.rects })
+					.then((created) => {
+						annotations = [...annotations, created];
+						postToIframe({ type: 'pdfjs:annotation-created', annotation: created });
+					})
+					.catch((err) => {
+						errorMsg = err instanceof Error ? err.message : 'Falha ao criar comentário.';
+					});
 				break;
 			case 'pdfjs:create-highlight':
-				createAnnotation(id, 'highlight', msg.page, msg.text).catch((err) => {
-					errorMsg = err instanceof Error ? err.message : 'Falha ao criar destaque.';
+				createAnnotation(id, 'highlight', msg.page, msg.text, { rects: msg.rects, color: msg.color })
+					.then((created) => {
+						annotations = [...annotations, created];
+						postToIframe({ type: 'pdfjs:annotation-created', annotation: created });
+					})
+					.catch((err) => {
+						errorMsg = err instanceof Error ? err.message : 'Falha ao criar destaque.';
+					});
+				break;
+			case 'pdfjs:update-annotation':
+				patchAnnotation(msg.id, { note: msg.note }).catch((err) => {
+					errorMsg = err instanceof Error ? err.message : 'Falha ao salvar a nota.';
 				});
+				break;
+			case 'pdfjs:anchor-resolved':
+				patchAnnotation(msg.id, { rects: msg.rects }).catch(() => {
+					// melhor-esforço — o destaque continua exibido pelo iframe mesmo se a persistência falhar
+				});
+				break;
+			case 'pdfjs:annotation-click':
+				// no-op — o popover de leitura é renderizado dentro do próprio iframe
 				break;
 			case 'pdfjs:error':
 				errorMsg = msg.message;
@@ -223,20 +265,6 @@
 			>
 				<i class="bx bx-coffee"></i> Manter tela ligada
 			</Button>
-			{#if signatures.length > 0}
-				<select
-					bind:value={selectedSignatureId}
-					class="h-9 rounded-md border border-input bg-background px-2 text-sm"
-					aria-label="Assinatura"
-				>
-					{#each signatures as sig (sig.id)}
-						<option value={sig.id}>{sig.name}</option>
-					{/each}
-				</select>
-				<Button variant="outline" size="sm" onclick={applySelectedSignature} disabled={!selectedSignatureId || !viewerReady}>
-					Aplicar assinatura
-				</Button>
-			{/if}
 		</div>
 	</div>
 

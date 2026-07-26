@@ -35,11 +35,6 @@ func (s *Server) buildRouter() http.Handler {
 
 		protected.Post("/api/auth/logout", s.handleLogout)
 
-		protected.Get("/api/collections", s.handleListCollections)
-		protected.Post("/api/collections", s.handleCreateCollection)
-		protected.Patch("/api/collections/{id}", s.handleUpdateCollection)
-		protected.Delete("/api/collections/{id}", s.handleDeleteCollection)
-
 		protected.Get("/api/tags", s.handleListTags)
 		protected.Patch("/api/tags/{id}", s.handleRenameTag)
 		protected.Delete("/api/tags/{id}", s.handleDeleteTag)
@@ -53,23 +48,19 @@ func (s *Server) buildRouter() http.Handler {
 		protected.Patch("/api/pdfs/{id}", s.handlePatchPDF)
 		protected.Delete("/api/pdfs/{id}", s.handleDeletePDF)
 		protected.Get("/api/pdfs/{id}/file", s.handleServeFile)
-		protected.Get("/api/pdfs/{id}/thumbnail", s.handleServeThumbnail)
 		protected.Get("/api/pdfs/{id}/preview", s.handleServePreview)
-		protected.Post("/api/pdfs/{id}/thumbnail", s.handleUploadThumbnail)
+		protected.Post("/api/pdfs/{id}/preview", s.handleUploadPreview)
 		protected.Post("/api/pdfs/{id}/text", s.handleUploadText)
 		protected.Get("/api/pdfs/{id}/download", s.handleDownloadPDF)
 		protected.Put("/api/pdfs/{id}/file", s.handlePutPDFFile)
 		protected.Post("/api/pdfs/{id}/embed", s.handleEmbedPDF)
+		protected.Get("/api/embed/jobs", s.handleEmbedJobs)
 
 		protected.Get("/api/annotations", s.handleListAnnotations)
 		protected.Get("/api/annotations/export", s.handleExportAnnotations)
 		protected.Post("/api/pdfs/{id}/annotations", s.handleCreateAnnotation)
 		protected.Patch("/api/annotations/{id}", s.handlePatchAnnotation)
 		protected.Delete("/api/annotations/{id}", s.handleDeleteAnnotation)
-
-		protected.Get("/api/signatures", s.handleListSignatures)
-		protected.Post("/api/signatures", s.handleCreateSignature)
-		protected.Delete("/api/signatures/{id}", s.handleDeleteSignature)
 
 		protected.Post("/api/pdfs/{id}/share", s.handleCreateShare)
 		protected.Delete("/api/pdfs/{id}/share", s.handleDeleteShare)

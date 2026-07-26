@@ -50,12 +50,20 @@ export async function createAnnotation(
 	pdfId: string,
 	kind: AnnotationKind,
 	page: number,
-	text: string
+	text: string,
+	opts?: { note?: string; color?: string; rects?: string }
 ): Promise<Annotation> {
 	return apiJSON<Annotation>(`/pdfs/${pdfId}/annotations`, {
 		method: 'POST',
-		body: { kind, page, text }
+		body: { kind, page, text, ...opts }
 	});
+}
+
+export async function patchAnnotation(
+	id: string,
+	body: { text?: string; note?: string; rects?: string }
+): Promise<Annotation> {
+	return apiJSON<Annotation>(`/annotations/${id}`, { method: 'PATCH', body });
 }
 
 export async function deleteAnnotation(id: string): Promise<void> {

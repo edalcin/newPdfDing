@@ -20,7 +20,6 @@ import (
 
 // ImportReport summarizes one run of ImportLegacy.
 type ImportReport struct {
-	Collections int
 	Tags        int
 	PDFs        int
 	Skipped     int // PDFs skipped: missing file, duplicate sha256, or read error
@@ -33,8 +32,8 @@ type ImportReport struct {
 // refatoracao/02-modelo-de-dados.md, "Mapeamento de modelos Django →
 // tabelas novas"). It reads legacyDBPath (the old db.sqlite3) and copies
 // referenced files from legacyMediaDir into the active storage backend.
-// Workspace and WorkspaceUser have no destination — every legacy workspace's
-// collections and tags collapse into this single-user schema's flat lists,
+// Workspace, WorkspaceUser and pdf_collection have no destination — every
+// legacy workspace's tags collapse into this single-user schema's flat list,
 // merging by case-insensitive name. Imported PDFs never get an embedding
 // (pdf_embeddings stays untouched), matching "Nenhum embedding automático".
 func (s *Server) ImportLegacy(ctx context.Context, legacyDBPath, legacyMediaDir string) (ImportReport, error) {
@@ -49,19 +48,13 @@ func (s *Server) ImportLegacy(ctx context.Context, legacyDBPath, legacyMediaDir 
 		return report, fmt.Errorf("open legacy db: %w", err)
 	}
 
-	collectionIDs, err := s.importLegacyCollections(legacyDB)
-	if err != nil {
-		return report, fmt.Errorf("import collections: %w", err)
-	}
-	report.Collections = len(collectionIDs)
-
 	tagIDs, err := s.importLegacyTags(legacyDB)
 	if err != nil {
 		return report, fmt.Errorf("import tags: %w", err)
 	}
 	report.Tags = len(tagIDs)
 
-	pdfIDs, skipped, err := s.importLegacyPDFs(ctx, legacyDB, legacyMediaDir, collectionIDs)
+	pdfIDs, skipped, err := s.importLegacyPDFs(ctx, legacyDB, legacyMediaDir)
 	if err != nil {
 		return report, fmt.Errorf("import pdfs: %w", err)
 	}
@@ -85,32 +78,6 @@ func (s *Server) ImportLegacy(ctx context.Context, legacyDBPath, legacyMediaDir 
 	report.Shares = shares
 
 	return report, nil
-}
-
-// importLegacyCollections imports pdf_collection, merging by
-// case-insensitive name (ver CollectionStore.Import) — the legacy "Default"
-// collection of each workspace lands on this schema's single seeded
-// default. Returns legacy id -> new id.
-func (s *Server) importLegacyCollections(legacyDB *sql.DB) (map[string]string, error) {
-	rows, err := legacyDB.Query(`SELECT id, creation_date, description, name FROM pdf_collection`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	out := map[string]string{}
-	for rows.Next() {
-		var legacyID, createdAt, description, name string
-		if err := rows.Scan(&legacyID, &createdAt, &description, &name); err != nil {
-			return nil, err
-		}
-		col, err := s.collections.Import(name, description, createdAt)
-		if err != nil {
-			return nil, fmt.Errorf("collection %q: %w", name, err)
-		}
-		out[legacyID] = col.ID
-	}
-	return out, rows.Err()
 }
 
 // importLegacyTags imports pdf_tag, reusing TagStore.EnsureTags — its
@@ -139,15 +106,15 @@ func (s *Server) importLegacyTags(legacyDB *sql.DB) (map[string]string, error) {
 }
 
 // importLegacyPDFs imports pdf_pdf plus its pdf_pdf_tags associations,
-// copying the pdf/thumbnail/preview files from legacyMediaDir into the
+// copying the pdf/preview files from legacyMediaDir into the
 // active storage backend. A PDF whose file is missing on disk or whose
 // sha256 already exists is skipped and logged, not fatal. Returns legacy id
 // -> new id for every PDF actually imported.
-func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyMediaDir string, collectionIDs map[string]string) (map[string]string, int, error) {
+func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyMediaDir string) (map[string]string, int, error) {
 	rows, err := legacyDB.Query(`SELECT
-		id, archived, creation_date, collection_id, current_page, description,
+		id, archived, creation_date, current_page, description,
 		file_directory, file, last_viewed_date, name, notes, number_of_pages,
-		preview, revision, starred, thumbnail, views
+		preview, revision, starred, views
 		FROM pdf_pdf`)
 	if err != nil {
 		return nil, 0, err
@@ -155,10 +122,10 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 	defer rows.Close()
 
 	type legacyPDF struct {
-		id, createdAt, collectionID, description, fileDirectory, file,
+		id, createdAt, description, fileDirectory, file,
 		lastViewedAt, name, notes string
-		preview, thumbnail       sql.NullString
-		archived, starred        bool
+		preview                                     sql.NullString
+		archived, starred                           bool
 		currentPage, numberOfPages, revision, views int
 	}
 
@@ -166,9 +133,9 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 	for rows.Next() {
 		var p legacyPDF
 		if err := rows.Scan(
-			&p.id, &p.archived, &p.createdAt, &p.collectionID, &p.currentPage, &p.description,
+			&p.id, &p.archived, &p.createdAt, &p.currentPage, &p.description,
 			&p.fileDirectory, &p.file, &p.lastViewedAt, &p.name, &p.notes, &p.numberOfPages,
-			&p.preview, &p.revision, &p.starred, &p.thumbnail, &p.views,
+			&p.preview, &p.revision, &p.starred, &p.views,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -181,20 +148,13 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 	out := map[string]string{}
 	skipped := 0
 	for _, p := range legacyPDFs {
-		newCollectionID, ok := collectionIDs[p.collectionID]
-		if !ok {
-			log.Printf("import: pdf %q references unknown collection %q, skipping", p.name, p.collectionID)
-			skipped++
-			continue
-		}
-
 		id, err := uuid.NewV7()
 		if err != nil {
 			return nil, 0, err
 		}
 		pdfID := id.String()
 
-		fileKey := pdfFileKey(newCollectionID, p.fileDirectory, pdfID)
+		fileKey := pdfFileKey(p.fileDirectory, pdfID)
 		sum, size, err := s.copyLegacyFile(ctx, legacyMediaDir, p.file, fileKey)
 		if err != nil {
 			log.Printf("import: pdf %q: %v, skipping", p.name, err)
@@ -202,17 +162,9 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 			continue
 		}
 
-		var thumbKey string
-		if p.thumbnail.Valid && p.thumbnail.String != "" {
-			thumbKey = pdfThumbnailKey(newCollectionID, pdfID)
-			if _, _, err := s.copyLegacyFile(ctx, legacyMediaDir, p.thumbnail.String, thumbKey); err != nil {
-				log.Printf("import: pdf %q: thumbnail copy failed: %v (continuing without it)", p.name, err)
-				thumbKey = ""
-			}
-		}
 		var previewKey string
 		if p.preview.Valid && p.preview.String != "" {
-			previewKey = pdfPreviewKey(newCollectionID, pdfID)
+			previewKey = pdfPreviewKey(pdfID)
 			if _, _, err := s.copyLegacyFile(ctx, legacyMediaDir, p.preview.String, previewKey); err != nil {
 				log.Printf("import: pdf %q: preview copy failed: %v (continuing without it)", p.name, err)
 				previewKey = ""
@@ -251,10 +203,8 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 			Name:          p.name,
 			Description:   p.description,
 			Notes:         p.notes,
-			CollectionID:  newCollectionID,
 			FileDirectory: p.fileDirectory,
 			StorageKey:    fileKey,
-			ThumbnailKey:  thumbKey,
 			PreviewKey:    previewKey,
 			SHA256:        sum,
 			SizeBytes:     size,
@@ -270,9 +220,6 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 		})
 		if errors.Is(err, store.ErrConflict) {
 			_ = s.files.Delete(ctx, fileKey)
-			if thumbKey != "" {
-				_ = s.files.Delete(ctx, thumbKey)
-			}
 			if previewKey != "" {
 				_ = s.files.Delete(ctx, previewKey)
 			}

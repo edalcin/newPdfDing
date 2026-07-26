@@ -28,7 +28,7 @@ func (s *Server) handlePatchSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	all, err := s.settings.Patch(updates, s.collections.Exists)
+	all, err := s.settings.Patch(updates)
 	if errors.Is(err, store.ErrInvalidSetting) {
 		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return

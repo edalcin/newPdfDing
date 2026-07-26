@@ -18,10 +18,8 @@ type PDF struct {
 	Name          string
 	Description   string
 	Notes         string
-	CollectionID  string
 	FileDirectory string
 	StorageKey    string
-	ThumbnailKey  string
 	PreviewKey    string
 	SHA256        string
 	SizeBytes     int64
@@ -44,14 +42,14 @@ type PDF struct {
 	HasText bool
 }
 
-const pdfColumns = `id, name, description, notes, collection_id, file_directory, storage_key, thumbnail_key, preview_key, sha256, size_bytes, num_pages, current_page, views, revision, starred, archived, created_at, last_viewed_at`
+const pdfColumns = `id, name, description, notes, file_directory, storage_key, preview_key, sha256, size_bytes, num_pages, current_page, views, revision, starred, archived, created_at, last_viewed_at`
 
 func scanPDF(row interface{ Scan(...any) error }) (PDF, error) {
 	var p PDF
 	var starred, archived int
 	err := row.Scan(
-		&p.ID, &p.Name, &p.Description, &p.Notes, &p.CollectionID, &p.FileDirectory,
-		&p.StorageKey, &p.ThumbnailKey, &p.PreviewKey, &p.SHA256, &p.SizeBytes, &p.NumPages,
+		&p.ID, &p.Name, &p.Description, &p.Notes, &p.FileDirectory,
+		&p.StorageKey, &p.PreviewKey, &p.SHA256, &p.SizeBytes, &p.NumPages,
 		&p.CurrentPage, &p.Views, &p.Revision, &starred, &archived, &p.CreatedAt, &p.LastViewedAt,
 	)
 	if err != nil {
@@ -80,10 +78,8 @@ type CreateParams struct {
 	Name          string
 	Description   string
 	Notes         string
-	CollectionID  string
 	FileDirectory string
 	StorageKey    string
-	ThumbnailKey  string
 	PreviewKey    string
 	SHA256        string
 	SizeBytes     int64
@@ -103,12 +99,12 @@ func (s *PDFStore) Create(p CreateParams) (PDF, error) {
 	}
 
 	_, err = tx.Exec(`INSERT INTO pdfs (
-		id, name, description, notes, collection_id, file_directory,
-		storage_key, thumbnail_key, preview_key, sha256, size_bytes, num_pages,
+		id, name, description, notes, file_directory,
+		storage_key, preview_key, sha256, size_bytes, num_pages,
 		current_page, views, revision, starred, archived, created_at, last_viewed_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1, 0, 0, ?, NULL)`,
-		p.ID, p.Name, p.Description, p.Notes, p.CollectionID, p.FileDirectory,
-		p.StorageKey, p.ThumbnailKey, p.PreviewKey, p.SHA256, p.SizeBytes, p.NumPages, now,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1, 0, 0, ?, NULL)`,
+		p.ID, p.Name, p.Description, p.Notes, p.FileDirectory,
+		p.StorageKey, p.PreviewKey, p.SHA256, p.SizeBytes, p.NumPages, now,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -166,10 +162,8 @@ type ImportParams struct {
 	Name          string
 	Description   string
 	Notes         string
-	CollectionID  string
 	FileDirectory string
 	StorageKey    string
-	ThumbnailKey  string
 	PreviewKey    string
 	SHA256        string
 	SizeBytes     int64
@@ -201,12 +195,12 @@ func (s *PDFStore) Import(p ImportParams) (PDF, error) {
 	}
 
 	_, err = tx.Exec(`INSERT INTO pdfs (
-		id, name, description, notes, collection_id, file_directory,
-		storage_key, thumbnail_key, preview_key, sha256, size_bytes, num_pages,
+		id, name, description, notes, file_directory,
+		storage_key, preview_key, sha256, size_bytes, num_pages,
 		current_page, views, revision, starred, archived, created_at, last_viewed_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		p.ID, p.Name, p.Description, p.Notes, p.CollectionID, p.FileDirectory,
-		p.StorageKey, p.ThumbnailKey, p.PreviewKey, p.SHA256, p.SizeBytes, p.NumPages,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		p.ID, p.Name, p.Description, p.Notes, p.FileDirectory,
+		p.StorageKey, p.PreviewKey, p.SHA256, p.SizeBytes, p.NumPages,
 		p.CurrentPage, p.Views, p.Revision, boolToInt(p.Starred), boolToInt(p.Archived), p.CreatedAt, lastViewedAt,
 	)
 	if err != nil {
@@ -350,8 +344,7 @@ var sortSpecs = map[string]sortSpec{
 // Archived defaults to false at the handler layer (ver handlers_pdfs.go) so
 // the default library view excludes archived PDFs.
 type ListParams struct {
-	CollectionID string
-	Tag          string
+	Tags         []string
 	Starred      *bool
 	Archived     *bool
 	Sort         string
@@ -384,13 +377,9 @@ func (s *PDFStore) List(p ListParams) ([]PDF, string, error) {
 	var where []string
 	var args []any
 
-	if p.CollectionID != "" {
-		where = append(where, "collection_id = ?")
-		args = append(args, p.CollectionID)
-	}
-	if p.Tag != "" {
-		where = append(where, `id IN (SELECT pt.pdf_id FROM pdf_tags pt JOIN tags t ON t.id = pt.tag_id WHERE t.name = ? COLLATE NOCASE)`)
-		args = append(args, p.Tag)
+	for _, t := range p.Tags {
+		where = append(where, `id IN (SELECT pt.pdf_id FROM pdf_tags pt JOIN tags tg ON tg.id = pt.tag_id WHERE tg.name = ? COLLATE NOCASE)`)
+		args = append(args, t)
 	}
 	if p.Starred != nil {
 		where = append(where, "starred = ?")
@@ -480,7 +469,7 @@ func (s *PDFStore) List(p ListParams) ([]PDF, string, error) {
 }
 
 // searchList implements the q!="" branch of List: fuse lexical + semantic
-// candidates by RRF, apply the same tag/collection/starred/archived filters
+// candidates by RRF, apply the same tag/starred/archived filters
 // as browse mode on top of the fused order, and return up to Limit (default
 // 50) results — a single bounded page, never paginated (ver
 // 04-busca-hibrida.md, "Fusão RRF", "Filtros combinados com a busca").
@@ -538,13 +527,9 @@ func (s *PDFStore) fetchFilteredOrdered(orderedIDs []string, p ListParams, limit
 	placeholders, args := idPlaceholders(orderedIDs)
 	where := []string{fmt.Sprintf("id IN (%s)", placeholders)}
 
-	if p.CollectionID != "" {
-		where = append(where, "collection_id = ?")
-		args = append(args, p.CollectionID)
-	}
-	if p.Tag != "" {
-		where = append(where, `id IN (SELECT pt.pdf_id FROM pdf_tags pt JOIN tags t ON t.id = pt.tag_id WHERE t.name = ? COLLATE NOCASE)`)
-		args = append(args, p.Tag)
+	for _, t := range p.Tags {
+		where = append(where, `id IN (SELECT pt.pdf_id FROM pdf_tags pt JOIN tags tg ON tg.id = pt.tag_id WHERE tg.name = ? COLLATE NOCASE)`)
+		args = append(args, t)
 	}
 	if p.Starred != nil {
 		where = append(where, "starred = ?")
@@ -611,7 +596,6 @@ type UpdateParams struct {
 	Description   *string
 	Notes         *string
 	Tags          *[]string
-	CollectionID  *string
 	FileDirectory *string
 	Starred       *bool
 	Archived      *bool
@@ -639,9 +623,6 @@ func (s *PDFStore) Update(id string, p UpdateParams) (PDF, error) {
 	}
 	if p.Notes != nil {
 		add("notes", *p.Notes)
-	}
-	if p.CollectionID != nil {
-		add("collection_id", *p.CollectionID)
 	}
 	if p.FileDirectory != nil {
 		add("file_directory", *p.FileDirectory)
@@ -746,10 +727,11 @@ func (s *PDFStore) Delete(id string) (PDF, error) {
 	return p, nil
 }
 
-// SetThumbnailKey updates the thumbnail_key of a PDF (ver 05-api.md, "POST
-// .../thumbnail" — a browser-generated thumbnail arriving after upload).
-func (s *PDFStore) SetThumbnailKey(id, key string) error {
-	res, err := s.db.Exec(`UPDATE pdfs SET thumbnail_key = ? WHERE id = ?`, key, id)
+// SetPreviewKey records the storage key of a browser-generated preview PNG
+// uploaded after the initial upload (ver 05-api.md, "POST .../preview").
+// Returns ErrNotFound if the PDF does not exist.
+func (s *PDFStore) SetPreviewKey(id, key string) error {
+	res, err := s.db.Exec(`UPDATE pdfs SET preview_key = ? WHERE id = ?`, key, id)
 	if err != nil {
 		return err
 	}

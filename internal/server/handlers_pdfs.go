@@ -41,7 +41,6 @@ type pdfResponse struct {
 	Description     string      `json:"description"`
 	Notes           string      `json:"notes"`
 	NotesHTML       string      `json:"notes_html"`
-	CollectionID    string      `json:"collection_id"`
 	FileDirectory   string      `json:"file_directory"`
 	SHA256          string      `json:"sha256"`
 	SizeBytes       int64       `json:"size_bytes"`
@@ -73,7 +72,7 @@ func toPDFResponse(p store.PDF) (pdfResponse, error) {
 	resp := pdfResponse{
 		ID: p.ID, Name: p.Name, Description: p.Description,
 		Notes: p.Notes, NotesHTML: html,
-		CollectionID: p.CollectionID, FileDirectory: p.FileDirectory,
+		FileDirectory: p.FileDirectory,
 		SHA256: p.SHA256, SizeBytes: p.SizeBytes, NumPages: p.NumPages,
 		CurrentPage: p.CurrentPage, Views: p.Views, Revision: p.Revision,
 		Starred: p.Starred, Archived: p.Archived, CreatedAt: p.CreatedAt,
@@ -98,20 +97,16 @@ func writePDF(w http.ResponseWriter, status int, p store.PDF) {
 // Storage key scheme (ver refatoracao/03-storage.md, "Esquema de chaves")
 // ---------------------------------------------------------------------
 
-func pdfFileKey(collectionID, fileDirectory, pdfID string) string {
+func pdfFileKey(fileDirectory, pdfID string) string {
 	dir := fileDirectory
 	if dir != "" {
 		dir = strings.Trim(dir, "/") + "/"
 	}
-	return fmt.Sprintf("%s/pdf/%s%s.pdf", collectionID, dir, pdfID)
+	return fmt.Sprintf("pdf/%s%s.pdf", dir, pdfID)
 }
 
-func pdfThumbnailKey(collectionID, pdfID string) string {
-	return fmt.Sprintf("%s/thumb/%s.png", collectionID, pdfID)
-}
-
-func pdfPreviewKey(collectionID, pdfID string) string {
-	return fmt.Sprintf("%s/preview/%s.png", collectionID, pdfID)
+func pdfPreviewKey(pdfID string) string {
+	return fmt.Sprintf("preview/%s.png", pdfID)
 }
 
 // ---------------------------------------------------------------------
@@ -122,8 +117,7 @@ func (s *Server) handleListPDFs(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	params := store.ListParams{
-		CollectionID: q.Get("collection"),
-		Tag:          q.Get("tag"),
+		Tags:         nonEmptyStrings(q["tag"]),
 		Sort:         q.Get("sort"),
 		Cursor:       q.Get("cursor"),
 	}
@@ -205,13 +199,11 @@ func (s *Server) handleListPDFs(w http.ResponseWriter, r *http.Request) {
 type uploadItem struct {
 	Name          string
 	Description   string
-	CollectionID  string
 	FileDirectory string
 	TagNames      []string
 	Text          string
 	NumPages      int // 0 when unknown; set by the watch-dir consumer (ver consumer.go)
 	File          multipart.File
-	Thumbnail     multipart.File
 	Preview       multipart.File
 }
 
@@ -261,19 +253,6 @@ func (s *Server) createPDFFromUpload(ctx context.Context, item uploadItem) (stor
 		return store.PDF{}, err
 	}
 
-	collectionID := item.CollectionID
-	if collectionID == "" {
-		def, err := s.collections.Default()
-		if err != nil {
-			return store.PDF{}, err
-		}
-		collectionID = def.ID
-	} else if ok, err := s.collections.Exists(collectionID); err != nil {
-		return store.PDF{}, err
-	} else if !ok {
-		return store.PDF{}, &uploadValidationError{http.StatusBadRequest, "collection_id does not exist"}
-	}
-
 	id, err := uuid.NewV7()
 	if err != nil {
 		return store.PDF{}, err
@@ -285,8 +264,8 @@ func (s *Server) createPDFFromUpload(ctx context.Context, item uploadItem) (stor
 		name = strings.TrimSuffix(filepath.Base(pdfID), ".pdf")
 	}
 
-	fileKey := pdfFileKey(collectionID, item.FileDirectory, pdfID)
-	var thumbKey, previewKey string
+	fileKey := pdfFileKey(item.FileDirectory, pdfID)
+	var previewKey string
 
 	writtenKeys := []string{}
 	cleanup := func() {
@@ -300,16 +279,8 @@ func (s *Server) createPDFFromUpload(ctx context.Context, item uploadItem) (stor
 	}
 	writtenKeys = append(writtenKeys, fileKey)
 
-	if item.Thumbnail != nil {
-		thumbKey = pdfThumbnailKey(collectionID, pdfID)
-		if err := s.files.Put(ctx, thumbKey, item.Thumbnail, -1, "image/png"); err != nil {
-			cleanup()
-			return store.PDF{}, &uploadValidationError{http.StatusInsufficientStorage, "failed to write thumbnail to storage"}
-		}
-		writtenKeys = append(writtenKeys, thumbKey)
-	}
 	if item.Preview != nil {
-		previewKey = pdfPreviewKey(collectionID, pdfID)
+		previewKey = pdfPreviewKey(pdfID)
 		if err := s.files.Put(ctx, previewKey, item.Preview, -1, "image/png"); err != nil {
 			cleanup()
 			return store.PDF{}, &uploadValidationError{http.StatusInsufficientStorage, "failed to write preview to storage"}
@@ -321,10 +292,8 @@ func (s *Server) createPDFFromUpload(ctx context.Context, item uploadItem) (stor
 		ID:            pdfID,
 		Name:          name,
 		Description:   item.Description,
-		CollectionID:  collectionID,
 		FileDirectory: item.FileDirectory,
 		StorageKey:    fileKey,
-		ThumbnailKey:  thumbKey,
 		PreviewKey:    previewKey,
 		SHA256:        sum,
 		SizeBytes:     size,
@@ -401,21 +370,17 @@ func (s *Server) handleCreatePDF(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	thumb := formFile(r, "thumbnail")
-	defer closeIfNotNil(thumb)
 	preview := formFile(r, "preview")
 	defer closeIfNotNil(preview)
 
 	item := uploadItem{
 		Name:          r.FormValue("name"),
 		Description:   r.FormValue("description"),
-		CollectionID:  r.FormValue("collection_id"),
 		FileDirectory: r.FormValue("file_directory"),
 		TagNames:      store.ParseTagString(r.FormValue("tags")),
 		Text:          r.FormValue("text"),
 		NumPages:      parsePositiveIntForm(r.FormValue("num_pages")),
 		File:          file,
-		Thumbnail:     thumb,
 		Preview:       preview,
 	}
 
@@ -433,7 +398,7 @@ func (s *Server) handleCreatePDF(w http.ResponseWriter, r *http.Request) {
 
 // handleBulkCreatePDFs accepts several "file" parts in one multipart
 // request. Per-file metadata is indexed by upload order: name_0/name_1/...,
-// description_N, tags_N, collection_id_N, file_directory_N (05-api.md does
+// description_N, tags_N, file_directory_N (05-api.md does
 // not pin an exact wire format beyond "multipart with multiple file fields,
 // one set of metadata per file" — this is that scheme).
 func (s *Server) handleBulkCreatePDFs(w http.ResponseWriter, r *http.Request) {
@@ -474,7 +439,6 @@ func (s *Server) handleBulkCreatePDFs(w http.ResponseWriter, r *http.Request) {
 		item := uploadItem{
 			Name:          r.FormValue("name" + suffix),
 			Description:   r.FormValue("description" + suffix),
-			CollectionID:  r.FormValue("collection_id" + suffix),
 			FileDirectory: r.FormValue("file_directory" + suffix),
 			TagNames:      store.ParseTagString(r.FormValue("tags" + suffix)),
 			Text:          r.FormValue("text" + suffix),
@@ -530,7 +494,6 @@ func (s *Server) handlePatchPDF(w http.ResponseWriter, r *http.Request) {
 		Description   *string   `json:"description"`
 		Notes         *string   `json:"notes"`
 		Tags          *[]string `json:"tags"`
-		CollectionID  *string   `json:"collection_id"`
 		FileDirectory *string   `json:"file_directory"`
 		Starred       *bool     `json:"starred"`
 		Archived      *bool     `json:"archived"`
@@ -545,17 +508,6 @@ func (s *Server) handlePatchPDF(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "invalid file_directory")
 		return
 	}
-	if req.CollectionID != nil {
-		ok, err := s.collections.Exists(*req.CollectionID)
-		if err != nil {
-			writeJSONError(w, http.StatusInternalServerError, "internal error")
-			return
-		}
-		if !ok {
-			writeJSONError(w, http.StatusBadRequest, "collection_id does not exist")
-			return
-		}
-	}
 	if req.CurrentPage != nil && *req.CurrentPage < 1 {
 		writeJSONError(w, http.StatusBadRequest, "current_page must be >= 1")
 		return
@@ -563,7 +515,7 @@ func (s *Server) handlePatchPDF(w http.ResponseWriter, r *http.Request) {
 
 	params := store.UpdateParams{
 		Name: req.Name, Description: req.Description, Notes: req.Notes,
-		CollectionID: req.CollectionID, FileDirectory: req.FileDirectory,
+		FileDirectory: req.FileDirectory,
 		Starred: req.Starred, Archived: req.Archived, CurrentPage: req.CurrentPage,
 	}
 	if req.Tags != nil {
@@ -594,12 +546,13 @@ func (s *Server) handleDeletePDF(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
+	s.embeds.cancel(pdf.ID)
 	s.deletePDFFiles(r.Context(), pdf)
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) deletePDFFiles(ctx context.Context, p store.PDF) {
-	for _, key := range []string{p.StorageKey, p.ThumbnailKey, p.PreviewKey} {
+	for _, key := range []string{p.StorageKey, p.PreviewKey} {
 		if key == "" {
 			continue
 		}
@@ -610,7 +563,7 @@ func (s *Server) deletePDFFiles(ctx context.Context, p store.PDF) {
 }
 
 // ---------------------------------------------------------------------
-// File / thumbnail / preview / download
+// File / preview / download
 // ---------------------------------------------------------------------
 
 func (s *Server) handleServeFile(w http.ResponseWriter, r *http.Request) {
@@ -638,10 +591,6 @@ func (s *Server) handleDownloadPDF(w http.ResponseWriter, r *http.Request) {
 	_ = s.pdfs.RecordView(id)
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.pdf"`, sanitizeFilename(pdf.Name)))
 	http.ServeContent(w, r, pdf.Name+".pdf", modTime(pdf.CreatedAt), f)
-}
-
-func (s *Server) handleServeThumbnail(w http.ResponseWriter, r *http.Request) {
-	s.serveImage(w, r, func(p store.PDF) string { return p.ThumbnailKey })
 }
 
 func (s *Server) handleServePreview(w http.ResponseWriter, r *http.Request) {
@@ -702,11 +651,11 @@ func (s *Server) serveImage(w http.ResponseWriter, r *http.Request, key func(sto
 	}
 }
 
-// handleUploadThumbnail accepts a browser-generated PNG thumbnail after the
-// initial upload (ver 05-api.md, "POST .../thumbnail" — the pdf.js
+// handleUploadPreview accepts a browser-generated PNG preview after the
+// initial upload (ver 05-api.md, "POST .../preview" — the pdf.js
 // client-side flow may only be able to render the first page once the
 // viewer opens, not at upload time).
-func (s *Server) handleUploadThumbnail(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleUploadPreview(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	pdf, err := s.pdfs.GetByID(id)
 	if errors.Is(err, store.ErrNotFound) {
@@ -730,23 +679,23 @@ func (s *Server) handleUploadThumbnail(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.MultipartForm.RemoveAll()
 
-	file, header, err := r.FormFile("thumbnail")
+	file, header, err := r.FormFile("preview")
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "thumbnail is required")
+		writeJSONError(w, http.StatusBadRequest, "preview is required")
 		return
 	}
 	defer file.Close()
 
-	key := pdfThumbnailKey(pdf.CollectionID, pdf.ID)
+	key := pdfPreviewKey(pdf.ID)
 	if err := s.files.Put(r.Context(), key, file, header.Size, "image/png"); err != nil {
-		writeJSONError(w, http.StatusInsufficientStorage, "failed to write thumbnail to storage")
+		writeJSONError(w, http.StatusInsufficientStorage, "failed to write preview to storage")
 		return
 	}
-	if err := s.pdfs.SetThumbnailKey(pdf.ID, key); err != nil {
+	if err := s.pdfs.SetPreviewKey(pdf.ID, key); err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"thumbnail": "ok"})
+	writeJSON(w, http.StatusOK, map[string]string{"preview": "ok"})
 }
 
 // handleUploadText accepts extracted text arriving after the initial
@@ -810,6 +759,7 @@ func (s *Server) handleBulkActions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, p := range deleted {
+			s.embeds.cancel(p.ID)
 			s.deletePDFFiles(r.Context(), p)
 		}
 		writeJSON(w, http.StatusOK, map[string]int{"updated": len(deleted)})
@@ -863,6 +813,18 @@ func sanitizeFilename(name string) string {
 		return "document"
 	}
 	return b.String()
+}
+
+// nonEmptyStrings drops empty values from a repeated query param (e.g.
+// ?tag=&tag=foo) — chi/net/http hands back every occurrence verbatim.
+func nonEmptyStrings(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, v := range values {
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------

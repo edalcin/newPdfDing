@@ -18,7 +18,6 @@ export interface PDF {
 	description: string;
 	notes: string;
 	notes_html: string;
-	collection_id: string;
 	file_directory: string;
 	sha256: string;
 	size_bytes: number;
@@ -33,15 +32,6 @@ export interface PDF {
 	tags: Tag[];
 	embedding_status: EmbeddingStatus;
 	has_text: boolean;
-}
-
-export interface Collection {
-	id: string;
-	name: string;
-	description: string;
-	is_default: boolean;
-	created_at: string;
-	pdf_count: number;
 }
 
 export type PDFSort =
@@ -68,19 +58,15 @@ export interface Annotation {
 	kind: AnnotationKind;
 	page: number;
 	text: string;
+	note: string;
+	color: string;
+	rects: string;
 	created_at: string;
 }
 
 export interface AnnotationListPage {
 	items: Annotation[];
 	next_cursor: string | null;
-}
-
-export interface Signature {
-	id: string;
-	name: string;
-	data: string; // data URL PNG
-	created_at: string;
 }
 
 export interface Share {
@@ -92,10 +78,8 @@ export interface Share {
 }
 
 export interface AdminInfo {
-	version: string;
 	pdfs_count: number;
 	tags_count: number;
-	collections_count: number;
 	files_bytes: number;
 	embedding_status_counts: Record<EmbeddingStatus, number>;
 }
@@ -107,11 +91,9 @@ export interface Settings {
 	'ui.layout': Layout;
 	'ui.per_page': string;
 	'ui.tags_open': '0' | '1';
-	'ui.tag_tree_mode': '0' | '1';
 	'ui.show_progress_bars': '0' | '1';
 	'pdf.sorting': PDFSort;
 	'annotation.sorting': string;
 	'viewer.inverted': '0' | '1';
 	'viewer.keep_awake': '0' | '1';
-	'current.collection_id': string;
 }

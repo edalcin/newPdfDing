@@ -29,7 +29,7 @@ export interface RequestOptions {
 }
 
 /** Low-level request: returns the raw Response. Callers that need binary
- * content (file/thumbnail/preview streams) use this directly. */
+ * content (file/preview streams) use this directly. */
 export async function apiRequest(path: string, options: RequestOptions = {}): Promise<Response> {
 	const method = options.method ?? 'GET';
 	const headers = new Headers(options.headers);

@@ -3,14 +3,6 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS collections (
-  id          TEXT PRIMARY KEY,           -- UUIDv7
-  name        TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
-  is_default  INTEGER NOT NULL DEFAULT 0,
-  created_at  TEXT NOT NULL
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_collections_name ON collections(name COLLATE NOCASE);
 
 CREATE TABLE IF NOT EXISTS tags (
   id   TEXT PRIMARY KEY,                  -- UUIDv7
@@ -23,10 +15,8 @@ CREATE TABLE IF NOT EXISTS pdfs (
   name             TEXT NOT NULL,
   description      TEXT NOT NULL DEFAULT '',
   notes            TEXT NOT NULL DEFAULT '',   -- Markdown bruto
-  collection_id    TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
   file_directory   TEXT NOT NULL DEFAULT '',   -- subdiretório lógico opcional
   storage_key      TEXT NOT NULL,              -- chave relativa sob FILES
-  thumbnail_key    TEXT NOT NULL DEFAULT '',
   preview_key      TEXT NOT NULL DEFAULT '',
   sha256           TEXT NOT NULL,
   size_bytes       INTEGER NOT NULL DEFAULT 0,
@@ -40,7 +30,6 @@ CREATE TABLE IF NOT EXISTS pdfs (
   last_viewed_at   TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_pdfs_sha256 ON pdfs(sha256);
-CREATE INDEX IF NOT EXISTS idx_pdfs_collection ON pdfs(collection_id);
 CREATE INDEX IF NOT EXISTS idx_pdfs_archived ON pdfs(archived);
 
 CREATE TABLE IF NOT EXISTS pdf_tags (
@@ -55,7 +44,10 @@ CREATE TABLE IF NOT EXISTS pdf_annotations (
   pdf_id     TEXT NOT NULL REFERENCES pdfs(id) ON DELETE CASCADE,
   kind       TEXT NOT NULL CHECK (kind IN ('comment','highlight')),
   page       INTEGER NOT NULL,
-  text       TEXT NOT NULL,
+  text       TEXT NOT NULL,               -- trecho selecionado (highlight) ou corpo (comment)
+  note       TEXT NOT NULL DEFAULT '',    -- anotação do usuário sobre o trecho
+  color      TEXT NOT NULL DEFAULT 'yellow',
+  rects      TEXT NOT NULL DEFAULT '',    -- JSON [[x,y,w,h],…] normalizado 0..1 na página; '' = não ancorado
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_annotations_pdf ON pdf_annotations(pdf_id, kind);
@@ -76,13 +68,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   id           TEXT PRIMARY KEY,          -- token base64url de 32 bytes
   created_at   TEXT NOT NULL,
   last_seen_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS signatures (
-  id         TEXT PRIMARY KEY,            -- UUIDv7
-  name       TEXT NOT NULL,
-  data       TEXT NOT NULL,               -- data URL PNG
-  created_at TEXT NOT NULL
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS pdfs_fts USING fts5(

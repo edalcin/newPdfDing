@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -130,4 +131,32 @@ func extractPDFText(path string) (string, int, error) {
 		return "", r.NumPage(), err
 	}
 	return buf.String(), r.NumPage(), nil
+}
+
+// extractPDFTextFromStorage copies key out of the storage backend into a
+// temp file and runs extractPDFText on it — ledongthuc/pdf needs an
+// io.ReaderAt with a known size, which the Backend interface does not give.
+func (s *Server) extractPDFTextFromStorage(ctx context.Context, key string) (string, int, error) {
+	rc, _, err := s.files.Get(ctx, key)
+	if err != nil {
+		return "", 0, err
+	}
+	defer rc.Close()
+
+	tmp, err := os.CreateTemp("", "npd-*.pdf")
+	if err != nil {
+		return "", 0, err
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+
+	if _, err := io.Copy(tmp, rc); err != nil {
+		tmp.Close()
+		return "", 0, err
+	}
+	if err := tmp.Close(); err != nil {
+		return "", 0, err
+	}
+
+	return extractPDFText(tmpPath)
 }

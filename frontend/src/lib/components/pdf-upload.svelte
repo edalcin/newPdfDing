@@ -27,7 +27,6 @@
 
 			try {
 				const processed = await processPDF(file);
-				form.append('thumbnail', processed.thumbnail, 'thumbnail.png');
 				form.append('preview', processed.preview, 'preview.png');
 				form.append('text', processed.text);
 				form.append('num_pages', String(processed.numPages));

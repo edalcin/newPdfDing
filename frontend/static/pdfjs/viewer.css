@@ -41,10 +41,36 @@ body {
 	border-bottom: 1px solid #3f3f46;
 }
 
-.page-indicator {
-	margin-right: auto;
+.page-nav {
+	display: flex;
+	align-items: center;
+	gap: 4px;
 	font-size: 13px;
 	color: #a1a1aa;
+}
+
+.page-nav input {
+	width: 48px;
+	background: #3f3f46;
+	border: 1px solid #52525b;
+	border-radius: 4px;
+	color: #f4f4f5;
+	font-size: 13px;
+	padding: 4px 6px;
+}
+
+.zoom-controls {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: auto;
+	font-size: 13px;
+	color: #a1a1aa;
+}
+
+#zoom-level {
+	min-width: 42px;
+	text-align: center;
 }
 
 .toolbar-btn {
@@ -62,10 +88,48 @@ body {
 	background: #52525b;
 }
 
+.outline-panel {
+	position: absolute;
+	top: 44px;
+	left: 8px;
+	z-index: 35;
+	max-height: 70vh;
+	overflow: auto;
+	background: #27272a;
+	border: 1px solid #3f3f46;
+	border-radius: 8px;
+	padding: 8px 12px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.outline-panel ul {
+	list-style: none;
+	margin: 0;
+	padding-left: 12px;
+}
+
+.outline-panel > ul {
+	padding-left: 0;
+}
+
+.outline-panel a {
+	display: block;
+	padding: 3px 0;
+	color: #e4e4e7;
+	font-size: 13px;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.outline-panel a:hover {
+	color: #93c5fd;
+}
+
 #viewerContainer {
 	flex: 1;
 	overflow: auto;
 	background: #0a0a0a;
+	position: relative;
 }
 
 #pagesContainer {
@@ -93,6 +157,40 @@ body {
 .pdf-page {
 	display: block;
 	background: #fff;
+}
+
+/* Camada de destaques — abaixo da TextLayer para nunca bloquear a seleção
+   nativa de texto; cada .hl individual reabilita pointer-events só para
+   permitir o clique que abre o popover de leitura. Posições em % — como os
+   rects já são normalizados 0..1 na página, o destaque nunca precisa ser
+   recalculado ao mudar o zoom. */
+.highlightLayer {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+
+.hl {
+	position: absolute;
+	pointer-events: auto;
+	cursor: pointer;
+	mix-blend-mode: multiply;
+}
+
+.hl-yellow {
+	background: rgba(253, 224, 71, 0.55);
+}
+
+.hl-green {
+	background: rgba(134, 239, 172, 0.55);
+}
+
+.hl-blue {
+	background: rgba(147, 197, 253, 0.55);
+}
+
+.hl-pink {
+	background: rgba(249, 168, 212, 0.55);
 }
 
 /* Camada de texto invisível sobreposta ao canvas (mesma técnica do pdf.js
@@ -128,18 +226,81 @@ body {
 	transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
 }
 
-.signature-overlay {
-	position: absolute;
-	top: 24px;
-	left: 24px;
-	max-width: 200px;
-	max-height: 120px;
-	pointer-events: none;
-}
-
 .selection-toolbar {
 	position: absolute;
 	z-index: 30;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px;
+	background: #27272a;
+	border: 1px solid #3f3f46;
+	border-radius: 8px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.color-btn {
+	appearance: none;
+	cursor: pointer;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 2px solid transparent;
+	padding: 0;
+}
+
+.color-btn[data-color='yellow'] {
+	background: #fde047;
+}
+
+.color-btn[data-color='green'] {
+	background: #86efac;
+}
+
+.color-btn[data-color='blue'] {
+	background: #93c5fd;
+}
+
+.color-btn[data-color='pink'] {
+	background: #f9a8d4;
+}
+
+.color-btn.selected {
+	border-color: #e4e4e7;
+}
+
+.note-popover {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 50;
+	width: min(90vw, 360px);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 12px;
+	background: #27272a;
+	border: 1px solid #3f3f46;
+	border-radius: 8px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.note-popover textarea {
+	width: 100%;
+	resize: vertical;
+	background: #18181b;
+	color: #e4e4e7;
+	border: 1px solid #3f3f46;
+	border-radius: 6px;
+	padding: 8px;
+	font: inherit;
+}
+
+.note-popover-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
 }
 
 .status {

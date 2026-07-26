@@ -16,17 +16,48 @@ type annotationResponse struct {
 	Kind      string `json:"kind" yaml:"kind"`
 	Page      int    `json:"page" yaml:"page"`
 	Text      string `json:"text" yaml:"text"`
+	Note      string `json:"note" yaml:"note"`
+	Color     string `json:"color" yaml:"color"`
+	Rects     string `json:"rects" yaml:"rects"`
 	CreatedAt string `json:"created_at" yaml:"created_at"`
 }
 
 func toAnnotationResponse(a store.Annotation) annotationResponse {
 	return annotationResponse{
-		ID: a.ID, PDFID: a.PDFID, Kind: a.Kind, Page: a.Page, Text: a.Text, CreatedAt: a.CreatedAt,
+		ID: a.ID, PDFID: a.PDFID, Kind: a.Kind, Page: a.Page, Text: a.Text,
+		Note: a.Note, Color: a.Color, Rects: a.Rects, CreatedAt: a.CreatedAt,
 	}
 }
 
 func isValidAnnotationKind(kind string) bool {
 	return kind == "comment" || kind == "highlight"
+}
+
+// validAnnotationColors is the closed set accepted for pdf_annotations.color
+// (ver refatoracao, Fase E.1).
+var validAnnotationColors = map[string]bool{"yellow": true, "green": true, "blue": true, "pink": true}
+
+// validateRects reports whether raw is a valid rects value: '' (unanchored)
+// or a JSON array of [x, y, w, h] tuples, each component in [0, 1].
+func validateRects(raw string) bool {
+	if raw == "" {
+		return true
+	}
+	var rects [][]float64
+	if err := json.Unmarshal([]byte(raw), &rects); err != nil {
+		return false
+	}
+	for _, rect := range rects {
+		if len(rect) != 4 {
+			return false
+		}
+		for _, v := range rect {
+			if v < 0 || v > 1 {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // handleListAnnotations serves GET /api/annotations.
@@ -75,9 +106,12 @@ func (s *Server) handleCreateAnnotation(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var req struct {
-		Kind string `json:"kind"`
-		Page *int   `json:"page"`
-		Text string `json:"text"`
+		Kind  string `json:"kind"`
+		Page  *int   `json:"page"`
+		Text  string `json:"text"`
+		Note  string `json:"note"`
+		Color string `json:"color"`
+		Rects string `json:"rects"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "malformed payload")
@@ -87,8 +121,19 @@ func (s *Server) handleCreateAnnotation(w http.ResponseWriter, r *http.Request) 
 		writeJSONError(w, http.StatusBadRequest, "kind must be comment|highlight and page is required")
 		return
 	}
+	if req.Color == "" {
+		req.Color = "yellow"
+	}
+	if !validAnnotationColors[req.Color] {
+		writeJSONError(w, http.StatusBadRequest, "invalid color")
+		return
+	}
+	if !validateRects(req.Rects) {
+		writeJSONError(w, http.StatusBadRequest, "rects inválido")
+		return
+	}
 
-	a, err := s.annotations.Create(pdfID, req.Kind, *req.Page, req.Text)
+	a, err := s.annotations.Create(pdfID, req.Kind, *req.Page, req.Text, req.Note, req.Color, req.Rects)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "internal error")
 		return
@@ -96,19 +141,48 @@ func (s *Server) handleCreateAnnotation(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusCreated, toAnnotationResponse(a))
 }
 
-// handlePatchAnnotation serves PATCH /api/annotations/{id}.
+// handlePatchAnnotation serves PATCH /api/annotations/{id}. rects is only
+// accepted to re-anchor an annotation that has none yet (legacy rows whose
+// geometry the viewer just resolved) — an already-anchored annotation
+// rejects a further rects update with 409 (ver 05-api.md).
 func (s *Server) handlePatchAnnotation(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	var req struct {
-		Text string `json:"text"`
+		Text  *string `json:"text"`
+		Note  *string `json:"note"`
+		Rects *string `json:"rects"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "malformed payload")
 		return
 	}
 
-	a, err := s.annotations.UpdateText(id, req.Text)
+	if req.Rects != nil {
+		if !validateRects(*req.Rects) {
+			writeJSONError(w, http.StatusBadRequest, "rects inválido")
+			return
+		}
+		current, err := s.annotations.Get(id)
+		if errors.Is(err, store.ErrNotFound) {
+			writeJSONError(w, http.StatusNotFound, "annotation not found")
+			return
+		}
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, "internal error")
+			return
+		}
+		if current.Rects != "" {
+			writeJSONError(w, http.StatusConflict, "anotação já ancorada")
+			return
+		}
+		if err := s.annotations.UpdateAnchor(id, *req.Rects); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, "internal error")
+			return
+		}
+	}
+
+	a, err := s.annotations.Update(id, req.Text, req.Note)
 	if errors.Is(err, store.ErrNotFound) {
 		writeJSONError(w, http.StatusNotFound, "annotation not found")
 		return

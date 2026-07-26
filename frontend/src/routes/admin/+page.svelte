@@ -75,12 +75,7 @@
 		<p class="mt-8 text-center text-sm text-destructive">{loadError}</p>
 	{:else if info}
 		<section class="mt-4 rounded-lg border border-border bg-card p-4">
-			<div class="flex items-center justify-between">
-				<h2 class="text-sm font-medium text-muted-foreground">Informações da instância</h2>
-				<span class="text-xs text-muted-foreground">v{info.version}</span>
-			</div>
-
-			<div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+			<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 				<div class="rounded-md border border-border p-3 text-center">
 					<p class="text-lg font-semibold">{info.pdfs_count}</p>
 					<p class="text-xs text-muted-foreground">PDFs</p>
@@ -90,8 +85,8 @@
 					<p class="text-xs text-muted-foreground">Tags</p>
 				</div>
 				<div class="rounded-md border border-border p-3 text-center">
-					<p class="text-lg font-semibold">{info.collections_count}</p>
-					<p class="text-xs text-muted-foreground">Coleções</p>
+					<p class="text-lg font-semibold">{info.embedding_status_counts.current + info.embedding_status_counts.stale}</p>
+					<p class="text-xs text-muted-foreground">Embedados</p>
 				</div>
 				<div class="rounded-md border border-border p-3 text-center">
 					<p class="text-lg font-semibold">{formatBytes(info.files_bytes)}</p>

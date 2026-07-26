@@ -59,8 +59,29 @@
 	}
 
 	function selectTag(name: string) {
-		list.tag = list.tag === name ? '' : name;
+		list.tags = list.tags.includes(name) ? list.tags.filter((t) => t !== name) : [...list.tags, name];
 		list.reset();
+	}
+
+	function clearTagFilters() {
+		list.tags = [];
+		list.reset();
+	}
+
+	function toggleArchivedView() {
+		list.archived = !list.archived;
+		list.reset();
+	}
+
+	async function unarchivePdf(pdf: PDF) {
+		await apiJSON<PDF>(`/pdfs/${pdf.id}`, { method: 'PATCH', body: { archived: false } });
+		list.remove(pdf.id);
+	}
+
+	async function deletePdf(pdf: PDF) {
+		if (!confirm(`Excluir "${pdf.name}"? Esta ação não pode ser desfeita.`)) return;
+		await apiJSON(`/pdfs/${pdf.id}`, { method: 'DELETE' });
+		list.remove(pdf.id);
 	}
 
 	async function toggleStar(pdf: PDF) {
@@ -84,8 +105,16 @@
 	<PdfUpload onUploaded={handleUploaded} />
 
 	<div class="mt-4 flex items-center justify-between">
-		<h1 class="text-lg font-semibold">Biblioteca</h1>
+		<h1 class="text-lg font-semibold">{list.archived ? 'Arquivados' : 'Biblioteca'}</h1>
 		<div class="flex gap-1">
+			<Button
+				variant={list.archived ? 'secondary' : 'ghost'}
+				size="icon"
+				onclick={toggleArchivedView}
+				aria-label="Arquivados"
+			>
+				<i class="bx bx-archive"></i>
+			</Button>
 			{#each LAYOUT_OPTIONS as opt (opt.value)}
 				<Button
 					variant={layout === opt.value ? 'secondary' : 'ghost'}
@@ -115,7 +144,7 @@
 					type="button"
 					onclick={() => selectTag(tag.name)}
 					class={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
-						list.tag === tag.name
+						list.tags.includes(tag.name)
 							? 'border-primary bg-primary text-primary-foreground'
 							: 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
 					}`}
@@ -123,12 +152,21 @@
 					{tag.name} <span class="opacity-70">{tag.count}</span>
 				</button>
 			{/each}
+			{#if list.tags.length > 0}
+				<button
+					type="button"
+					onclick={clearTagFilters}
+					class="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+				>
+					<i class="bx bx-x"></i> Limpar filtros
+				</button>
+			{/if}
 		</div>
 	{/if}
 
 	{#if list.items.length === 0 && !list.loading}
 		<p class="mt-8 text-center text-sm text-muted-foreground">
-			{list.query || list.tag ? 'Nenhum PDF encontrado.' : 'Nenhum PDF ainda. Envie um acima.'}
+			{list.query || list.tags.length > 0 ? 'Nenhum PDF encontrado.' : 'Nenhum PDF ainda. Envie um acima.'}
 		</p>
 	{:else}
 		<div
@@ -137,7 +175,7 @@
 				: 'mt-4 flex flex-col gap-2'}
 		>
 			{#each list.items as pdf (pdf.id)}
-				<PdfCard {pdf} {layout} onStarToggle={toggleStar} onEmbedUpdated={handleEmbedUpdated} />
+				<PdfCard {pdf} {layout} onStarToggle={toggleStar} onEmbedUpdated={handleEmbedUpdated} onUnarchive={unarchivePdf} onDelete={deletePdf} />
 			{/each}
 		</div>
 	{/if}

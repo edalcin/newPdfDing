@@ -3,8 +3,7 @@
 	import { apiJSON, ApiError } from '$lib/api';
 	import { theme, type ThemeSetting } from '$lib/theme.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import type { Layout, PDFSort, Settings, Signature } from '$lib/types';
+	import type { Layout, PDFSort, Settings } from '$lib/types';
 
 	const SORT_OPTIONS: { value: PDFSort; label: string }[] = [
 		{ value: 'newest', label: 'Mais recentes' },
@@ -22,7 +21,6 @@
 	let inverted = $state(false);
 	let keepAwake = $state(false);
 	let showProgressBars = $state(true);
-	let tagTreeMode = $state(false);
 
 	let loaded = $state(false);
 	let status = $state('');
@@ -37,13 +35,11 @@
 			inverted = settings['viewer.inverted'] === '1';
 			keepAwake = settings['viewer.keep_awake'] === '1';
 			showProgressBars = settings['ui.show_progress_bars'] === '1';
-			tagTreeMode = settings['ui.tag_tree_mode'] === '1';
 		} catch {
 			// defaults stand
 		} finally {
 			loaded = true;
 		}
-		await loadSignatures();
 	});
 
 	async function patch(key: string, value: string) {
@@ -91,101 +87,6 @@
 		patch('ui.show_progress_bars', next ? '1' : '0');
 	}
 
-	function setTagTreeMode(next: boolean) {
-		tagTreeMode = next;
-		patch('ui.tag_tree_mode', next ? '1' : '0');
-	}
-
-	// --- Assinaturas ---
-	let signatures = $state<Signature[]>([]);
-	let signaturesError = $state('');
-	let canvasEl = $state<HTMLCanvasElement>();
-	let drawing = false;
-	let hasStroke = $state(false);
-	let sigName = $state('');
-	let savingSignature = $state(false);
-
-	async function loadSignatures() {
-		try {
-			signatures = await apiJSON<Signature[]>('/signatures');
-		} catch (err) {
-			signaturesError = err instanceof ApiError ? err.message : 'Falha ao carregar assinaturas.';
-		}
-	}
-
-	function ctx() {
-		return canvasEl?.getContext('2d') ?? null;
-	}
-
-	function pointerPos(e: PointerEvent) {
-		const rect = canvasEl!.getBoundingClientRect();
-		return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-	}
-
-	function startStroke(e: PointerEvent) {
-		const c = ctx();
-		if (!c || !canvasEl) return;
-		drawing = true;
-		canvasEl.setPointerCapture(e.pointerId);
-		const { x, y } = pointerPos(e);
-		c.beginPath();
-		c.moveTo(x, y);
-	}
-
-	function moveStroke(e: PointerEvent) {
-		if (!drawing) return;
-		const c = ctx();
-		if (!c) return;
-		const { x, y } = pointerPos(e);
-		c.lineWidth = 2;
-		c.lineCap = 'round';
-		c.strokeStyle = '#000000';
-		c.lineTo(x, y);
-		c.stroke();
-		hasStroke = true;
-	}
-
-	function endStroke(e: PointerEvent) {
-		drawing = false;
-		canvasEl?.releasePointerCapture(e.pointerId);
-	}
-
-	function clearCanvas() {
-		const c = ctx();
-		if (!c || !canvasEl) return;
-		c.clearRect(0, 0, canvasEl.width, canvasEl.height);
-		hasStroke = false;
-	}
-
-	async function saveSignature() {
-		if (!canvasEl || !hasStroke || !sigName.trim()) return;
-		savingSignature = true;
-		signaturesError = '';
-		try {
-			const dataUrl = canvasEl.toDataURL('image/png');
-			const created = await apiJSON<Signature>('/signatures', {
-				method: 'POST',
-				body: { name: sigName.trim(), data: dataUrl }
-			});
-			signatures = [created, ...signatures];
-			sigName = '';
-			clearCanvas();
-		} catch (err) {
-			signaturesError = err instanceof ApiError ? err.message : 'Falha ao salvar assinatura.';
-		} finally {
-			savingSignature = false;
-		}
-	}
-
-	async function deleteSignature(sig: Signature) {
-		if (!confirm(`Excluir a assinatura "${sig.name}"?`)) return;
-		try {
-			await apiJSON(`/signatures/${sig.id}`, { method: 'DELETE' });
-			signatures = signatures.filter((s) => s.id !== sig.id);
-		} catch (err) {
-			signaturesError = err instanceof ApiError ? err.message : 'Falha ao excluir assinatura.';
-		}
-	}
 </script>
 
 <div class="mx-auto max-w-2xl p-4">
@@ -264,14 +165,6 @@
 						onchange={(e) => setShowProgressBars((e.target as HTMLInputElement).checked)}
 					/>
 				</label>
-				<label class="flex items-center justify-between gap-4 text-sm">
-					<span>Modo árvore de tags</span>
-					<input
-						type="checkbox"
-						checked={tagTreeMode}
-						onchange={(e) => setTagTreeMode((e.target as HTMLInputElement).checked)}
-					/>
-				</label>
 			</div>
 		</section>
 
@@ -298,68 +191,4 @@
 		</section>
 	{/if}
 
-	<section class="mt-6">
-		<h2 class="text-sm font-semibold text-muted-foreground">Assinaturas</h2>
-		<div class="mt-3 rounded-lg border border-border p-4">
-			{#if signaturesError}
-				<p class="mb-3 text-sm text-destructive">{signaturesError}</p>
-			{/if}
-
-			{#if signatures.length > 0}
-				<ul class="mb-4 space-y-2">
-					{#each signatures as sig (sig.id)}
-						<li class="flex items-center justify-between gap-3 rounded-md border border-border p-2">
-							<div class="flex items-center gap-3">
-								<img src={sig.data} alt={sig.name} class="h-12 rounded bg-white" />
-								<span class="text-sm">{sig.name}</span>
-							</div>
-							<Button
-								variant="ghost"
-								size="sm"
-								class="text-destructive hover:text-destructive"
-								onclick={() => deleteSignature(sig)}
-							>
-								<i class="bx bx-trash"></i>
-								Excluir
-							</Button>
-						</li>
-					{/each}
-				</ul>
-			{:else}
-				<p class="mb-4 text-sm text-muted-foreground">Nenhuma assinatura salva ainda.</p>
-			{/if}
-
-			<div class="space-y-3">
-				<canvas
-					bind:this={canvasEl}
-					width="400"
-					height="150"
-					class="touch-none rounded-md border border-border bg-white"
-					onpointerdown={startStroke}
-					onpointermove={moveStroke}
-					onpointerup={endStroke}
-					onpointerleave={endStroke}
-				></canvas>
-				<div class="flex flex-wrap items-center gap-2">
-					<Button type="button" variant="outline" size="sm" onclick={clearCanvas}>
-						Limpar
-					</Button>
-					<Input
-						type="text"
-						placeholder="Nome da assinatura"
-						bind:value={sigName}
-						class="flex-1"
-					/>
-					<Button
-						type="button"
-						size="sm"
-						disabled={!hasStroke || !sigName.trim() || savingSignature}
-						onclick={saveSignature}
-					>
-						{savingSignature ? 'Salvando…' : 'Salvar assinatura'}
-					</Button>
-				</div>
-			</div>
-		</div>
-	</section>
 </div>

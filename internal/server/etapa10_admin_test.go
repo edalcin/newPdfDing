@@ -25,10 +25,8 @@ func TestETAPA10_AdminInfoAndReindex(t *testing.T) {
 		t.Fatalf("GET /api/admin/info: %d %s", resp.StatusCode, body)
 	}
 	var info struct {
-		Version               string         `json:"version"`
 		PDFsCount             int            `json:"pdfs_count"`
 		TagsCount             int            `json:"tags_count"`
-		CollectionsCount      int            `json:"collections_count"`
 		FilesBytes            int64          `json:"files_bytes"`
 		EmbeddingStatusCounts map[string]int `json:"embedding_status_counts"`
 	}
@@ -37,9 +35,6 @@ func TestETAPA10_AdminInfoAndReindex(t *testing.T) {
 	}
 	if info.PDFsCount != 2 {
 		t.Fatalf("expected pdfs_count=2, got %d", info.PDFsCount)
-	}
-	if info.CollectionsCount != 1 {
-		t.Fatalf("expected collections_count=1 (default), got %d", info.CollectionsCount)
 	}
 	if info.FilesBytes <= 0 {
 		t.Fatalf("expected files_bytes > 0, got %d", info.FilesBytes)

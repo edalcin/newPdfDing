@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/edalcin/newpdfding/internal/config"
 	"github.com/edalcin/newpdfding/internal/store"
@@ -86,10 +88,6 @@ func testServer(t *testing.T, withGemini bool) (*Server, *httptest.Server) {
 	if err := os.MkdirAll(filesDir, 0o750); err != nil {
 		t.Fatalf("mkdir files: %v", err)
 	}
-	if err := store.NewCollectionStore(db).EnsureDefault(); err != nil {
-		t.Fatalf("EnsureDefault: %v", err)
-	}
-
 	cfg := &config.Config{
 		DBPath: filepath.Join(dir, "db.sqlite"), AdminPassword: "correcthorse", Files: filesDir,
 		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200, EmbedModel: "mock-embed-model",
@@ -108,6 +106,10 @@ func testServer(t *testing.T, withGemini bool) (*Server, *httptest.Server) {
 		srv.gemini.BaseURL = mockGemini.URL
 		srv.gemini.HTTPClient = mockGemini.Client()
 	}
+
+	workerCtx, cancelWorker := context.WithCancel(context.Background())
+	t.Cleanup(cancelWorker)
+	srv.StartEmbedWorker(workerCtx)
 	return srv, mockGemini
 }
 
@@ -230,8 +232,10 @@ func TestETAPA6_LexicalSearchAndEmbeddingStatusNone(t *testing.T) {
 }
 
 // TestETAPA6_EmbedFlow covers: embed one doc -> current for it, none for
-// others; repeat embed -> 409; PATCH description -> stale; synonym query
-// against the embedded doc returns it via semantic search.
+// others; PATCH description -> stale; synonym query against the embedded
+// doc returns it via semantic search. Embedding is asynchronous (ver
+// refatoracao Fase F): POST /embed returns 202 and the job is polled via
+// GET /api/embed/jobs until it settles.
 func TestETAPA6_EmbedFlow(t *testing.T) {
 	srv, _ := testServer(t, true)
 	ts := httptest.NewTLSServer(srv.Handler())
@@ -242,9 +246,6 @@ func TestETAPA6_EmbedFlow(t *testing.T) {
 	docCar := uploadPDF(t, client, ts.URL, "Automobile Guide", "engine automobile maintenance manual")
 	docCake := uploadPDF(t, client, ts.URL, "Baking Guide", "flour recipe cake baking instructions")
 	docHike := uploadPDF(t, client, ts.URL, "Trail Guide", "mountain hiking trail safety tips")
-
-	// Extract text isn't set on these uploads (no "text" field), so embed
-	// should fail 422 until we give it something to embed. Re-upload with text.
 	_ = docCake
 	_ = docHike
 
@@ -276,11 +277,12 @@ func TestETAPA6_EmbedFlow(t *testing.T) {
 	json.Unmarshal(body, &carDoc)
 	carID := carDoc["id"].(string)
 
-	// Embed the car doc.
+	// Embed the car doc: 202 Accepted, no synchronous 422/200 anymore.
 	resp, body = doJSON(t, client, ts.URL, http.MethodPost, fmt.Sprintf("/api/pdfs/%s/embed", carID), nil)
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("embed failed: %d %s", resp.StatusCode, body)
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("embed enqueue failed: %d %s", resp.StatusCode, body)
 	}
+	waitForEmbedDone(t, client, ts.URL, carID)
 
 	// GET the embedded doc -> current.
 	resp, body = doJSON(t, client, ts.URL, http.MethodGet, "/api/pdfs/"+carID, nil)
@@ -297,12 +299,6 @@ func TestETAPA6_EmbedFlow(t *testing.T) {
 		t.Fatalf("expected none for un-embedded upload, got %v", got["embedding_status"])
 	}
 
-	// Repeat embed -> 409.
-	resp, body = doJSON(t, client, ts.URL, http.MethodPost, fmt.Sprintf("/api/pdfs/%s/embed", carID), nil)
-	if resp.StatusCode != http.StatusConflict {
-		t.Fatalf("expected 409 on repeat embed, got %d %s", resp.StatusCode, body)
-	}
-
 	// PATCH description -> stale.
 	resp, body = doJSON(t, client, ts.URL, http.MethodPatch, "/api/pdfs/"+carID, map[string]string{"description": "brand new description text"})
 	if resp.StatusCode != http.StatusOK {
@@ -317,9 +313,10 @@ func TestETAPA6_EmbedFlow(t *testing.T) {
 	// Re-embed to get back to current, then search by a synonym not in the
 	// text ("car" vs "automobile") — semantic search must surface it.
 	resp, body = doJSON(t, client, ts.URL, http.MethodPost, fmt.Sprintf("/api/pdfs/%s/embed", carID), nil)
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("re-embed failed: %d %s", resp.StatusCode, body)
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("re-embed enqueue failed: %d %s", resp.StatusCode, body)
 	}
+	waitForEmbedDone(t, client, ts.URL, carID)
 
 	resp, body = doJSON(t, client, ts.URL, http.MethodGet, "/api/pdfs?q=car", nil)
 	if resp.StatusCode != http.StatusOK {
@@ -338,6 +335,23 @@ func TestETAPA6_EmbedFlow(t *testing.T) {
 	if !found {
 		t.Fatalf("expected synonym query 'car' to surface the automobile doc via semantic search, got: %s", body)
 	}
+}
+
+// waitForEmbedDone polls GET /api/pdfs/{id} until embedding_status leaves
+// "none"/"stale" (the async worker settled the job) or the timeout elapses.
+func waitForEmbedDone(t *testing.T, client *http.Client, base, pdfID string) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		_, body := doJSON(t, client, base, http.MethodGet, "/api/pdfs/"+pdfID, nil)
+		var got map[string]any
+		json.Unmarshal(body, &got)
+		if got["embedding_status"] == "current" {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("embedding job for pdf_id=%s did not complete within the deadline", pdfID)
 }
 
 // TestETAPA6_NoGeminiKey covers: without GEMINI_API_KEY, POST .../embed ->
