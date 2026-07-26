@@ -3,7 +3,7 @@
 // versionados: SHELL_CACHE (app + assets estáticos) e API_CACHE (fallback
 // offline de GET /api/pdfs), invalidáveis independentemente a cada deploy.
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `newpdfding-shell-${VERSION}`;
 const API_CACHE = `newpdfding-api-${VERSION}`;
 
@@ -44,20 +44,28 @@ function isStaticAsset(url) {
 // the browser/network layer, not just on a genuine slow response.
 const NETWORK_TIMEOUT_MS = 8000;
 
-async function fetchWithTimeout(request) {
+async function fetchWithTimeout(request, { bypassHTTPCache = false } = {}) {
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS);
 	try {
-		return await fetch(request, { signal: controller.signal });
+		// bypassHTTPCache: index.html references content-hashed asset paths
+		// that change on every build — a browser-cached copy of the shell can
+		// point at chunks the current deploy no longer serves, breaking
+		// client-side navigation. 'no-store' forces this fetch past the
+		// browser's own HTTP cache, not just past this service worker's Cache
+		// Storage (which networkFirst already treats as fallback-only).
+		const init = { signal: controller.signal };
+		if (bypassHTTPCache) init.cache = 'no-store';
+		return await fetch(request, init);
 	} finally {
 		clearTimeout(timer);
 	}
 }
 
-async function networkFirst(request, cacheName) {
+async function networkFirst(request, cacheName, options) {
 	const cache = await caches.open(cacheName);
 	try {
-		const response = await fetchWithTimeout(request);
+		const response = await fetchWithTimeout(request, options);
 		if (response.ok) cache.put(request, response.clone());
 		return response;
 	} catch {
@@ -94,7 +102,7 @@ self.addEventListener('fetch', (event) => {
 	}
 
 	if (url.pathname === '/' || url.pathname === '/index.html') {
-		event.respondWith(networkFirst(request, SHELL_CACHE));
+		event.respondWith(networkFirst(request, SHELL_CACHE, { bypassHTTPCache: true }));
 		return;
 	}
 
