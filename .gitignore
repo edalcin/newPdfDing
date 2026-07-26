@@ -7,7 +7,8 @@
 node_modules/
 frontend/build/
 frontend/.svelte-kit/
-internal/server/web/dist/
+internal/server/web/dist/*
+!internal/server/web/dist/index.html
 
 # Dados locais (nunca versionar banco/acervo/segredos)
 *.db
