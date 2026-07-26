@@ -11,7 +11,7 @@ Contrato REST completo do backend. Todas as rotas ficam sob `/api`, com uma úni
 - **CSRF**: todo método não idempotente (`POST`/`PUT`/`PATCH`/`DELETE`) exige o header `X-CSRF-Token` além do cookie, exceto as rotas públicas de compartilhamento (somente leitura). Mecanismo completo em [Segurança](08-seguranca.md).
 - **Paginação por cursor**: usada em `GET /api/pdfs` e `GET /api/annotations`. O `cursor` é uma string opaca; formato exato e regra de comparação documentados em [Frontend](06-frontend.md). As demais listagens (`tags`, `collections`, `signatures`, `shares`) não são paginadas — devolvem array completo.
 - **Upload**: corpo limitado por `MAX_UPLOAD_MB` (ver [Docker/CI/Deploy](07-docker-ci-deploy.md)); tipo validado pelos magic bytes `%PDF-` lidos do próprio stream (ver [Segurança](08-seguranca.md)).
-- **Representação de PDF**: toda resposta que devolve um PDF traz as colunas de `pdfs` (ver [Modelo de dados](02-modelo-de-dados.md)) mais `tags: [{"id","name"}]`, `notes_html` (o Markdown bruto de `notes` renderizado por `goldmark` e sanitizado por `bluemonday.UGCPolicy()` antes de sair no JSON — ver [Segurança](08-seguranca.md)) e `embedding_status: "none"|"current"|"stale"` (ver [Embedding sob demanda](#embedding-sob-demanda)). `storage_key`, `thumbnail_key` e `preview_key` são detalhes internos e não são expostos — o cliente obtém conteúdo pelas rotas dedicadas (`.../file`, `.../thumbnail`, `.../preview`, `.../download`).
+- **Representação de PDF**: toda resposta que devolve um PDF traz as colunas de `pdfs` (ver [Modelo de dados](02-modelo-de-dados.md)) mais `tags: [{"id","name"}]`, `notes_html` (o Markdown bruto de `notes` renderizado por `goldmark` e sanitizado por `bluemonday.UGCPolicy()` antes de sair no JSON — ver [Segurança](08-seguranca.md)), `embedding_status: "none"|"current"|"stale"` (ver [Embedding sob demanda](#embedding-sob-demanda)) e `has_text: bool` (se existe linha em `pdf_text` para o documento — só populado em `GET /api/pdfs/{id}`, não na listagem `GET /api/pdfs`; usado pelo viewer para decidir se faz o backfill de texto, ver [PDFs](#pdfs), nota sobre `POST .../text`). `storage_key`, `thumbnail_key` e `preview_key` são detalhes internos e não são expostos — o cliente obtém conteúdo pelas rotas dedicadas (`.../file`, `.../thumbnail`, `.../preview`, `.../download`).
 - **"Admin"** nas rotas abaixo é um rótulo funcional (tela de administração), não uma permissão distinta — o produto tem um único usuário (ver [Visão geral](00-visao-geral.md)).
 
 ## Legenda de status HTTP
@@ -59,6 +59,7 @@ Erros: `POST /login` → `400` (payload malformado), `401` (senha incorreta), `4
 | `GET` | `/api/pdfs/{id}/thumbnail` | — | `200` `image/png` |
 | `GET` | `/api/pdfs/{id}/preview` | — | `200` `image/png` |
 | `POST` | `/api/pdfs/{id}/thumbnail` | Multipart: PNG gerado tardiamente pelo browser | `200` `{"thumbnail":"ok"}` |
+| `POST` | `/api/pdfs/{id}/text` | `{"text": "string"}` | `200` `{"text":"ok"}` |
 | `PUT` | `/api/pdfs/{id}/file` | Corpo: PDF editado | `200` `{"revision": <n>}` |
 | `GET` | `/api/pdfs/{id}/download` | — | `200`, `Content-Disposition: attachment; filename="<name>.pdf"` |
 | `POST` | `/api/pdfs/bulk-actions` | `{"action": "delete"\|"archive"\|"unarchive"\|"star"\|"unstar", "ids": ["..."]}` | `200` `{"updated": <n>}` |
@@ -74,6 +75,7 @@ Erros por rota:
 - `DELETE /api/pdfs/{id}` → `401`, `404`, `500`.
 - `GET .../file`, `.../thumbnail`, `.../preview`, `.../download` → `401`, `404` (PDF inexistente no banco, **ou** arquivo ausente em disco — log de aviso citando `pdf_id` e chave, ver [Storage](03-storage.md)), `500`.
 - `POST .../thumbnail` → `400`, `401`, `404`, `413`, `415`, `500`, `507`.
+- `POST .../text` → `400` (`text` vazio ou payload malformado), `401`, `404`, `413`, `500`.
 - `PUT .../file` → `400`, `401`, `404`, `413`, `415`, `500`, `507`.
 - `POST /api/pdfs/bulk-actions` → `400` (`action` inválida), `401`, `500`.
 
@@ -83,6 +85,7 @@ Notas:
 - `DELETE /api/pdfs/{id}` remove em cascata `pdf_tags`, `pdf_annotations`, `shares` e `pdf_embeddings` (todos `ON DELETE CASCADE`) e apaga PDF/thumbnail/preview do storage (ver [Storage](03-storage.md)).
 - Editar `name`, `description` ou o texto extraído pode tornar `embedding_status` igual a `stale` (ver [Embedding sob demanda](#embedding-sob-demanda)).
 - `PATCH` alterando `current_page` é o mecanismo usado pelo viewer para salvar a página atual, com debounce no cliente (ver [Frontend](06-frontend.md)).
+- `POST .../text` backfila `pdf_text` para documentos que chegaram sem texto extraído (import do banco legado — ver `ETAPA-12-IMPORTACAO` em [ETAPAS.md](ETAPAS.md) —, ou watch-dir), reindexando FTS5 na mesma transação (ver [Busca híbrida](04-busca-hibrida.md), "Reindexação"). O viewer chama essa rota automaticamente ao abrir um PDF cujo `has_text` é `false`, extraindo o texto no navegador com o mesmo pdf.js do upload (ver [Frontend](06-frontend.md)). Também pode tornar `embedding_status` igual a `stale` se o documento já tivesse um embedding com hash calculado sobre o corpo vazio.
 
 ## Embedding sob demanda
 
@@ -148,7 +151,7 @@ Notas: nomes de tag podem conter `/` para hierarquia (modo árvore); a árvore �
 
 | Método | Caminho | Payload | Resposta |
 |---|---|---|---|
-| `GET` | `/api/collections` | — | `200` `[<Coleção>...]` |
+| `GET` | `/api/collections` | — | `200` `[<Coleção>...]` — cada item traz `pdf_count: <n>`, contagem atual de PDFs na coleção |
 | `POST` | `/api/collections` | `{"name": "string", "description": "string"}` | `201` coleção criada |
 | `PATCH` | `/api/collections/{id}` | `{"name"?, "description"?}` | `200` coleção atualizada |
 | `DELETE` | `/api/collections/{id}` | — | `204` |
@@ -162,6 +165,8 @@ Erros por rota:
 - `DELETE /api/collections/{id}` → `401`, `404`, `409` (rejeita a coleção padrão, `is_default=1`), `500`.
 
 Atenção: `pdfs.collection_id` tem `ON DELETE CASCADE` (ver [Modelo de dados](02-modelo-de-dados.md)) — excluir uma coleção não padrão exclui em cascata todos os seus PDFs, tags associadas, anotações e embeddings. A proteção `409` na coleção padrão existe justamente para o acervo nunca ficar sem coleção de destino.
+
+`pdf_count` só sai em `GET /api/collections` (calculado por `LEFT JOIN` + `COUNT` sobre `pdfs`, ver [Modelo de dados](02-modelo-de-dados.md)) — as respostas de `POST`/`PATCH` (`collectionResponse` sem contagem recalculada) não o incluem; o cliente mantém o valor já exibido ao atualizar nome/descrição em vez de sobrescrevê-lo com o zero-value da resposta.
 
 ## Compartilhamento
 

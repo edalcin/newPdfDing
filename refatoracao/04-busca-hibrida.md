@@ -81,6 +81,12 @@ LIMIT 100;
 
 Esse fallback substitui o RapidFuzz (fuzzy matching em Python) do produto atual.
 
+## Backfill de texto (`pdf_text` ausente)
+
+`pdf_text` só é preenchido no momento em que o texto é conhecido: upload pelo navegador (pdf.js extrai e envia junto no `multipart`) ou watch-dir (extração pura-Go, ver [Arquitetura](01-arquitetura.md)). Um PDF pode chegar **sem** essa linha por dois caminhos: a importação do banco Django legado (`ETAPA-12-IMPORTACAO`, que não tenta OCR/parsing) e um upload cujo pdf.js falhou no navegador (degradação graciosa, ver [Frontend](06-frontend.md)).
+
+Para esses casos, `POST /api/pdfs/{id}/text` (contrato em [API](05-api.md)) faz o *upsert* de `pdf_text` e reindexa `pdfs_fts` na mesma transação — mesma mecânica de reindexação descrita acima, só que disparada fora do fluxo de criação/edição do PDF. O visualizador chama essa rota automaticamente na primeira abertura de um documento cujo `has_text` (campo derivado em `GET /api/pdfs/{id}`) é `false`, extraindo o texto no navegador com o mesmo pdf.js do upload. Enquanto isso não acontece, o documento continua pesquisável por nome/descrição/tags (a busca nunca falha por falta de corpo de texto) e o botão de embedding devolve `422` (ver [Embedding sob demanda](#embeddings-sob-demanda)) até o backfill ocorrer.
+
 ## Embeddings sob demanda
 
 Texto embutido para cada PDF, fórmula fixada:
