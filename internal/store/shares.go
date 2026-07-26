@@ -52,6 +52,20 @@ func (s *ShareStore) Create(pdfID string) (Share, error) {
 	return s.Get(id.String())
 }
 
+// Import inserts a share with a caller-controlled id, views and created_at,
+// for the one-shot legacy database import (ver ETAPA-12-IMPORTACAO). Returns
+// ErrConflict if pdfID already has a share (shares.pdf_id is UNIQUE).
+func (s *ShareStore) Import(id, pdfID string, views int, createdAt string) (Share, error) {
+	_, err := s.db.Exec(`INSERT INTO shares (id, pdf_id, views, created_at) VALUES (?, ?, ?, ?)`, id, pdfID, views, createdAt)
+	if isUniqueViolation(err) {
+		return Share{}, ErrConflict
+	}
+	if err != nil {
+		return Share{}, err
+	}
+	return s.Get(id)
+}
+
 // Get returns one share by id (the public secret), or ErrNotFound.
 func (s *ShareStore) Get(id string) (Share, error) {
 	var sh Share

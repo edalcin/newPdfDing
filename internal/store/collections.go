@@ -119,6 +119,41 @@ func (s *CollectionStore) Create(name, description string) (Collection, error) {
 	return s.Get(id.String())
 }
 
+// Import returns the existing collection matching name (case-insensitive —
+// e.g. a legacy "Default" workspace collection merges into the seeded
+// default collection), or creates one with the given description and
+// created_at if none exists yet. Used by the one-shot legacy database
+// import (ver ETAPA-12-IMPORTACAO), where every legacy workspace's
+// collections collapse into this single-user schema's flat collection list.
+func (s *CollectionStore) Import(name, description, createdAt string) (Collection, error) {
+	if existing, err := s.findByName(name); err == nil {
+		return existing, nil
+	} else if !errors.Is(err, ErrNotFound) {
+		return Collection{}, err
+	}
+
+	id, err := uuid.NewV7()
+	if err != nil {
+		return Collection{}, err
+	}
+	_, err = s.db.Exec(
+		`INSERT INTO collections (id, name, description, is_default, created_at) VALUES (?, ?, ?, 0, ?)`,
+		id.String(), name, description, createdAt,
+	)
+	if isUniqueViolation(err) {
+		// Race with a concurrent Import of the same name — reuse the winner.
+		return s.findByName(name)
+	}
+	if err != nil {
+		return Collection{}, err
+	}
+	return s.Get(id.String())
+}
+
+func (s *CollectionStore) findByName(name string) (Collection, error) {
+	return s.scanOne(s.db.QueryRow(`SELECT id, name, description, is_default, created_at FROM collections WHERE name = ? COLLATE NOCASE`, name))
+}
+
 // Update applies a partial update (nil fields left unchanged). Returns
 // ErrNotFound or ErrConflict (duplicate name).
 func (s *CollectionStore) Update(id string, name, description *string) (Collection, error) {
