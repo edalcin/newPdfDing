@@ -2,8 +2,12 @@
 // refatoracao/06-frontend.md, "PWA e service worker". Dois caches
 // versionados: SHELL_CACHE (app + assets estáticos) e API_CACHE (fallback
 // offline de GET /api/pdfs), invalidáveis independentemente a cada deploy.
-
-const VERSION = 'v2';
+//
+// VERSION é substituída em build time por scripts/stamp-sw-version.mjs com
+// um hash do conteúdo real de frontend/build/ — nunca editar à mão. Um
+// valor fixo aqui já causou cache desatualizado após deploys que mudaram
+// viewer.mjs/viewer.html sem ninguém lembrar de bumpar a string.
+const VERSION = '__BUILD_VERSION__';
 const SHELL_CACHE = `newpdfding-shell-${VERSION}`;
 const API_CACHE = `newpdfding-api-${VERSION}`;
 
