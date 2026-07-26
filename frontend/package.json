@@ -31,7 +31,7 @@
 		"@tiptap/starter-kit": "^3.29.0",
 		"boxicons": "^2.1.4",
 		"clsx": "^2.1.1",
-		"pdfjs-dist": "^5.5.207",
+		"pdfjs-dist": "^6.1.200",
 		"tailwind-merge": "^3.6.0",
 		"tailwind-variants": "^3.2.2",
 		"turndown": "^7.2.4"
