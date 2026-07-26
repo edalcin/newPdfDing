@@ -34,11 +34,21 @@ COPY --from=frontend /app/frontend/build/ ./internal/server/web/dist/
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -trimpath -ldflags="-s -w" -o /out/newpdfding ./cmd/newpdfding
 
+# /data and /files are baked in empty here so that, on a fresh volume mount
+# (named volume or empty bind mount), Docker's volume-populate-from-image
+# behavior copies them in pre-owned by uid 65532 — otherwise a brand-new
+# named volume is root-owned and the nonroot process below can never write
+# its SQLite file or PDFs (ver refatoracao/08-seguranca.md, "Menor
+# privilégio").
+RUN mkdir -p /data /files
+
 
 # ── Stage 3: Runtime (distroless, não-root) ──────────────────────────────────
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /out/newpdfding /newpdfding
+COPY --from=build --chown=65532:65532 /data /data
+COPY --from=build --chown=65532:65532 /files /files
 
 USER nonroot
 

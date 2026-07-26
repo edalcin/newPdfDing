@@ -11,6 +11,7 @@ Guia de instalação manual via **Docker → Add Container** no Unraid. Não há
 | Port | Container `8000` → Host `8000` (ou outra porta livre do host) | Porta HTTP do binário — variável `LISTEN_ADDR`, default `:8000`. |
 | Path | Container `/data` → Host `/mnt/user/appdata/newpdfding` | Contém o arquivo SQLite (`DB_PATH`). Precisa ser gravável pelo container. |
 | Path | Container `/files` → Host `<share de PDFs escolhido pelo usuário>` | Acervo de PDFs (`FILES`). Precisa ser gravável pelo container. |
+| Extra Parameters | `--read-only --cap-drop=ALL` | Recomendado (ver [`refatoracao/08-seguranca.md`](refatoracao/08-seguranca.md#menor-privilégio)): a imagem é distroless e só escreve nos volumes `/data` e `/files` acima, então travar o resto do filesystem como somente-leitura e derrubar todas as capabilities Linux não quebra nada. |
 
 ## Variáveis de ambiente obrigatórias
 

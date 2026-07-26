@@ -93,22 +93,22 @@ Justificativa de cada relaxamento, nenhum é gratuito:
 
 ## Checklist final
 
-- [ ] Login compara senha com `subtle.ConstantTimeCompare`.
-- [ ] Sessão usa token de 32 bytes de `crypto/rand` em base64url, cookie `HttpOnly; Secure; SameSite=Lax; Path=/`.
-- [ ] Sessões expiram por `last_seen_at + SESSION_IDLE_MINUTES` e são limpas a cada hora.
-- [ ] Rate limit de login: 5 falhas → bloqueio de 30 minutos por IP.
-- [ ] CSRF double-submit (cookie `csrf` + header `X-CSRF-Token`) exigido em todo método não-idempotente, exceto rotas públicas de compartilhamento.
-- [ ] Todos os headers fixos aplicados em toda resposta: HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, CSP.
-- [ ] CSP contém exatamente a string literal especificada, sem `'unsafe-inline'` em `script-src`.
-- [ ] Upload valida magic bytes `%PDF-` no stream, não confia em `Content-Type` do cliente.
-- [ ] `MAX_UPLOAD_MB` aplicado via `http.MaxBytesReader`.
-- [ ] Nenhum caminho de disco é derivado de nome de arquivo enviado pelo cliente; chave sempre por `pdf_id`.
-- [ ] `file_directory` validado contra `^[A-Za-z0-9_\-/]{0,120}$`, sem `..`.
-- [ ] Todo SQL usa parâmetros vinculados, nunca concatenação.
-- [ ] Notas Markdown passam por `goldmark` + `bluemonday.UGCPolicy()` antes de qualquer resposta JSON.
-- [ ] Imagem final é `distroless:nonroot` (uid 65532), sem shell.
-- [ ] Instruções de deploy recomendam `--read-only --cap-drop=ALL`.
-- [ ] Nenhuma credencial embutida na imagem; `.env` fora do git.
-- [ ] `govulncheck` no job de teste do CI.
-- [ ] Trivy falha o pipeline em `CRITICAL,HIGH`.
-- [ ] Dependabot configurado semanalmente para `gomod`, `npm`, `docker`, `github-actions`.
+- [x] Login compara senha com `subtle.ConstantTimeCompare`.
+- [x] Sessão usa token de 32 bytes de `crypto/rand` em base64url, cookie `HttpOnly; Secure; SameSite=Lax; Path=/`.
+- [x] Sessões expiram por `last_seen_at + SESSION_IDLE_MINUTES` e são limpas a cada hora.
+- [x] Rate limit de login: 5 falhas → bloqueio de 30 minutos por IP.
+- [x] CSRF double-submit (cookie `csrf` + header `X-CSRF-Token`) exigido em todo método não-idempotente, exceto rotas públicas de compartilhamento.
+- [x] Todos os headers fixos aplicados em toda resposta: HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, CSP.
+- [x] CSP contém exatamente a string literal especificada, sem `'unsafe-inline'` em `script-src` (mais um hash `sha256-` do bootstrap estático do SvelteKit, computado em build — ver `internal/server/csp.go`; nenhum `'unsafe-inline'` é adicionado).
+- [x] Upload valida magic bytes `%PDF-` no stream, não confia em `Content-Type` do cliente.
+- [x] `MAX_UPLOAD_MB` aplicado via `http.MaxBytesReader`.
+- [x] Nenhum caminho de disco é derivado de nome de arquivo enviado pelo cliente; chave sempre por `pdf_id`.
+- [x] `file_directory` validado contra `^[A-Za-z0-9_\-/]{0,120}$`, sem `..`.
+- [x] Todo SQL usa parâmetros vinculados, nunca concatenação.
+- [x] Notas Markdown passam por `goldmark` + `bluemonday.UGCPolicy()` antes de qualquer resposta JSON.
+- [x] Imagem final é `distroless:nonroot` (uid 65532), sem shell.
+- [x] Instruções de deploy recomendam `--read-only --cap-drop=ALL` (README.md, compose.yaml, UNRAID.md).
+- [x] Nenhuma credencial embutida na imagem; `.env` fora do git.
+- [x] `govulncheck` no job de teste do CI.
+- [x] Trivy falha o pipeline em `CRITICAL,HIGH`.
+- [x] Dependabot configurado semanalmente para `gomod`, `npm`, `docker`, `github-actions`.

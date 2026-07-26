@@ -7,6 +7,8 @@ Gerenciador de PDFs self-hosted, single-user: biblioteca com busca híbrida (lé
 ```bash
 docker run -d \
   --name newpdfding \
+  --read-only \
+  --cap-drop=ALL \
   -p 8000:8000 \
   -e ADMIN_PASSWORD=change-me \
   -e DB_PATH=/data/newpdfding.db \
@@ -15,6 +17,8 @@ docker run -d \
   -v newpdfding-files:/files \
   ghcr.io/edalcin/newpdfding:latest
 ```
+
+`--read-only --cap-drop=ALL` é a execução recomendada (ver [`refatoracao/08-seguranca.md`](refatoracao/08-seguranca.md#menor-privilégio)): a imagem é distroless e não escreve em lugar nenhum além dos volumes `/data` e `/files` montados acima, então travar o resto do filesystem como somente-leitura e derrubar todas as capabilities Linux não quebra nada.
 
 Acesse `http://localhost:8000` e entre com a senha definida em `ADMIN_PASSWORD`.
 
