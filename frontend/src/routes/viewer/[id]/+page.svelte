@@ -6,8 +6,8 @@
 	// tratamento de toda mensagem vinda do iframe (salvar página atual,
 	// criar comentário/destaque, erro de carregamento).
 	import { page } from '$app/state';
-	import { apiJSON } from '$lib/api';
-	import { extractTextFromUrl } from '$lib/pdf-process';
+	import { apiJSON, apiRequest } from '$lib/api';
+	import { extractAssetsFromUrl } from '$lib/pdf-process';
 	import { createAnnotation } from '$lib/annotations.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import type { PDF, Signature } from '$lib/types';
@@ -92,26 +92,32 @@
 			inverted = settings['viewer.inverted'] === '1';
 			keepAwake = settings['viewer.keep_awake'] === '1';
 			if (keepAwake) await requestWakeLock();
-			if (!pdfData.has_text) backfillText(pdfId);
+			backfillAssets(pdfId, pdfData.has_text);
 		} catch (err) {
 			errorMsg = err instanceof Error ? err.message : 'Falha ao carregar o PDF.';
 		}
 	}
 
-	/** Extrai o texto no navegador (mesmo pdf.js do upload) e envia ao
-	 * servidor — para documentos que chegaram sem texto (import do banco
-	 * legado, watch-dir). Melhor-esforço: silencioso em qualquer falha,
-	 * nunca bloqueia ou interrompe a abertura do viewer (ver
+	/** Extrai texto e um thumbnail em resolução atual no navegador (mesmo
+	 * pdf.js do upload) e envia ao servidor: texto para documentos que
+	 * chegaram sem ele (import do banco legado, watch-dir), thumbnail sempre
+	 * — reprocessa até thumbnails antigos de baixa resolução herdados do
+	 * import legado. Melhor-esforço: silencioso em qualquer falha, nunca
+	 * bloqueia ou interrompe a abertura do viewer (ver
 	 * refatoracao/06-frontend.md, "Degradação graciosa"). */
-	async function backfillText(pdfId: string) {
+	async function backfillAssets(pdfId: string, hadText: boolean) {
 		try {
-			const text = await extractTextFromUrl(`/api/pdfs/${pdfId}/file`);
-			if (!text) return;
-			await apiJSON(`/pdfs/${pdfId}/text`, { method: 'POST', body: { text } });
-			if (pdf && pdf.id === pdfId) pdf = { ...pdf, has_text: true };
+			const { text, thumbnail } = await extractAssetsFromUrl(`/api/pdfs/${pdfId}/file`);
+			if (!hadText && text) {
+				await apiJSON(`/pdfs/${pdfId}/text`, { method: 'POST', body: { text } });
+				if (pdf && pdf.id === pdfId) pdf = { ...pdf, has_text: true };
+			}
+			const form = new FormData();
+			form.append('thumbnail', thumbnail, 'thumbnail.png');
+			await apiRequest(`/pdfs/${pdfId}/thumbnail`, { method: 'POST', body: form });
 		} catch {
-			// PDF corrompido/protegido, ou request falhou — sem texto extraído
-			// desta vez; a próxima abertura tenta de novo.
+			// PDF corrompido/protegido, ou alguma requisição falhou — nada
+			// atualizado desta vez; a próxima abertura tenta de novo.
 		}
 	}
 
