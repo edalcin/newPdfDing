@@ -7,7 +7,17 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
-/static/pdfjs
+# pdf.js: viewer.html/viewer.mjs/viewer.css são código próprio deste
+# repositório e ficam versionados; só os arquivos de motor copiados de
+# node_modules/pdfjs-dist por scripts/copy-pdfjs.mjs a cada build são
+# gerados e ignorados (ver refatoracao/06-frontend.md, "Viewer — ponte
+# postMessage").
+/static/pdfjs/pdf.mjs
+/static/pdfjs/pdf.worker.mjs
+/static/pdfjs/pdf_viewer.mjs
+/static/pdfjs/pdf_viewer.css
+/static/pdfjs/cmaps
+/static/pdfjs/standard_fonts
 
 # OS
 .DS_Store

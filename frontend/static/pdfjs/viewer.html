@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+		<title>Visualizador de PDF</title>
+		<link rel="stylesheet" href="./viewer.css" />
+	</head>
+	<body>
+		<div id="toolbar">
+			<span id="page-indicator" class="page-indicator">Carregando…</span>
+			<button id="comment-btn" type="button" class="toolbar-btn">Comentário</button>
+		</div>
+
+		<div id="viewerContainer">
+			<div id="pagesContainer"></div>
+		</div>
+
+		<div id="selection-toolbar" class="selection-toolbar hidden">
+			<button id="highlight-btn" type="button" class="toolbar-btn">Destacar</button>
+		</div>
+
+		<div id="status" class="status hidden"></div>
+
+		<script type="module" src="./viewer.mjs"></script>
+	</body>
+</html>

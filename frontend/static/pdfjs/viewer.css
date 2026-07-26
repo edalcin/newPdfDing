@@ -1,0 +1,163 @@
+/* Viewer estático de pdf.js — não processado pelo Vite, carregado
+   diretamente pelo navegador dentro do <iframe> (ver contrato "PDF viewer
+   iframe"). Estilo mínimo, dark-neutral, independente do design system da
+   SPA (que não é copiado para static/pdfjs/). */
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	height: 100%;
+	background: #18181b;
+	color: #e4e4e7;
+	font-family:
+		system-ui,
+		-apple-system,
+		'Segoe UI',
+		Roboto,
+		sans-serif;
+}
+
+body {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.hidden {
+	display: none !important;
+}
+
+#toolbar {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 12px;
+	background: #27272a;
+	border-bottom: 1px solid #3f3f46;
+}
+
+.page-indicator {
+	margin-right: auto;
+	font-size: 13px;
+	color: #a1a1aa;
+}
+
+.toolbar-btn {
+	appearance: none;
+	cursor: pointer;
+	border: 1px solid #52525b;
+	border-radius: 6px;
+	background: #3f3f46;
+	color: #f4f4f5;
+	font-size: 13px;
+	padding: 6px 12px;
+}
+
+.toolbar-btn:hover {
+	background: #52525b;
+}
+
+#viewerContainer {
+	flex: 1;
+	overflow: auto;
+	background: #0a0a0a;
+}
+
+#pagesContainer {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	padding: 16px 16px 40px;
+	transition: filter 0.15s ease;
+}
+
+#pagesContainer.inverted {
+	filter: invert(1) hue-rotate(180deg);
+}
+
+.page-wrap {
+	--scale-factor: 1;
+	--user-unit: 1;
+	--total-scale-factor: calc(var(--scale-factor) * var(--user-unit));
+	position: relative;
+	line-height: 0;
+	box-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+}
+
+.pdf-page {
+	display: block;
+	background: #fff;
+}
+
+/* Camada de texto invisível sobreposta ao canvas (mesma técnica do pdf.js
+   oficial: TextLayer.render() posiciona cada <span> via left/top em % e
+   define --font-height/--scale-x/--rotate inline; aqui só fornecemos as
+   regras de CSS que consomem essas variáveis). Existe só para permitir
+   seleção nativa de texto — nunca é visível (color: transparent). */
+.textLayer {
+	position: absolute;
+	inset: 0;
+	overflow: clip;
+	line-height: 1;
+	transform-origin: 0 0;
+	--min-font-size: 1;
+	--text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+	--min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.textLayer span,
+.textLayer br {
+	color: transparent;
+	position: absolute;
+	white-space: pre;
+	cursor: text;
+	transform-origin: 0% 0%;
+}
+
+.textLayer > :not(.markedContent) {
+	--font-height: 0;
+	--scale-x: 1;
+	--rotate: 0deg;
+	font-size: calc(var(--text-scale-factor) * var(--font-height));
+	transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.signature-overlay {
+	position: absolute;
+	top: 24px;
+	left: 24px;
+	max-width: 200px;
+	max-height: 120px;
+	pointer-events: none;
+}
+
+.selection-toolbar {
+	position: absolute;
+	z-index: 30;
+}
+
+.status {
+	position: fixed;
+	left: 50%;
+	bottom: 14px;
+	transform: translateX(-50%);
+	max-width: 85vw;
+	padding: 8px 14px;
+	border-radius: 6px;
+	border: 1px solid #52525b;
+	background: #27272a;
+	font-size: 13px;
+	z-index: 40;
+}
+
+.status.error {
+	border-color: #7f1d1d;
+	background: #291212;
+	color: #fca5a5;
+}
