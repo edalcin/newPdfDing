@@ -248,7 +248,9 @@ async function resolveUnanchoredHighlights(pageNum) {
 	if (items.length === 0) return;
 
 	const wrap = pageElements.get(pageNum);
+	if (!wrap) return; // página ainda não renderizada — renderPage() a chamará de novo quando terminar
 	const textLayerDiv = wrap.querySelector('.textLayer');
+	if (!textLayerDiv) return;
 	const spans = Array.from(textLayerDiv.querySelectorAll('span'));
 	if (spans.length === 0) return;
 
