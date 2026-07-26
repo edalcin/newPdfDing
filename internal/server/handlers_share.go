@@ -101,9 +101,9 @@ func (s *Server) handleListShares(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------
 
 // handlePublicShareView serves GET /s/{share_id}: the SPA shell in shared
-// mode. Until ETAPA-9-UI-BASE embeds the built frontend, this returns a
-// minimal placeholder — the route contract (404 on missing/revoked share)
-// is already correct and won't change once the real shell lands.
+// mode, gated on the share still existing (404 on missing/revoked share).
+// The SvelteKit route /s/[share] then fetches metadata itself via the
+// public GET /api/shared/{share_id} (ver 06-frontend.md, "Rotas da SPA").
 func (s *Server) handlePublicShareView(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if _, err := s.shares.Get(id); errors.Is(err, store.ErrNotFound) {
@@ -113,9 +113,7 @@ func (s *Server) handlePublicShareView(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `<!doctype html><title>newPdfDing — shared</title><p>Shared PDF %s — viewer arrives in ETAPA-9-UI-BASE / ETAPA-10-UI-COMPLETA.</p>`, id)
+	spaHandler(webRoot())(w, r)
 }
 
 // handleGetSharedPDF serves GET /api/shared/{share_id}: public metadata,

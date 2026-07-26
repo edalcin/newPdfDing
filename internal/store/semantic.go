@@ -224,6 +224,48 @@ func (s *PDFStore) attachEmbeddingStatus(items []PDF) error {
 	return nil
 }
 
+// PDFStats is the aggregate view GET /api/admin/info reports (ver
+// 05-api.md, "Admin").
+type PDFStats struct {
+	Total                int
+	EmbeddingStatusCounts map[string]int // keys "none"|"current"|"stale"
+}
+
+// Stats computes the total PDF count and the embedding_status breakdown
+// across the whole acervo, reusing the same per-row derivation as every
+// other read (ver attachEmbeddingStatus) so the counts can never drift
+// from what GET /api/pdfs reports.
+func (s *PDFStore) Stats() (PDFStats, error) {
+	rows, err := s.db.Query(`SELECT id, name, description FROM pdfs`)
+	if err != nil {
+		return PDFStats{}, err
+	}
+	var items []PDF
+	for rows.Next() {
+		var p PDF
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description); err != nil {
+			rows.Close()
+			return PDFStats{}, err
+		}
+		items = append(items, p)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return PDFStats{}, err
+	}
+	rows.Close()
+
+	if err := s.attachEmbeddingStatus(items); err != nil {
+		return PDFStats{}, err
+	}
+
+	counts := map[string]int{"none": 0, "current": 0, "stale": 0}
+	for _, p := range items {
+		counts[p.EmbeddingStatus]++
+	}
+	return PDFStats{Total: len(items), EmbeddingStatusCounts: counts}, nil
+}
+
 // ---------------------------------------------------------------------
 // Semantic candidate search (ver 04-busca-hibrida.md, "Piso semântico e
 // top-k", "Custo")

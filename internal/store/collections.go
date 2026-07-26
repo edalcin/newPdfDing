@@ -28,6 +28,13 @@ func NewCollectionStore(db *sql.DB) *CollectionStore {
 	return &CollectionStore{db: db}
 }
 
+// Count returns how many collections exist — used by GET /api/admin/info.
+func (s *CollectionStore) Count() (int, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM collections`).Scan(&n)
+	return n, err
+}
+
 // EnsureDefault seeds the default collection on boot if none exists yet
 // (ver 02-modelo-de-dados.md, "Seeding da coleção padrão no boot"). Called
 // once from main after store.Open.

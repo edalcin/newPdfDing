@@ -51,6 +51,10 @@
 	function handleUploaded(pdf: PDF) {
 		list.prepend(pdf);
 	}
+
+	function handleEmbedUpdated(pdf: PDF) {
+		list.replace(pdf);
+	}
 </script>
 
 <div class="mx-auto max-w-6xl p-4">
@@ -81,7 +85,7 @@
 				: 'mt-4 flex flex-col gap-2'}
 		>
 			{#each list.items as pdf (pdf.id)}
-				<PdfCard {pdf} {layout} onStarToggle={toggleStar} />
+				<PdfCard {pdf} {layout} onStarToggle={toggleStar} onEmbedUpdated={handleEmbedUpdated} />
 			{/each}
 		</div>
 	{/if}

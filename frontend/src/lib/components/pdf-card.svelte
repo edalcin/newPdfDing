@@ -1,8 +1,14 @@
 <script lang="ts">
 	import type { Layout, PDF } from '$lib/types';
 	import { Button } from '$lib/components/ui/button';
+	import EmbedButton from './embed-button.svelte';
 
-	let { pdf, layout, onStarToggle }: { pdf: PDF; layout: Layout; onStarToggle: (pdf: PDF) => void } = $props();
+	let {
+		pdf,
+		layout,
+		onStarToggle,
+		onEmbedUpdated
+	}: { pdf: PDF; layout: Layout; onStarToggle: (pdf: PDF) => void; onEmbedUpdated: (pdf: PDF) => void } = $props();
 
 	const thumbnailUrl = $derived(`/api/pdfs/${pdf.id}/thumbnail`);
 </script>
@@ -16,6 +22,7 @@
 	<a href={`/pdf/${pdf.id}`} class="flex items-center gap-3 border-b border-border px-3 py-2 text-sm hover:bg-accent">
 		<span class="flex-1 truncate">{pdf.name}</span>
 		<span class="text-xs text-muted-foreground">{pdf.num_pages || '—'}p</span>
+		<EmbedButton {pdf} onUpdated={onEmbedUpdated} />
 		<Button variant="ghost" size="icon" onclick={(e: Event) => { e.preventDefault(); onStarToggle(pdf); }} aria-label="Estrela">
 			<i class={`bx ${pdf.starred ? 'bxs-star text-yellow-500' : 'bx-star'}`}></i>
 		</Button>
@@ -32,6 +39,7 @@
 				{/each}
 			</div>
 		</div>
+		<EmbedButton {pdf} onUpdated={onEmbedUpdated} />
 		<Button variant="ghost" size="icon" onclick={(e: Event) => { e.preventDefault(); onStarToggle(pdf); }} aria-label="Estrela">
 			<i class={`bx ${pdf.starred ? 'bxs-star text-yellow-500' : 'bx-star'}`}></i>
 		</Button>
@@ -56,6 +64,9 @@
 				{#each pdf.tags.slice(0, 3) as tag (tag.id)}
 					<span class="rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">{tag.name}</span>
 				{/each}
+			</div>
+			<div class="mt-1" onclick={(e: Event) => e.preventDefault()} role="presentation">
+				<EmbedButton {pdf} onUpdated={onEmbedUpdated} />
 			</div>
 		</div>
 	</a>

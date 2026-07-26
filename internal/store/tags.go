@@ -86,6 +86,13 @@ func NewTagStore(db *sql.DB) *TagStore {
 	return &TagStore{db: db}
 }
 
+// Count returns how many tags exist — used by GET /api/admin/info.
+func (s *TagStore) Count() (int, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM tags`).Scan(&n)
+	return n, err
+}
+
 // EnsureTags is the standalone (non-transactional) entry point used outside
 // PDF creation, e.g. by future callers that need tag ids up front.
 func (s *TagStore) EnsureTags(names []string) ([]string, error) {

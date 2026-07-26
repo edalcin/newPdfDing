@@ -57,3 +57,59 @@ export interface PDFListPage {
 	items: PDF[];
 	next_cursor: string | null;
 }
+
+export type AnnotationKind = 'comment' | 'highlight';
+
+export interface Annotation {
+	id: string;
+	pdf_id: string;
+	kind: AnnotationKind;
+	page: number;
+	text: string;
+	created_at: string;
+}
+
+export interface AnnotationListPage {
+	items: Annotation[];
+	next_cursor: string | null;
+}
+
+export interface Signature {
+	id: string;
+	name: string;
+	data: string; // data URL PNG
+	created_at: string;
+}
+
+export interface Share {
+	id: string;
+	pdf_id: string;
+	pdf_name: string;
+	views: number;
+	created_at: string;
+}
+
+export interface AdminInfo {
+	version: string;
+	pdfs_count: number;
+	tags_count: number;
+	collections_count: number;
+	files_bytes: number;
+	embedding_status_counts: Record<EmbeddingStatus, number>;
+}
+
+// Chaves fechadas de settings (ver refatoracao/02-modelo-de-dados.md,
+// "Chaves de configuração").
+export interface Settings {
+	'ui.theme': 'system' | 'light' | 'dark';
+	'ui.layout': Layout;
+	'ui.per_page': string;
+	'ui.tags_open': '0' | '1';
+	'ui.tag_tree_mode': '0' | '1';
+	'ui.show_progress_bars': '0' | '1';
+	'pdf.sorting': PDFSort;
+	'annotation.sorting': string;
+	'viewer.inverted': '0' | '1';
+	'viewer.keep_awake': '0' | '1';
+	'current.collection_id': string;
+}

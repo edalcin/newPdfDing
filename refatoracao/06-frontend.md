@@ -89,7 +89,7 @@ O texto extraído é limitado a **2 MB**. Os três artefatos derivados (thumbnai
 
 ## Viewer — ponte `postMessage`
 
-pdf.js é embutido como asset estático em `frontend/static/pdfjs/` (baixado no build, mesma versão 5.5.207 de hoje — ver estágio de build em [Docker, CI e Deploy](07-docker-ci-deploy.md)), aberto dentro de um `<iframe>` pela rota `/viewer/[id]`. A comunicação entre a SPA e o iframe do viewer é feita por `postMessage`:
+pdf.js é embutido como asset estático em `frontend/static/pdfjs/`: `viewer.html`/`viewer.mjs`/`viewer.css` são código próprio deste repositório (não o webapp pré-compilado oficial — este não expõe pontos de extensão para a ponte `postMessage` abaixo sem patch); os arquivos do motor (`pdf.mjs`, `pdf.worker.mjs`, `pdf_viewer.mjs`/`.css`, `cmaps/`, `standard_fonts/`) vêm do pacote npm `pdfjs-dist` (mesma versão 5.5.207 já fixada em `frontend/package.json`), copiados por `frontend/scripts/copy-pdfjs.mjs` a cada `npm run build`/`npm run dev` — nunca versionados (ver estágio de build em [Docker, CI e Deploy](07-docker-ci-deploy.md)). O resultado é aberto dentro de um `<iframe>` pela rota `/viewer/[id]`. A comunicação entre a SPA e o iframe do viewer é feita por `postMessage`:
 
 | Ação | Gatilho | Efeito |
 |---|---|---|

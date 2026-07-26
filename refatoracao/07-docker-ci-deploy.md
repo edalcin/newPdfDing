@@ -8,7 +8,7 @@ Para a árvore de diretórios e as dependências Go fixadas, ver [Arquitetura](0
 
 Três estágios, na ordem:
 
-1. **`node:22-alpine`** — `npm ci`, baixa e descompacta o pacote pré-compilado do pdf.js 5.5.207 em `frontend/static/pdfjs` (removendo `web/locale`, `web/standard_fonts` e o PDF de exemplo), depois `npm run build` → `frontend/build`.
+1. **`node:22-alpine`** — `npm ci` (inclui `pdfjs-dist` 5.5.207, já fixado em `frontend/package.json`), depois `npm run build` → executa `frontend/scripts/copy-pdfjs.mjs` (copia só o necessário de `node_modules/pdfjs-dist` — motor, `cmaps/`, `standard_fonts/` — para `frontend/static/pdfjs/`; `viewer.html`/`viewer.mjs`/`viewer.css` já são código do repositório, não baixados) e então `vite build` → `frontend/build`.
 2. **`golang:1.25-alpine`** — copia o build do frontend para `internal/server/web/dist`, compila com `CGO_ENABLED=0`, `-trimpath`, `-ldflags="-s -w"`.
 3. **`gcr.io/distroless/static-debian12:nonroot`** — copia só o binário; `USER nonroot`; `EXPOSE 8000`; `ENTRYPOINT ["/newpdfding"]`; `HEALTHCHECK` via flag `-healthcheck` do próprio binário (a imagem distroless não tem shell nem `curl`/`wget`, então o healthcheck não pode ser um comando de shell).
 
@@ -27,15 +27,12 @@ RUN npm ci
 
 COPY frontend/ .
 
-# pdf.js 5.5.207 pré-compilado — baixado no build, nunca versionado no repositório
-RUN apk add --no-cache unzip && \
-    mkdir -p static/pdfjs && \
-    wget -q https://github.com/mozilla/pdf.js/releases/download/v5.5.207/pdfjs-5.5.207-dist.zip -O /tmp/pdfjs.zip && \
-    unzip -q /tmp/pdfjs.zip -d static/pdfjs && \
-    rm -rf static/pdfjs/web/locale static/pdfjs/web/standard_fonts static/pdfjs/web/compressed.tracemonkey-pldi-09.pdf /tmp/pdfjs.zip
-
+# pdf.js 5.5.207 já é uma dependência declarada em package.json (pdfjs-dist)
+# — nada para baixar aqui; npm run build chama frontend/scripts/copy-pdfjs.mjs
+# antes do vite build (ver 06-frontend.md, "Viewer — ponte postMessage").
 RUN npm run build
 # Saída: /app/frontend/build/  (adapter-static)
+
 
 
 # ── Stage 2: Go build ────────────────────────────────────────────────────────

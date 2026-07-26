@@ -158,3 +158,20 @@ func (b *LocalBackend) List(_ context.Context, prefix string) ([]string, error) 
 	}
 	return keys, nil
 }
+
+// TotalBytes returns the sum of every file's size under root — used by
+// GET /api/admin/info to report disk usage (ver 05-api.md, "Admin").
+func (b *LocalBackend) TotalBytes() (int64, error) {
+	var total int64
+	err := filepath.Walk(b.root, func(_ string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil || info.IsDir() {
+			return nil
+		}
+		total += info.Size()
+		return nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("storage/local total bytes: %w", err)
+	}
+	return total, nil
+}
