@@ -56,6 +56,7 @@ func (s *Server) buildRouter() http.Handler {
 		protected.Get("/api/pdfs/{id}/thumbnail", s.handleServeThumbnail)
 		protected.Get("/api/pdfs/{id}/preview", s.handleServePreview)
 		protected.Post("/api/pdfs/{id}/thumbnail", s.handleUploadThumbnail)
+		protected.Post("/api/pdfs/{id}/text", s.handleUploadText)
 		protected.Get("/api/pdfs/{id}/download", s.handleDownloadPDF)
 		protected.Put("/api/pdfs/{id}/file", s.handlePutPDFFile)
 		protected.Post("/api/pdfs/{id}/embed", s.handleEmbedPDF)

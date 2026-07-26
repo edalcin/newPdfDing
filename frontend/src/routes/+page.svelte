@@ -6,10 +6,14 @@
 	import PdfUpload from '$lib/components/pdf-upload.svelte';
 	import ScrollSentinel from '$lib/components/scroll-sentinel.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import type { Layout, PDF } from '$lib/types';
+	import { Input } from '$lib/components/ui/input';
+	import type { Layout, PDF, TagWithCount } from '$lib/types';
 
 	const list = new PDFListStore();
 	let layout = $state<Layout>('grid');
+	let tags = $state<TagWithCount[]>([]);
+	let searchInput = $state('');
+	let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
 	const LAYOUT_OPTIONS: { value: Layout; icon: string; label: string }[] = [
 		{ value: 'grid', icon: 'bx-grid-alt', label: 'Grade' },
@@ -28,6 +32,11 @@
 		} catch {
 			// defaults stand
 		}
+		try {
+			tags = await apiJSON<TagWithCount[]>('/tags');
+		} catch {
+			// biblioteca continua funcionando sem a lista de tags
+		}
 		await list.reset();
 	});
 
@@ -38,6 +47,20 @@
 		} catch {
 			// best-effort persistence
 		}
+	}
+
+	function handleSearchInput(value: string) {
+		searchInput = value;
+		clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => {
+			list.query = value.trim();
+			list.reset();
+		}, 300);
+	}
+
+	function selectTag(name: string) {
+		list.tag = list.tag === name ? '' : name;
+		list.reset();
 	}
 
 	async function toggleStar(pdf: PDF) {
@@ -76,8 +99,37 @@
 		</div>
 	</div>
 
+	<div class="mt-3">
+		<Input
+			value={searchInput}
+			oninput={(e) => handleSearchInput((e.target as HTMLInputElement).value)}
+			placeholder="Buscar por nome, descrição, conteúdo…"
+			aria-label="Buscar PDFs"
+		/>
+	</div>
+
+	{#if tags.length > 0}
+		<div class="mt-2 flex flex-wrap gap-1.5">
+			{#each tags as tag (tag.id)}
+				<button
+					type="button"
+					onclick={() => selectTag(tag.name)}
+					class={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
+						list.tag === tag.name
+							? 'border-primary bg-primary text-primary-foreground'
+							: 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+					}`}
+				>
+					{tag.name} <span class="opacity-70">{tag.count}</span>
+				</button>
+			{/each}
+		</div>
+	{/if}
+
 	{#if list.items.length === 0 && !list.loading}
-		<p class="mt-8 text-center text-sm text-muted-foreground">Nenhum PDF ainda. Envie um acima.</p>
+		<p class="mt-8 text-center text-sm text-muted-foreground">
+			{list.query || list.tag ? 'Nenhum PDF encontrado.' : 'Nenhum PDF ainda. Envie um acima.'}
+		</p>
 	{:else}
 		<div
 			class={layout === 'grid'

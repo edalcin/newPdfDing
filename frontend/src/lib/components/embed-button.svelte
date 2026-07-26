@@ -40,7 +40,9 @@
 			if (err instanceof ApiError && err.status === 412) {
 				embedSession.disabledGlobally = true;
 				toast = 'Busca semântica não está configurada (GEMINI_API_KEY ausente).';
-			} else if (err instanceof ApiError && (err.status === 422 || err.status === 502)) {
+			} else if (err instanceof ApiError && err.status === 422) {
+				toast = 'Sem texto extraído — abra este PDF no visualizador uma vez para extrair o texto, depois tente embedar de novo.';
+			} else if (err instanceof ApiError && err.status === 502) {
 				toast = err.message;
 			} else if (err instanceof ApiError && err.status !== 409 && err.status !== 404) {
 				toast = err.message;

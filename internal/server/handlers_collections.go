@@ -15,6 +15,7 @@ type collectionResponse struct {
 	Description string `json:"description"`
 	IsDefault   bool   `json:"is_default"`
 	CreatedAt   string `json:"created_at"`
+	PdfCount    int    `json:"pdf_count"`
 }
 
 func toCollectionResponse(c store.Collection) collectionResponse {
@@ -27,6 +28,12 @@ func toCollectionResponse(c store.Collection) collectionResponse {
 	}
 }
 
+func toCollectionResponseWithCount(c store.CollectionWithCount) collectionResponse {
+	r := toCollectionResponse(c.Collection)
+	r.PdfCount = c.PdfCount
+	return r
+}
+
 func (s *Server) handleListCollections(w http.ResponseWriter, r *http.Request) {
 	cols, err := s.collections.List()
 	if err != nil {
@@ -35,7 +42,7 @@ func (s *Server) handleListCollections(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]collectionResponse, len(cols))
 	for i, c := range cols {
-		out[i] = toCollectionResponse(c)
+		out[i] = toCollectionResponseWithCount(c)
 	}
 	writeJSON(w, http.StatusOK, out)
 }

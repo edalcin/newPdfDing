@@ -32,6 +32,7 @@ export interface PDF {
 	last_viewed_at: string | null;
 	tags: Tag[];
 	embedding_status: EmbeddingStatus;
+	has_text: boolean;
 }
 
 export interface Collection {
@@ -40,6 +41,7 @@ export interface Collection {
 	description: string;
 	is_default: boolean;
 	created_at: string;
+	pdf_count: number;
 }
 
 export type PDFSort =

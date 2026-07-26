@@ -55,7 +55,10 @@
 				method: 'PATCH',
 				body: { [field]: value }
 			});
-			collections = collections.map((x) => (x.id === c.id ? updated : x));
+			// PATCH does not recompute pdf_count (unrelated to the field being
+			// edited) — keep the count already shown instead of overwriting it
+			// with the response's zero value.
+			collections = collections.map((x) => (x.id === c.id ? { ...updated, pdf_count: x.pdf_count } : x));
 		} catch (err) {
 			rowErrors = { ...rowErrors, [c.id]: messageFor(err, 'nome já em uso', 'Falha ao salvar') };
 		}
@@ -117,9 +120,12 @@
 									class="font-medium"
 									aria-label="Nome da coleção"
 								/>
-								{#if c.is_default}
-									<span class="shrink-0 rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">padrão</span>
-								{/if}
+							{#if c.is_default}
+								<span class="shrink-0 rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">padrão</span>
+							{/if}
+							<span class="shrink-0 text-xs text-muted-foreground">
+								{c.pdf_count} {c.pdf_count === 1 ? 'PDF' : 'PDFs'}
+							</span>
 							</div>
 							<Input
 								value={c.description}

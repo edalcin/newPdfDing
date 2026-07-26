@@ -63,19 +63,32 @@ func (s *CollectionStore) Default() (Collection, error) {
 	return s.scanOne(s.db.QueryRow(`SELECT id, name, description, is_default, created_at FROM collections WHERE is_default = 1 LIMIT 1`))
 }
 
-// List returns every collection, alphabetically by name.
-func (s *CollectionStore) List() ([]Collection, error) {
-	rows, err := s.db.Query(`SELECT id, name, description, is_default, created_at FROM collections ORDER BY name COLLATE NOCASE`)
+// CollectionWithCount is a Collection plus how many PDFs currently belong
+// to it — used by GET /api/collections so the UI can show library size per
+// collection without a separate round trip.
+type CollectionWithCount struct {
+	Collection
+	PdfCount int
+}
+
+// List returns every collection with its PDF count, alphabetically by name.
+func (s *CollectionStore) List() ([]CollectionWithCount, error) {
+	rows, err := s.db.Query(`
+		SELECT c.id, c.name, c.description, c.is_default, c.created_at, COUNT(p.id)
+		FROM collections c
+		LEFT JOIN pdfs p ON p.collection_id = c.id
+		GROUP BY c.id
+		ORDER BY c.name COLLATE NOCASE`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var out []Collection
+	var out []CollectionWithCount
 	for rows.Next() {
-		var c Collection
+		var c CollectionWithCount
 		var isDefault int
-		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &isDefault, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &isDefault, &c.CreatedAt, &c.PdfCount); err != nil {
 			return nil, err
 		}
 		c.IsDefault = isDefault != 0

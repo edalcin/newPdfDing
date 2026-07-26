@@ -37,6 +37,11 @@ type PDF struct {
 	// EmbeddingStatus is derived on every read, never persisted (ver
 	// 04-busca-hibrida.md, "Estado de embedding"): "none"|"current"|"stale".
 	EmbeddingStatus string
+	// HasText is derived on every single-PDF read (GetByID), never
+	// persisted — whether pdf_text has a row for this PDF. Drives the
+	// viewer's on-open text backfill (ver SetText) for documents that
+	// arrived without extracted text (legacy import, watch-dir consumer).
+	HasText bool
 }
 
 const pdfColumns = `id, name, description, notes, collection_id, file_directory, storage_key, thumbnail_key, preview_key, sha256, size_bytes, num_pages, current_page, views, revision, starred, archived, created_at, last_viewed_at`
@@ -266,6 +271,9 @@ func (s *PDFStore) GetByID(id string) (PDF, error) {
 		return PDF{}, err
 	}
 	p.Tags = tags[p.ID]
+	if err := s.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pdf_text WHERE pdf_id = ?)`, p.ID).Scan(&p.HasText); err != nil {
+		return PDF{}, err
+	}
 	batch := []PDF{p}
 	if err := s.attachEmbeddingStatus(batch); err != nil {
 		return PDF{}, err
@@ -753,6 +761,43 @@ func (s *PDFStore) SetThumbnailKey(id, key string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// SetText upserts the extracted text body for a PDF and reindexes FTS5 in
+// the same transaction (ver 05-api.md, "POST .../text" — the viewer
+// backfills text on first open for documents that arrived without it:
+// legacy import, ETAPA-12-IMPORTACAO, or the watch-dir consumer's pure-Go
+// extraction gap). Returns ErrNotFound if the PDF does not exist.
+func (s *PDFStore) SetText(id, text string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	oldRow, hadRow, err := loadFTSRow(tx, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if !hadRow {
+		tx.Rollback()
+		return ErrNotFound
+	}
+
+	if _, err := tx.Exec(
+		`INSERT INTO pdf_text (pdf_id, body) VALUES (?, ?) ON CONFLICT(pdf_id) DO UPDATE SET body = excluded.body`,
+		id, text,
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := reindexPDF(tx, id, oldRow, false); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // RecordView increments views and slides last_viewed_at to now — called

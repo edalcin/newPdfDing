@@ -43,7 +43,14 @@ export async function processPDF(file: File): Promise<ProcessedPDF> {
 
 	const page1 = await doc.getPage(1);
 	const [thumbnail, preview] = await Promise.all([renderPageToBlob(page1, 400), renderPageToBlob(page1, 1000)]);
+	const text = await extractText(doc);
 
+	return { numPages: doc.numPages, thumbnail, preview, text };
+}
+
+/** Shared text-extraction loop (used by processPDF and extractTextFromUrl):
+ * walks every page's text content up to TEXT_LIMIT_BYTES. */
+async function extractText(doc: pdfjsLib.PDFDocumentProxy): Promise<string> {
 	let text = '';
 	for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
 		const page = await doc.getPage(pageNum);
@@ -55,6 +62,18 @@ export async function processPDF(file: File): Promise<ProcessedPDF> {
 	if (new Blob([text]).size > TEXT_LIMIT_BYTES) {
 		text = new TextDecoder().decode(new TextEncoder().encode(text).slice(0, TEXT_LIMIT_BYTES));
 	}
+	return text;
+}
 
-	return { numPages: doc.numPages, thumbnail, preview, text };
+/** Extracts text from a PDF already stored server-side, fetched by URL —
+ * used by the viewer to backfill pdf_text for documents that arrived
+ * without it (legacy import, watch-dir consumer's pure-Go extraction gap;
+ * ver 05-api.md, "POST .../text"). Throws on a corrupted/password-protected
+ * PDF; the caller treats that as best-effort and ignores the failure. */
+export async function extractTextFromUrl(url: string): Promise<string> {
+	const res = await fetch(url, { credentials: 'same-origin' });
+	if (!res.ok) throw new Error(`failed to fetch pdf: ${res.status}`);
+	const buffer = await res.arrayBuffer();
+	const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+	return extractText(doc);
 }

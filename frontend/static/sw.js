@@ -37,10 +37,27 @@ function isStaticAsset(url) {
 	);
 }
 
+// fetchWithTimeout guards every network attempt below: a stalled connection
+// (or a fetch that never settles for any reason) must fail over to cache —
+// or to the offline response for mutations — instead of hanging the page
+// forever. AbortController.abort() rejects the fetch even if it's stuck at
+// the browser/network layer, not just on a genuine slow response.
+const NETWORK_TIMEOUT_MS = 8000;
+
+async function fetchWithTimeout(request) {
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS);
+	try {
+		return await fetch(request, { signal: controller.signal });
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
 async function networkFirst(request, cacheName) {
 	const cache = await caches.open(cacheName);
 	try {
-		const response = await fetch(request);
+		const response = await fetchWithTimeout(request);
 		if (response.ok) cache.put(request, response.clone());
 		return response;
 	} catch {
@@ -54,7 +71,7 @@ async function cacheFirst(request, cacheName) {
 	const cache = await caches.open(cacheName);
 	const cached = await cache.match(request);
 	if (cached) return cached;
-	const response = await fetch(request);
+	const response = await fetchWithTimeout(request);
 	if (response.ok) cache.put(request, response.clone());
 	return response;
 }
@@ -65,10 +82,11 @@ self.addEventListener('fetch', (event) => {
 
 	if (url.origin !== self.location.origin) return;
 
-	// Mutações: network-only, 503 explícito quando offline (ver 06-frontend.md).
+	// Mutações: network-only, 503 explícito quando offline ou a rede trava
+	// (ver 06-frontend.md).
 	if (isMutation(request)) {
 		event.respondWith(
-			fetch(request).catch(
+			fetchWithTimeout(request).catch(
 				() => new Response(JSON.stringify({ error: 'offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } })
 			)
 		);

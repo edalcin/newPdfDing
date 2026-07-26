@@ -55,6 +55,7 @@ type pdfResponse struct {
 	LastViewedAt    *string     `json:"last_viewed_at"`
 	Tags            []store.Tag `json:"tags"`
 	EmbeddingStatus string      `json:"embedding_status"`
+	HasText         bool        `json:"has_text"`
 }
 
 // toPDFResponse builds the API representation of a PDF, rendering+sanitizing
@@ -76,7 +77,7 @@ func toPDFResponse(p store.PDF) (pdfResponse, error) {
 		SHA256: p.SHA256, SizeBytes: p.SizeBytes, NumPages: p.NumPages,
 		CurrentPage: p.CurrentPage, Views: p.Views, Revision: p.Revision,
 		Starred: p.Starred, Archived: p.Archived, CreatedAt: p.CreatedAt,
-		Tags: tags, EmbeddingStatus: p.EmbeddingStatus,
+		Tags: tags, EmbeddingStatus: p.EmbeddingStatus, HasText: p.HasText,
 	}
 	if p.LastViewedAt.Valid {
 		resp.LastViewedAt = &p.LastViewedAt.String
@@ -746,6 +747,42 @@ func (s *Server) handleUploadThumbnail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"thumbnail": "ok"})
+}
+
+// handleUploadText accepts extracted text arriving after the initial
+// upload/import (ver 05-api.md, "POST .../text") — the viewer backfills
+// this for documents that had no text yet (legacy import, watch-dir
+// consumer's pure-Go extraction gap), so they become embeddable and
+// full-text searchable without a manual re-upload.
+func (s *Server) handleUploadText(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	r.Body = http.MaxBytesReader(w, r.Body, s.cfg.MaxUploadMB*1024*1024)
+	var req struct {
+		Text string `json:"text"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeJSONError(w, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_MB")
+			return
+		}
+		writeJSONError(w, http.StatusBadRequest, "malformed payload")
+		return
+	}
+	if req.Text == "" {
+		writeJSONError(w, http.StatusBadRequest, "text is required")
+		return
+	}
+
+	if err := s.pdfs.SetText(id, req.Text); errors.Is(err, store.ErrNotFound) {
+		writeJSONError(w, http.StatusNotFound, "pdf not found")
+		return
+	} else if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"text": "ok"})
 }
 
 // ---------------------------------------------------------------------

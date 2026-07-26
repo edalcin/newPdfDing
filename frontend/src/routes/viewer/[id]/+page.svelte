@@ -7,6 +7,7 @@
 	// criar comentário/destaque, erro de carregamento).
 	import { page } from '$app/state';
 	import { apiJSON } from '$lib/api';
+	import { extractTextFromUrl } from '$lib/pdf-process';
 	import { createAnnotation } from '$lib/annotations.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import type { PDF, Signature } from '$lib/types';
@@ -91,8 +92,26 @@
 			inverted = settings['viewer.inverted'] === '1';
 			keepAwake = settings['viewer.keep_awake'] === '1';
 			if (keepAwake) await requestWakeLock();
+			if (!pdfData.has_text) backfillText(pdfId);
 		} catch (err) {
 			errorMsg = err instanceof Error ? err.message : 'Falha ao carregar o PDF.';
+		}
+	}
+
+	/** Extrai o texto no navegador (mesmo pdf.js do upload) e envia ao
+	 * servidor — para documentos que chegaram sem texto (import do banco
+	 * legado, watch-dir). Melhor-esforço: silencioso em qualquer falha,
+	 * nunca bloqueia ou interrompe a abertura do viewer (ver
+	 * refatoracao/06-frontend.md, "Degradação graciosa"). */
+	async function backfillText(pdfId: string) {
+		try {
+			const text = await extractTextFromUrl(`/api/pdfs/${pdfId}/file`);
+			if (!text) return;
+			await apiJSON(`/pdfs/${pdfId}/text`, { method: 'POST', body: { text } });
+			if (pdf && pdf.id === pdfId) pdf = { ...pdf, has_text: true };
+		} catch {
+			// PDF corrompido/protegido, ou request falhou — sem texto extraído
+			// desta vez; a próxima abertura tenta de novo.
 		}
 	}
 

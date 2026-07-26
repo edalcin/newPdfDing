@@ -11,6 +11,7 @@
 	import { apiJSON, ApiError } from '$lib/api';
 	import { AnnotationListStore, deleteAnnotation } from '$lib/annotations.svelte';
 	import EmbedButton from '$lib/components/embed-button.svelte';
+	import TagPicker from '$lib/components/tag-picker.svelte';
 	import ScrollSentinel from '$lib/components/scroll-sentinel.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -174,10 +175,10 @@
 		if (updated) descriptionInput = updated.description;
 	}
 
-	async function saveTags() {
+	async function saveTags(names: string[]) {
 		if (!pdf) return;
-		const tags = tagsInput.split(/\s+/).filter(Boolean);
-		const updated = await patchPdf({ tags });
+		tagsInput = names.join(' ');
+		const updated = await patchPdf({ tags: names });
 		if (updated) tagsInput = updated.tags.map((t) => t.name).join(' ');
 	}
 
@@ -376,14 +377,9 @@
 			<div class="grid gap-4 sm:grid-cols-2">
 				<div>
 					<label for="pdf-tags" class="text-sm font-medium">Tags</label>
-					<Input
-						id="pdf-tags"
-						bind:value={tagsInput}
-						onblur={saveTags}
-						onkeydown={blurOnEnter}
-						placeholder="tag1 tag2"
-						class="mt-1"
-					/>
+					<div class="mt-1">
+						<TagPicker id="pdf-tags" value={tagsInput} onChange={saveTags} />
+					</div>
 				</div>
 				<div>
 					<label for="pdf-collection" class="text-sm font-medium">Coleção</label>
