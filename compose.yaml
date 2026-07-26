@@ -1,0 +1,29 @@
+# newPdfDing — compose de desenvolvimento/self-host de instância única.
+# Substitui os antigos compose/postgres.docker-compose.yaml e
+# compose/sqlite.docker-compose.yaml do stack Django (ver
+# refatoracao/09-limpeza-repositorio.md) — não há mais escolha de banco,
+# só SQLite (ver refatoracao/07-docker-ci-deploy.md, "Variáveis eliminadas").
+#
+# Uso:
+#   cp .env.example .env   # preencher ADMIN_PASSWORD e ajustar o resto
+#   docker compose up --build
+
+services:
+  newpdfding:
+    build: .
+    image: ghcr.io/edalcin/newpdfding:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DB_PATH: /data/newpdfding.db
+      FILES: /files
+    volumes:
+      - newpdfding-data:/data
+      - newpdfding-files:/files
+
+volumes:
+  newpdfding-data:
+  newpdfding-files:

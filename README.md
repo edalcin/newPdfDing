@@ -1,15 +1,82 @@
 # newPdfDing
 
-> **Refatoração em andamento.** Este repositório está sendo reescrito do stack Python legado para Go + SvelteKit. O plano completo, a arquitetura alvo e o estado de execução vivem em [`refatoracao/`](refatoracao/README.md) — comece por lá.
+Gerenciador de PDFs self-hosted, single-user: biblioteca com busca híbrida (léxica + semântica sob demanda), destaques, comentários, assinaturas, coleções, tags e compartilhamento público. Backend em Go (binário único, SQLite), frontend em SvelteKit embutido no mesmo binário.
 
-Enquanto a refatoração avança, este README traz apenas o essencial:
+## Rodando com Docker (recomendado)
 
-- Plano e documentação técnica: [`refatoracao/README.md`](refatoracao/README.md)
-- Contrato de execução (etapas, dependências, critérios de aceitação): [`refatoracao/ETAPAS.md`](refatoracao/ETAPAS.md)
+```bash
+docker run -d \
+  --name newpdfding \
+  -p 8000:8000 \
+  -e ADMIN_PASSWORD=change-me \
+  -e DB_PATH=/data/newpdfding.db \
+  -e FILES=/files \
+  -v newpdfding-data:/data \
+  -v newpdfding-files:/files \
+  ghcr.io/edalcin/newpdfding:latest
+```
 
-O README com instruções de uso/deploy do produto final é reescrito na `ETAPA-11-DOCKER-CI` (ver [`refatoracao/07-docker-ci-deploy.md`](refatoracao/07-docker-ci-deploy.md)).
+Acesse `http://localhost:8000` e entre com a senha definida em `ADMIN_PASSWORD`.
 
----
+### Docker Compose
+
+```bash
+cp .env.example .env   # preencher ADMIN_PASSWORD e ajustar o resto
+docker compose up --build
+```
+
+### Unraid
+
+Guia dedicado com os campos exatos de **Docker → Add Container**: [`UNRAID.md`](UNRAID.md).
+
+## Variáveis de ambiente
+
+Lista fechada — nenhuma variável fora dela é lida pelo binário. Ver [`.env.example`](.env.example) para os placeholders e [`refatoracao/07-docker-ci-deploy.md`](refatoracao/07-docker-ci-deploy.md#variáveis-de-ambiente) para a tabela completa (obrigatória/default/significado).
+
+| Variável | Obrigatória | Default |
+|---|---|---|
+| `ADMIN_PASSWORD` | Sim | — |
+| `DB_PATH` | Sim | — |
+| `FILES` | Sim | — |
+| `LISTEN_ADDR` | Não | `:8000` |
+| `BASE_URL` | Não | derivado da requisição |
+| `SESSION_IDLE_MINUTES` | Não | `43200` |
+| `MAX_UPLOAD_MB` | Não | `200` |
+| `TRUST_PROXY_HEADERS` | Não | `false` |
+| `LOG_LEVEL` | Não | `info` |
+| `GEMINI_API_KEY` | Não | *(vazio — desliga a busca semântica)* |
+| `EMBED_MODEL` | Não | `models/gemini-embedding-001` |
+| `CONSUME_ENABLE` | Não | `false` |
+| `CONSUME_DIR` | Não | `<FILES>/consume` |
+| `CONSUME_INTERVAL_MINUTES` | Não | `5` |
+| `CONSUME_TAGS` | Não | `""` |
+| `CONSUME_SKIP_EXISTING` | Não | `true` |
+
+## Desenvolvimento
+
+Requer Go 1.25+ e Node 22+.
+
+```bash
+# Backend
+go build ./cmd/newpdfding
+go test ./...
+
+# Frontend (gera frontend/build, embutido via go:embed em internal/server/web/dist)
+cd frontend
+npm ci
+npm run build
+```
+
+Servidor local:
+
+```bash
+export ADMIN_PASSWORD=dev DB_PATH=./dev.db FILES=./dev-files
+go run ./cmd/newpdfding
+```
+
+## Arquitetura
+
+Binário único: Go (chi, SQLite puro-Go, FTS5) servindo uma API REST e a SPA SvelteKit embutida via `go:embed`. Busca híbrida (FTS5 + embeddings Gemini sob demanda, fusão RRF), sem worker nem automação de embedding. Detalhes completos do plano de refatoração e da arquitetura alvo: [`refatoracao/`](refatoracao/README.md).
 
 ## Atribuição
 

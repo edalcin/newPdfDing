@@ -1,8 +1,24 @@
-# newPdfDing — Dockerfile provisório de 2 estágios (sem frontend).
-# O estágio de build do frontend (Node + pdf.js) e o go:embed do SvelteKit
-# chegam na ETAPA-9-UI-BASE / ETAPA-11-DOCKER-CI — ver refatoracao/07-docker-ci-deploy.md.
+# newPdfDing — imagem de produção: 3 estágios, runtime distroless não-root.
+# Ver refatoracao/07-docker-ci-deploy.md, "Dockerfile de três estágios".
 
-# ── Stage 1: Go build ────────────────────────────────────────────────────────
+# ── Stage 1: Frontend build (Node + pdf.js) ─────────────────────────────────
+FROM node:22-alpine AS frontend
+
+WORKDIR /app/frontend
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend/ .
+
+# pdf.js 5.5.207 já é uma dependência declarada em package.json (pdfjs-dist)
+# — nada para baixar aqui; npm run build chama frontend/scripts/copy-pdfjs.mjs
+# antes do vite build (ver 06-frontend.md, "Viewer — ponte postMessage").
+RUN npm run build
+# Saída: /app/frontend/build/  (adapter-static)
+
+
+# ── Stage 2: Go build ────────────────────────────────────────────────────────
 FROM golang:1.25-alpine AS build
 
 WORKDIR /src
@@ -13,12 +29,13 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+COPY --from=frontend /app/frontend/build/ ./internal/server/web/dist/
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -trimpath -ldflags="-s -w" -o /out/newpdfding ./cmd/newpdfding
 
 
-# ── Stage 2: Runtime (distroless, não-root) ──────────────────────────────────
+# ── Stage 3: Runtime (distroless, não-root) ──────────────────────────────────
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /out/newpdfding /newpdfding

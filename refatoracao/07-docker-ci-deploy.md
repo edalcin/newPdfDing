@@ -300,6 +300,32 @@ CONSUME_SKIP_EXISTING=true
 
 ```
 
+## `compose.yaml`
+
+Compose de desenvolvimento/self-host de instância única, na raiz do repositório — substitui os antigos `compose/postgres.docker-compose.yaml` e `compose/sqlite.docker-compose.yaml` do stack Django (ver [Limpeza do repositório](09-limpeza-repositorio.md)); não há mais escolha de banco, só SQLite. `docker compose up --build` sobe o serviço a partir do `Dockerfile` local, lendo `.env` (copiado de `.env.example`) e persistindo banco e acervo em volumes nomeados.
+
+```yaml
+services:
+  newpdfding:
+    build: .
+    image: ghcr.io/edalcin/newpdfding:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DB_PATH: /data/newpdfding.db
+      FILES: /files
+    volumes:
+      - newpdfding-data:/data
+      - newpdfding-files:/files
+
+volumes:
+  newpdfding-data:
+  newpdfding-files:
+```
+
 ## Conteúdo de UNRAID.md
 
 `UNRAID.md` é um arquivo próprio na raiz do repositório (ver árvore em [Arquitetura](01-arquitetura.md)), não dentro de `refatoracao/`. Este documento é o dono do seu conteúdo alvo — a ETAPA-11 copia a seção abaixo quase literalmente para lá.
