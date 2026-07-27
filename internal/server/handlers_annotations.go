@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
 
 	"github.com/edalcin/newpdfding/internal/store"
 	"github.com/go-chi/chi/v5"
@@ -19,13 +20,14 @@ type annotationResponse struct {
 	Note      string `json:"note" yaml:"note"`
 	Color     string `json:"color" yaml:"color"`
 	Rects     string `json:"rects" yaml:"rects"`
+	Data      string `json:"data" yaml:"data"`
 	CreatedAt string `json:"created_at" yaml:"created_at"`
 }
 
 func toAnnotationResponse(a store.Annotation) annotationResponse {
 	return annotationResponse{
 		ID: a.ID, PDFID: a.PDFID, Kind: a.Kind, Page: a.Page, Text: a.Text,
-		Note: a.Note, Color: a.Color, Rects: a.Rects, CreatedAt: a.CreatedAt,
+		Note: a.Note, Color: a.Color, Rects: a.Rects, Data: a.Data, CreatedAt: a.CreatedAt,
 	}
 }
 
@@ -33,9 +35,21 @@ func isValidAnnotationKind(kind string) bool {
 	return kind == "comment" || kind == "highlight"
 }
 
-// validAnnotationColors is the closed set accepted for pdf_annotations.color
-// (ver refatoracao, Fase E.1).
-var validAnnotationColors = map[string]bool{"yellow": true, "green": true, "blue": true, "pink": true}
+// legacyAnnotationColors is the closed set inherited from the four
+// hand-picked colors of the old viewer.
+var legacyAnnotationColors = map[string]bool{"yellow": true, "green": true, "blue": true, "pink": true}
+
+var hexColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+// isValidAnnotationColor accepts the four legacy names plus any #rrggbb hex
+// — the EmbedPDF SDK works with free-form WebColor.
+func isValidAnnotationColor(c string) bool {
+	return legacyAnnotationColors[c] || hexColorPattern.MatchString(c)
+}
+
+// maxAnnotationDataBytes caps AnnotationTransferItem JSON — stamps carry
+// base64 image bytes inside ctx, so the field needs an explicit ceiling.
+const maxAnnotationDataBytes = 2 << 20
 
 // validateRects reports whether raw is a valid rects value: '' (unanchored)
 // or a JSON array of [x, y, w, h] tuples, each component in [0, 1].
@@ -112,6 +126,7 @@ func (s *Server) handleCreateAnnotation(w http.ResponseWriter, r *http.Request) 
 		Note  string `json:"note"`
 		Color string `json:"color"`
 		Rects string `json:"rects"`
+		Data  string `json:"data"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "malformed payload")
@@ -124,7 +139,7 @@ func (s *Server) handleCreateAnnotation(w http.ResponseWriter, r *http.Request) 
 	if req.Color == "" {
 		req.Color = "yellow"
 	}
-	if !validAnnotationColors[req.Color] {
+	if !isValidAnnotationColor(req.Color) {
 		writeJSONError(w, http.StatusBadRequest, "invalid color")
 		return
 	}
@@ -132,8 +147,12 @@ func (s *Server) handleCreateAnnotation(w http.ResponseWriter, r *http.Request) 
 		writeJSONError(w, http.StatusBadRequest, "rects inválido")
 		return
 	}
+	if len(req.Data) > maxAnnotationDataBytes {
+		writeJSONError(w, http.StatusBadRequest, "data excede 2 MiB")
+		return
+	}
 
-	a, err := s.annotations.Create(pdfID, req.Kind, *req.Page, req.Text, req.Note, req.Color, req.Rects)
+	a, err := s.annotations.Create(pdfID, req.Kind, *req.Page, req.Text, req.Note, req.Color, req.Rects, req.Data)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "internal error")
 		return
@@ -151,6 +170,8 @@ func (s *Server) handlePatchAnnotation(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Text  *string `json:"text"`
 		Note  *string `json:"note"`
+		Color *string `json:"color"`
+		Data  *string `json:"data"`
 		Rects *string `json:"rects"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -181,8 +202,16 @@ func (s *Server) handlePatchAnnotation(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if req.Color != nil && !isValidAnnotationColor(*req.Color) {
+		writeJSONError(w, http.StatusBadRequest, "invalid color")
+		return
+	}
+	if req.Data != nil && len(*req.Data) > maxAnnotationDataBytes {
+		writeJSONError(w, http.StatusBadRequest, "data excede 2 MiB")
+		return
+	}
 
-	a, err := s.annotations.Update(id, req.Text, req.Note)
+	a, err := s.annotations.Update(id, req.Text, req.Note, req.Data, req.Color)
 	if errors.Is(err, store.ErrNotFound) {
 		writeJSONError(w, http.StatusNotFound, "annotation not found")
 		return

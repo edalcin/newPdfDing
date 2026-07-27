@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS pdf_annotations (
   note       TEXT NOT NULL DEFAULT '',    -- anotação do usuário sobre o trecho
   color      TEXT NOT NULL DEFAULT 'yellow',
   rects      TEXT NOT NULL DEFAULT '',    -- JSON [[x,y,w,h],…] normalizado 0..1 na página; '' = não ancorado
+  data       TEXT NOT NULL DEFAULT '',    -- AnnotationTransferItem do EmbedPDF, JSON; '' = linha legada sem geometria de SDK
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_annotations_pdf ON pdf_annotations(pdf_id, kind);

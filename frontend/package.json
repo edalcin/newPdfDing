@@ -4,10 +4,10 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"dev": "npm run copy:pdfjs && vite dev",
-		"build": "npm run copy:pdfjs && vite build && npm run stamp:sw",
+		"dev": "npm run copy:embedpdf && vite dev",
+		"build": "npm run copy:embedpdf && vite build && npm run stamp:sw",
 		"preview": "vite preview",
-		"copy:pdfjs": "node scripts/copy-pdfjs.mjs",
+		"copy:embedpdf": "node scripts/copy-embedpdf.mjs",
 		"stamp:sw": "node scripts/stamp-sw-version.mjs",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -27,6 +27,7 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
+		"@embedpdf/svelte-pdf-viewer": "^2.14.4",
 		"@tiptap/core": "^3.29.0",
 		"@tiptap/pm": "^3.29.0",
 		"@tiptap/starter-kit": "^3.29.0",

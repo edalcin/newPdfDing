@@ -1,7 +1,7 @@
 # newPdfDing — imagem de produção: 3 estágios, runtime distroless não-root.
 # Ver refatoracao/07-docker-ci-deploy.md, "Dockerfile de três estágios".
 
-# ── Stage 1: Frontend build (Node + pdf.js) ─────────────────────────────────
+# ── Stage 1: Frontend build (Node + EmbedPDF/PDFium) ────────────────────────
 FROM node:22-alpine AS frontend
 
 WORKDIR /app/frontend
@@ -11,9 +11,10 @@ RUN npm ci
 
 COPY frontend/ .
 
-# pdf.js 5.5.207 já é uma dependência declarada em package.json (pdfjs-dist)
-# — nada para baixar aqui; npm run build chama frontend/scripts/copy-pdfjs.mjs
-# antes do vite build (ver 06-frontend.md, "Viewer — ponte postMessage").
+# @embedpdf/pdfium já é uma dependência transitiva declarada em package.json
+# (via @embedpdf/svelte-pdf-viewer) — nada para baixar aqui; npm run build
+# chama frontend/scripts/copy-embedpdf.mjs antes do vite build (ver
+# 06-frontend.md, "Viewer — EmbedPDF").
 RUN npm run build
 # Saída: /app/frontend/build/  (adapter-static)
 

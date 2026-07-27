@@ -3,15 +3,9 @@
 	import { AnnotationListStore, deleteAnnotation, exportAnnotationsUrl } from '$lib/annotations.svelte';
 	import { apiJSON } from '$lib/api';
 	import ScrollSentinel from '$lib/components/scroll-sentinel.svelte';
+	import { LEGACY_HEX } from '$lib/embedpdf';
 	import { formatDate } from '$lib/utils';
 	import type { PDF } from '$lib/types';
-
-	const ANNOTATION_COLOR_CLASS: Record<string, string> = {
-		yellow: 'bg-yellow-400',
-		green: 'bg-green-400',
-		blue: 'bg-blue-400',
-		pink: 'bg-pink-400'
-	};
 
 	const store = new AnnotationListStore();
 	store.kind = 'highlight';
@@ -53,7 +47,8 @@
 				<li class="rounded-md border border-border bg-card p-3">
 					<div class="flex items-start gap-2">
 						<span
-							class={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${ANNOTATION_COLOR_CLASS[annotation.color] ?? ANNOTATION_COLOR_CLASS.yellow}`}
+							class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+							style:background-color={LEGACY_HEX[annotation.color] ?? annotation.color}
 						></span>
 						<div class="min-w-0 flex-1">
 							<p class="line-clamp-2 text-sm">{annotation.text}</p>

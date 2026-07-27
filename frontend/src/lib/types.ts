@@ -61,6 +61,7 @@ export interface Annotation {
 	note: string;
 	color: string;
 	rects: string;
+	data: string;
 	created_at: string;
 }
 

@@ -16,17 +16,11 @@
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { formatBytes, formatDate } from '$lib/utils';
+	import { LEGACY_HEX } from '$lib/embedpdf';
 	import type { PDF, Share } from '$lib/types';
 	import { Editor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
 	import TurndownService from 'turndown';
-
-	const ANNOTATION_COLOR_CLASS: Record<string, string> = {
-		yellow: 'bg-yellow-400',
-		green: 'bg-green-400',
-		blue: 'bg-blue-400',
-		pink: 'bg-pink-400'
-	};
 
 	const id = $derived(page.params.id ?? '');
 
@@ -443,7 +437,8 @@
 							<li class="flex items-start justify-between gap-2 text-sm">
 								<p class="flex min-w-0 flex-1 items-start gap-1.5">
 									<span
-										class={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ANNOTATION_COLOR_CLASS[ann.color] ?? ANNOTATION_COLOR_CLASS.yellow}`}
+										class="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+										style:background-color={LEGACY_HEX[ann.color] ?? ann.color}
 									></span>
 									<span class="min-w-0">
 										<span class="font-medium">p. {ann.page}</span>
@@ -477,7 +472,8 @@
 							<li class="flex items-start justify-between gap-2 text-sm">
 								<p class="flex min-w-0 flex-1 items-start gap-1.5">
 									<span
-										class={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ANNOTATION_COLOR_CLASS[ann.color] ?? ANNOTATION_COLOR_CLASS.yellow}`}
+										class="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+										style:background-color={LEGACY_HEX[ann.color] ?? ann.color}
 									></span>
 									<span class="min-w-0">
 										<span class="font-medium">p. {ann.page}</span>

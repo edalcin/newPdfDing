@@ -56,6 +56,11 @@ func Open(dbPath string) (*sql.DB, error) {
 		db.Close()
 		return nil, fmt.Errorf("store.Open exec schema: %w", err)
 	}
+	if err := addColumnIfMissing(tx, "pdf_annotations", "data", "TEXT NOT NULL DEFAULT ''"); err != nil {
+		tx.Rollback()
+		db.Close()
+		return nil, fmt.Errorf("store.Open add column: %w", err)
+	}
 	if err := tx.Commit(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("store.Open commit: %w", err)
@@ -71,4 +76,23 @@ func Open(dbPath string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+// addColumnIfMissing acrescenta uma coluna a uma tabela já existente. É todo
+// o mecanismo de migração do projeto: schema.sql é declarativo e só sabe
+// criar tabela nova, nunca evoluir uma antiga.
+func addColumnIfMissing(tx *sql.Tx, table, column, decl string) error {
+	rows, err := tx.Query("SELECT 1 FROM pragma_table_info(?) WHERE name = ?", table, column)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	if rows.Next() {
+		return nil
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	_, err = tx.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, decl))
+	return err
 }

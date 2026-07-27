@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { apiJSON, ApiError } from '$lib/api';
+	import PdfViewer from '$lib/components/pdf-viewer.svelte';
 	import type { PDF } from '$lib/types';
 
 	const shareId = page.params.share;
@@ -9,7 +10,6 @@
 	let pdf = $state<PDF | null>(null);
 	let notFound = $state(false);
 	let loadError = $state('');
-	let viewerError = $state('');
 
 	onMount(() => {
 		(async () => {
@@ -23,19 +23,9 @@
 				}
 			}
 		})();
-
-		function onMessage(event: MessageEvent) {
-			if (event.origin !== window.location.origin) return;
-			if (event.data?.type === 'pdfjs:error') {
-				viewerError = event.data.message ?? 'Falha ao carregar o visualizador.';
-			}
-		}
-		window.addEventListener('message', onMessage);
-		return () => window.removeEventListener('message', onMessage);
 	});
 
 	const fileUrl = $derived(`/api/shared/${shareId}/file`);
-	const viewerSrc = $derived(`/pdfjs/viewer.html?file=${encodeURIComponent(fileUrl)}&readonly=1`);
 </script>
 
 <div class="flex min-h-screen flex-col items-center bg-background text-foreground">
@@ -53,16 +43,10 @@
 			{/if}
 		</header>
 
-		{#if viewerError}
-			<p class="mt-4 text-center text-sm text-destructive">{viewerError}</p>
-		{/if}
-
 		<div class="mt-2 w-full max-w-4xl flex-1 px-4 pb-4">
-			<iframe
-				src={viewerSrc}
-				title={pdf.name}
-				class="h-[85vh] w-full rounded-md border border-border"
-			></iframe>
+			<div class="h-[85vh] w-full overflow-hidden rounded-md border border-border">
+				<PdfViewer src={fileUrl} readonly />
+			</div>
 		</div>
 	{:else}
 		<p class="mt-16 text-center text-sm text-muted-foreground">Carregando…</p>

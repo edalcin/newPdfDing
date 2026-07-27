@@ -36,7 +36,7 @@ function isStaticAsset(url) {
 	return (
 		url.pathname.startsWith('/_app/') ||
 		url.pathname.startsWith('/icons/') ||
-		url.pathname.startsWith('/pdfjs/') ||
+		url.pathname.startsWith('/embedpdf/') ||
 		/\.(?:js|css|woff2?|png|svg|ico)$/.test(url.pathname)
 	);
 }

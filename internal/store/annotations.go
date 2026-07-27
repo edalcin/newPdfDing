@@ -22,6 +22,7 @@ type Annotation struct {
 	Note      string
 	Color     string
 	Rects     string
+	Data      string
 	CreatedAt string
 }
 
@@ -38,15 +39,15 @@ func NewAnnotationStore(db *sql.DB) *AnnotationStore {
 // Create inserts a new annotation for pdfID. color must already be
 // validated by the caller (handlers_annotations.go); rects is '' for an
 // unanchored annotation.
-func (s *AnnotationStore) Create(pdfID, kind string, page int, text, note, color, rects string) (Annotation, error) {
+func (s *AnnotationStore) Create(pdfID, kind string, page int, text, note, color, rects, data string) (Annotation, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return Annotation{}, err
 	}
 	now := time.Now().UTC().Format(timeFormat)
 	_, err = s.db.Exec(
-		`INSERT INTO pdf_annotations (id, pdf_id, kind, page, text, note, color, rects, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id.String(), pdfID, kind, page, text, note, color, rects, now,
+		`INSERT INTO pdf_annotations (id, pdf_id, kind, page, text, note, color, rects, data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id.String(), pdfID, kind, page, text, note, color, rects, data, now,
 	)
 	if err != nil {
 		return Annotation{}, err
@@ -70,17 +71,18 @@ func (s *AnnotationStore) Import(id, pdfID, kind string, page int, text, created
 func (s *AnnotationStore) Get(id string) (Annotation, error) {
 	var a Annotation
 	err := s.db.QueryRow(
-		`SELECT id, pdf_id, kind, page, text, note, color, rects, created_at FROM pdf_annotations WHERE id = ?`, id,
-	).Scan(&a.ID, &a.PDFID, &a.Kind, &a.Page, &a.Text, &a.Note, &a.Color, &a.Rects, &a.CreatedAt)
+		`SELECT id, pdf_id, kind, page, text, note, color, rects, data, created_at FROM pdf_annotations WHERE id = ?`, id,
+	).Scan(&a.ID, &a.PDFID, &a.Kind, &a.Page, &a.Text, &a.Note, &a.Color, &a.Rects, &a.Data, &a.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Annotation{}, ErrNotFound
 	}
 	return a, err
 }
 
-// Update applies a partial update to an annotation's text and/or note —
-// nil fields are left unchanged (ver 05-api.md, "PATCH /api/annotations/{id}").
-func (s *AnnotationStore) Update(id string, text, note *string) (Annotation, error) {
+// Update applies a partial update to an annotation's text, note, data
+// and/or color — nil fields are left unchanged (ver 05-api.md, "PATCH
+// /api/annotations/{id}").
+func (s *AnnotationStore) Update(id string, text, note, data, color *string) (Annotation, error) {
 	if _, err := s.Get(id); err != nil {
 		return Annotation{}, err
 	}
@@ -93,6 +95,14 @@ func (s *AnnotationStore) Update(id string, text, note *string) (Annotation, err
 	if note != nil {
 		sets = append(sets, "note = ?")
 		args = append(args, *note)
+	}
+	if data != nil {
+		sets = append(sets, "data = ?")
+		args = append(args, *data)
+	}
+	if color != nil {
+		sets = append(sets, "color = ?")
+		args = append(args, *color)
 	}
 	if len(sets) > 0 {
 		args = append(args, id)
@@ -179,7 +189,7 @@ func (s *AnnotationStore) query(p AnnotationListParams, all bool) ([]Annotation,
 		whereSQL = strings.Join(where, " AND ")
 	}
 
-	query := fmt.Sprintf(`SELECT id, pdf_id, kind, page, text, note, color, rects, created_at FROM pdf_annotations WHERE %s ORDER BY created_at DESC, id DESC`, whereSQL)
+	query := fmt.Sprintf(`SELECT id, pdf_id, kind, page, text, note, color, rects, data, created_at FROM pdf_annotations WHERE %s ORDER BY created_at DESC, id DESC`, whereSQL)
 
 	limit := p.Limit
 	if !all {
@@ -199,7 +209,7 @@ func (s *AnnotationStore) query(p AnnotationListParams, all bool) ([]Annotation,
 	var items []Annotation
 	for rows.Next() {
 		var a Annotation
-		if err := rows.Scan(&a.ID, &a.PDFID, &a.Kind, &a.Page, &a.Text, &a.Note, &a.Color, &a.Rects, &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.PDFID, &a.Kind, &a.Page, &a.Text, &a.Note, &a.Color, &a.Rects, &a.Data, &a.CreatedAt); err != nil {
 			return nil, "", err
 		}
 		items = append(items, a)

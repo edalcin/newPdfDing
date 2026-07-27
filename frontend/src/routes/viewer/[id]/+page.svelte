@@ -1,15 +1,25 @@
 <script lang="ts">
-	// Host da ponte postMessage do viewer pdf.js (ver "Contrato: PDF viewer
-	// iframe"). Este componente possui: busca de metadados do PDF e das
-	// anotações existentes, o <iframe> estático em /pdfjs/viewer.html, os
-	// toggles de modo invertido e "manter tela ligada", e o tratamento de
-	// toda mensagem vinda do iframe (salvar página atual, criar/atualizar
-	// anotação, resolver âncora legada, erro de carregamento).
+	// Host do viewer EmbedPDF nativo (sem iframe/postMessage). Este
+	// componente possui: busca de metadados do PDF e das anotações
+	// existentes, o <PdfViewer> montado como componente Svelte, os toggles
+	// de modo invertido e "manter tela ligada", e a persistência
+	// bidirecional de anotações via AnnotationCapability.onAnnotationEvent.
 	import { page } from '$app/state';
 	import { apiJSON, apiRequest } from '$lib/api';
 	import { extractAssetsFromUrl } from '$lib/pdf-process';
-	import { createAnnotation, patchAnnotation } from '$lib/annotations.svelte';
+	import { createAnnotation, patchAnnotation, deleteAnnotation } from '$lib/annotations.svelte';
+	import { legacyToTransferItem, toAnnotationPayload } from '$lib/embedpdf';
+	import PdfViewer from '$lib/components/pdf-viewer.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import type {
+		AnnotationEvent,
+		AnnotationPlugin,
+		AnnotationTransferItem,
+		DocumentManagerCapability,
+		DocumentManagerPlugin,
+		PluginRegistry,
+		SelectionPlugin
+	} from '@embedpdf/svelte-pdf-viewer';
 	import type { Annotation, PDF } from '$lib/types';
 
 	// page.params tipa como `string | undefined` porque LayoutParams é
@@ -20,43 +30,23 @@
 	let pdf = $state<PDF | null>(null);
 	let inverted = $state(false);
 	let keepAwake = $state(false);
-	let viewerReady = $state(false);
 	let errorMsg = $state('');
-	let iframeEl = $state<HTMLIFrameElement>();
 	let wakeLock: WakeLockSentinel | null = null;
-	let annotations: Annotation[] = [];
 
 	const wakeLockSupported = typeof navigator !== 'undefined' && 'wakeLock' in navigator;
+	const fileUrl = $derived(id ? `/api/pdfs/${id}/file` : '');
 
-	const viewerSrc = $derived(
-		pdf
-			? `/pdfjs/viewer.html?file=${encodeURIComponent(`/api/pdfs/${id}/file`)}&readonly=0&page=${pdf.current_page || 1}`
-			: ''
-	);
-
-	type HostToViewerMessage =
-		| { type: 'pdfjs:set-inverted'; value: boolean }
-		| { type: 'pdfjs:goto-page'; page: number }
-		| { type: 'pdfjs:load-annotations'; items: Annotation[] }
-		| { type: 'pdfjs:annotation-created'; annotation: Annotation };
-
-	type ViewerToHostMessage =
-		| { type: 'pdfjs:ready'; numPages: number }
-		| { type: 'pdfjs:page-changed'; page: number }
-		| { type: 'pdfjs:create-comment'; page: number; text: string; note: string; rects: string }
-		| { type: 'pdfjs:create-highlight'; page: number; text: string; rects: string; color: string }
-		| { type: 'pdfjs:update-annotation'; id: string; note: string }
-		| { type: 'pdfjs:anchor-resolved'; id: string; rects: string }
-		| { type: 'pdfjs:annotation-click'; id: string }
-		| { type: 'pdfjs:error'; message: string };
-
-	function isViewerMessage(data: unknown): data is ViewerToHostMessage {
-		return !!data && typeof data === 'object' && typeof (data as { type?: unknown }).type === 'string';
-	}
-
-	function postToIframe(msg: HostToViewerMessage) {
-		iframeEl?.contentWindow?.postMessage(msg, window.location.origin);
-	}
+	// idMap traduz o id gerado pelo EmbedPDF para o id da linha em
+	// pdf_annotations — a importação inicial preserva `annotation.id`
+	// (AnnotationTransferItem carrega o objeto inteiro, id incluso).
+	let idMap = new Map<string, string>();
+	// Durante importAnnotations() na carga inicial, cada anotação reemite um
+	// evento 'create' — sem esta guarda o banco duplicaria cada anotação a
+	// cada abertura do viewer.
+	let suppressPersist = false;
+	let lastSelectedText = '';
+	const updateTimers = new Map<string, ReturnType<typeof setTimeout>>();
+	let pageChangeTimer: ReturnType<typeof setTimeout> | undefined;
 
 	async function requestWakeLock() {
 		if (!wakeLockSupported) return;
@@ -99,18 +89,15 @@
 	async function loadData(pdfId: string) {
 		pdf = null;
 		errorMsg = '';
-		viewerReady = false;
-		annotations = [];
+		idMap = new Map();
 		await releaseWakeLock(); // evita vazar o sentinel se o componente for reaproveitado para outro [id]
 		if (!pdfId) return;
 		try {
-			const [pdfData, settings, annotationItems] = await Promise.all([
+			const [pdfData, settings] = await Promise.all([
 				apiJSON<PDF>(`/pdfs/${pdfId}`),
-				apiJSON<Record<string, string>>('/settings'),
-				loadAnnotations(pdfId)
+				apiJSON<Record<string, string>>('/settings')
 			]);
 			pdf = pdfData;
-			annotations = annotationItems;
 			inverted = settings['viewer.inverted'] === '1';
 			keepAwake = settings['viewer.keep_awake'] === '1';
 			if (keepAwake) await requestWakeLock();
@@ -149,9 +136,10 @@
 		loadData(id);
 	});
 
+	$effect(() => releaseWakeLock);
+
 	async function toggleInverted() {
 		inverted = !inverted;
-		postToIframe({ type: 'pdfjs:set-inverted', value: inverted });
 		try {
 			await apiJSON('/settings', { method: 'PATCH', body: { 'viewer.inverted': inverted ? '1' : '0' } });
 		} catch {
@@ -170,69 +158,111 @@
 		}
 	}
 
-	function handleMessage(event: MessageEvent) {
-		if (event.origin !== window.location.origin) return;
-		if (!isViewerMessage(event.data)) return;
-		const msg = event.data;
-		switch (msg.type) {
-			case 'pdfjs:ready':
-				viewerReady = true;
-				// Sincroniza o estado persistido de inversão e as anotações
-				// já carregadas assim que o listener do iframe está
-				// garantidamente pronto.
-				postToIframe({ type: 'pdfjs:set-inverted', value: inverted });
-				postToIframe({ type: 'pdfjs:load-annotations', items: annotations });
-				break;
-			case 'pdfjs:page-changed':
-				// Já debounced em 2s pelo iframe — sem debounce adicional aqui.
-				apiJSON(`/pdfs/${id}`, { method: 'PATCH', body: { current_page: msg.page } }).catch(() => {});
-				break;
-			case 'pdfjs:create-comment':
-				createAnnotation(id, 'comment', msg.page, msg.text, { note: msg.note, rects: msg.rects })
-					.then((created) => {
-						annotations = [...annotations, created];
-						postToIframe({ type: 'pdfjs:annotation-created', annotation: created });
-					})
-					.catch((err) => {
-						errorMsg = err instanceof Error ? err.message : 'Falha ao criar comentário.';
-					});
-				break;
-			case 'pdfjs:create-highlight':
-				createAnnotation(id, 'highlight', msg.page, msg.text, { rects: msg.rects, color: msg.color })
-					.then((created) => {
-						annotations = [...annotations, created];
-						postToIframe({ type: 'pdfjs:annotation-created', annotation: created });
-					})
-					.catch((err) => {
-						errorMsg = err instanceof Error ? err.message : 'Falha ao criar destaque.';
-					});
-				break;
-			case 'pdfjs:update-annotation':
-				patchAnnotation(msg.id, { note: msg.note }).catch((err) => {
-					errorMsg = err instanceof Error ? err.message : 'Falha ao salvar a nota.';
+	function handlePageChange(newPage: number) {
+		if (pageChangeTimer) clearTimeout(pageChangeTimer);
+		pageChangeTimer = setTimeout(() => {
+			apiJSON(`/pdfs/${id}`, { method: 'PATCH', body: { current_page: newPage } }).catch(() => {});
+		}, 2000);
+	}
+
+	function handleAnnotationEvent(e: AnnotationEvent) {
+		if (suppressPersist || e.type === 'loaded') return;
+
+		if (e.type === 'create') {
+			const item: AnnotationTransferItem = { annotation: e.annotation, ctx: e.ctx };
+			const payload = toAnnotationPayload(item, lastSelectedText);
+			createAnnotation(id, payload.kind, payload.page, payload.text, {
+				note: payload.note,
+				color: payload.color,
+				data: payload.data
+			})
+				.then((created) => idMap.set(e.annotation.id, created.id))
+				.catch((err) => {
+					errorMsg = err instanceof Error ? err.message : 'Falha ao criar anotação.';
 				});
-				break;
-			case 'pdfjs:anchor-resolved':
-				patchAnnotation(msg.id, { rects: msg.rects }).catch(() => {
-					// melhor-esforço — o destaque continua exibido pelo iframe mesmo se a persistência falhar
-				});
-				break;
-			case 'pdfjs:annotation-click':
-				// no-op — o popover de leitura é renderizado dentro do próprio iframe
-				break;
-			case 'pdfjs:error':
-				errorMsg = msg.message;
-				break;
+			return;
+		}
+
+		const rowId = idMap.get(e.annotation.id);
+		if (!rowId) return;
+
+		if (e.type === 'update') {
+			const existingTimer = updateTimers.get(e.annotation.id);
+			if (existingTimer) clearTimeout(existingTimer);
+			updateTimers.set(
+				e.annotation.id,
+				setTimeout(() => {
+					updateTimers.delete(e.annotation.id);
+					// ponytail: geometria/cor/nota apenas — sem re-anexar `ctx` de
+					// carimbo num move/resize (a imagem não muda). Refazer via
+					// exportAnnotations() se um gap real aparecer aqui.
+					const payload = toAnnotationPayload({ annotation: e.annotation }, '');
+					patchAnnotation(rowId, { note: payload.note, color: payload.color, data: payload.data }).catch((err) => {
+						errorMsg = err instanceof Error ? err.message : 'Falha ao salvar anotação.';
+					});
+				}, 500)
+			);
+			return;
+		}
+
+		if (e.type === 'delete') {
+			deleteAnnotation(rowId).catch(() => {});
+			idMap.delete(e.annotation.id);
 		}
 	}
 
-	$effect(() => {
-		window.addEventListener('message', handleMessage);
-		return () => {
-			window.removeEventListener('message', handleMessage);
-			releaseWakeLock();
-		};
-	});
+	function waitForActiveDocument(docManager: DocumentManagerCapability) {
+		const existing = docManager.getActiveDocument();
+		if (existing) return Promise.resolve(existing);
+		return new Promise<NonNullable<ReturnType<DocumentManagerCapability['getActiveDocument']>>>((resolve) => {
+			const off = docManager.onDocumentOpened(() => {
+				const doc = docManager.getActiveDocument();
+				if (doc) {
+					off();
+					resolve(doc);
+				}
+			});
+		});
+	}
+
+	async function handleViewerReady(registry: PluginRegistry) {
+		const annotationCap = registry.getPlugin<AnnotationPlugin>('annotation')!.provides();
+		const selectionCap = registry.getPlugin<SelectionPlugin>('selection')!.provides();
+		const docManagerCap = registry.getPlugin<DocumentManagerPlugin>('document-manager')!.provides();
+
+		selectionCap.onEndSelection(() => {
+			selectionCap
+				.getSelectedText()
+				.toPromise()
+				.then((texts) => {
+					lastSelectedText = texts.join(' ');
+				})
+				.catch(() => {});
+		});
+
+		annotationCap.onAnnotationEvent(handleAnnotationEvent);
+
+		try {
+			const doc = await waitForActiveDocument(docManagerCap);
+			const rows = await loadAnnotations(id);
+			const items: AnnotationTransferItem[] = [];
+			for (const row of rows) {
+				const item = row.data
+					? (JSON.parse(row.data) as AnnotationTransferItem)
+					: row.page >= 1 && row.page <= doc.pages.length
+						? legacyToTransferItem(row, doc.pages[row.page - 1].size)
+						: null;
+				if (!item) continue;
+				idMap.set(item.annotation.id, row.id);
+				items.push(item);
+			}
+			suppressPersist = true;
+			annotationCap.importAnnotations(items);
+			suppressPersist = false;
+		} catch (err) {
+			errorMsg = err instanceof Error ? err.message : 'Falha ao carregar as anotações.';
+		}
+	}
 </script>
 
 <div class="flex h-[calc(100vh-3.5rem)] flex-col">
@@ -273,7 +303,15 @@
 	{/if}
 
 	{#if pdf}
-		<iframe bind:this={iframeEl} title="Visualizador de PDF" src={viewerSrc} class="w-full flex-1 border-0"></iframe>
+		<div class="flex-1">
+			<PdfViewer
+				src={fileUrl}
+				{inverted}
+				initialPage={pdf.current_page || 1}
+				onready={handleViewerReady}
+				onpagechange={handlePageChange}
+			/>
+		</div>
 	{:else if !errorMsg}
 		<div class="flex flex-1 items-center justify-center text-sm text-muted-foreground">Carregando…</div>
 	{/if}
