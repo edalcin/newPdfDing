@@ -128,13 +128,24 @@
 		</div>
 	</div>
 
-	<div class="mt-3">
+	<div class="relative mt-3">
 		<Input
 			value={searchInput}
 			oninput={(e) => handleSearchInput((e.target as HTMLInputElement).value)}
 			placeholder="Buscar por nome, descrição, conteúdo…"
 			aria-label="Buscar PDFs"
+			class={searchInput ? 'pr-8' : ''}
 		/>
+		{#if searchInput}
+			<button
+				type="button"
+				onclick={() => handleSearchInput('')}
+				aria-label="Limpar busca"
+				class="text-muted-foreground hover:text-foreground absolute inset-y-0 right-2 flex items-center"
+			>
+				<i class="bx bx-x text-lg"></i>
+			</button>
+		{/if}
 	</div>
 
 	{#if tags.length > 0}
