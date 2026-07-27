@@ -30,7 +30,7 @@
 		"@embedpdf/plugin-i18n": "2.14.4",
 		"@embedpdf/svelte-pdf-viewer": "^2.14.4",
 		"@tiptap/core": "^3.29.0",
-		"@tiptap/pm": "^3.29.0",
+		"@tiptap/pm": "^3.29.1",
 		"@tiptap/starter-kit": "^3.29.0",
 		"boxicons": "^2.1.4",
 		"clsx": "^2.1.1",
