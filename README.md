@@ -1,12 +1,29 @@
 # newPdfDing
-<img src="newPdfDingImg1.png" alt="newPdfDing UI" width="50%" />
 
+<p align="center"><img src="newPdfDingImg1.png" alt="newPdfDing UI" width="50%" /></p>
 
-Gerenciador de PDFs self-hosted, single-user: biblioteca com **busca híbrida — léxica (FTS5) + semântica sob demanda (embeddings Gemini)** —, destaques, comentários, assinaturas, coleções e tags com autocompletar, e compartilhamento público. Backend em Go (binário único, SQLite), frontend em SvelteKit embutido no mesmo binário.
+**Sua biblioteca de PDFs, do jeito que pesquisa de verdade funciona.**
+
+Se você é pesquisador, engenheiro ou qualquer pessoa que vive entre artigos científicos, manuais técnicos, datasheets e relatórios, você conhece o problema: dezenas de pastas, nomes de arquivo sem sentido, um PDF perdido que você *sabe* que leu mas não lembra onde. newPdfDing é uma biblioteca self-hosted, single-user, que organiza, indexa e — principalmente — **encontra** seus PDFs por você, mesmo quando você não lembra a palavra exata que procura.
+
+Sem assinatura, sem SaaS, sem seus documentos saindo do seu servidor. Um binário único em Go, SQLite embutido, frontend SvelteKit no mesmo processo — sobe em segundos, roda em qualquer VPS barata ou num Raspberry Pi na estante.
 
 ## Busca semântica
 
-A caixa de busca da biblioteca não é só léxica: quando `GEMINI_API_KEY` está configurada, ela também busca por **significado**, não só por palavra exata. Um PDF sobre "carro elétrico" aparece numa busca por "veículo sem combustão", mesmo que essas palavras nunca apareçam no texto do documento.
+A caixa de busca da biblioteca não é só léxica: quando `GEMINI_API_KEY` está configurada, ela também busca por **significado**, não só por palavra exata. É a diferença entre vasculhar título por título, esperando lembrar o nome exato do artigo, e simplesmente lembrar do que ele tratava.
+
+### Por que isso importa para pesquisa em biodiversidade
+
+Quem trabalha com biodiversidade lida com décadas de nomenclatura instável, sinônimos taxonômicos e termos que mudam de autor para autor. A busca léxica exige a palavra exata; a busca semântica entende o conceito por trás dela:
+
+- Buscar **"perda de habitat em répteis"** encontra um artigo cujo texto só fala em *"fragmentação de fitofisionomias e declínio populacional de Squamata"* — vocabulário técnico diferente, mesmo assunto.
+- Buscar **"polinizadores"** traz papers sobre abelhas nativas, morcegos nectarívoros e beija-flores, mesmo que nenhum deles use a palavra "polinizador" no resumo.
+- Buscar por um **sinônimo taxonômico antigo** (ex.: um nome de espécie já revisado) ainda encontra o artigo publicado sob a nomenclatura atual, porque a busca captura o significado do conteúdo, não a grafia do nome.
+- Buscar **"efeito de borda em fragmentos florestais"** recupera tanto o manual metodológico do IBGE quanto o artigo de ecologia de paisagem que usa outra terminologia para o mesmo fenômeno.
+
+Na prática: sua biblioteca de PDFs — protocolos de campo, manuais de identificação, artigos de revistas indexadas, relatórios de EIA/RIMA — vira pesquisável por **conceito ecológico**, não só por título e palavra-chave, sem depender de você lembrar exatamente como cada autor escreveu.
+
+### Como funciona
 
 Funciona assim:
 
@@ -22,14 +39,13 @@ Sem `GEMINI_API_KEY` configurada, nada disso quebra: o botão "Embedar" aparece 
 
 ## Funcionalidades
 
-- **Biblioteca**: 4 layouts (grade/lista/compacto/mínimo), 7 ordenações, rolagem infinita, upload individual e em lote com processamento no navegador (thumbnail, preview e texto via pdf.js).
-- **Busca híbrida**: caixa única na biblioteca, léxica sempre ativa, semântica quando configurada (ver acima).
-- **Tags**: autocompletar com sugestão das tags existentes e criação de tag nova inline, direto na página de detalhes do PDF; lista de tags clicável na biblioteca para filtrar por tag; administração (renomear/excluir/fundir) em `/tags`.
-- **Coleções**: organização em coleções, com contagem de PDFs por coleção; coleção padrão protegida contra exclusão.
-- **Anotações**: comentários e destaques por página, com exportação em YAML/JSON.
-- **Assinaturas**: assinatura desenhada uma vez, aplicada em qualquer PDF pelo visualizador.
-- **Compartilhamento público**: link sem senha/expiração, com contador de visualizações, revogável a qualquer momento.
-- **Watch-dir opcional**: deixa cair PDFs numa pasta observada e eles entram sozinhos no acervo, com tags padrão configuráveis.
+- **Biblioteca**: 4 layouts (grade/lista/compacto/mínimo), 7 ordenações, rolagem infinita, upload individual e em lote com processamento no navegador (thumbnail, preview e texto via pdf.js) — nada de fila de processamento no servidor, o PDF já entra pronto para busca.
+- **Busca híbrida**: caixa única na biblioteca, léxica sempre ativa, semântica quando configurada (ver acima) — pesquise por conceito, não só por título exato.
+- **Tags**: autocompletar com sugestão das tags existentes e criação de tag nova inline, direto na página de detalhes do PDF; lista de tags clicável na biblioteca para filtrar por tag; administração (renomear/excluir/fundir) em `/tags` — organize datasheets, papers e manuais do seu jeito, sem taxonomia imposta.
+- **Coleções**: organização em coleções, com contagem de PDFs por coleção; coleção padrão protegida contra exclusão — separe projetos, disciplinas ou linhas de pesquisa.
+- **Anotações**: comentários e destaques por página, com exportação em YAML/JSON — grife o que importa e leve as anotações para fora, sem lock-in.
+- **Compartilhamento público**: link sem senha/expiração, com contador de visualizações, revogável a qualquer momento — mande um artigo pro colega sem depender de e-mail com anexo de 40MB.
+- **Watch-dir opcional**: deixa cair PDFs numa pasta observada e eles entram sozinhos no acervo, com tags padrão configuráveis — sincronize com o Zotero, o Downloads, ou o que já usa hoje.
 
 ## Rodando com Docker (recomendado)
 
