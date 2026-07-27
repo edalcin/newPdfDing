@@ -61,6 +61,11 @@ func Open(dbPath string) (*sql.DB, error) {
 		db.Close()
 		return nil, fmt.Errorf("store.Open add column: %w", err)
 	}
+	if err := dropColumnIfExists(tx, "pdfs", "file_directory"); err != nil {
+		tx.Rollback()
+		db.Close()
+		return nil, fmt.Errorf("store.Open drop column: %w", err)
+	}
 	if err := tx.Commit(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("store.Open commit: %w", err)
@@ -94,5 +99,26 @@ func addColumnIfMissing(tx *sql.Tx, table, column, decl string) error {
 		return err
 	}
 	_, err = tx.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, decl))
+	return err
+}
+
+// dropColumnIfExists removes a column from a table that already has it,
+// no-op otherwise. Safe to run on every boot for the same reason
+// addColumnIfMissing is: this is the only place schema.sql's "declarative,
+// create-only" limitation is worked around. ALTER TABLE ... DROP COLUMN
+// requires SQLite >= 3.35 (bundled by modernc.org/sqlite well past that).
+func dropColumnIfExists(tx *sql.Tx, table, column string) error {
+	rows, err := tx.Query("SELECT 1 FROM pragma_table_info(?) WHERE name = ?", table, column)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return rows.Err()
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	_, err = tx.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s", table, column))
 	return err
 }

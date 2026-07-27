@@ -8,7 +8,7 @@ Este é o contrato de "nenhuma funcionalidade perdida" da refatoração. Cada li
 
 | Funcionalidade | Onde está hoje (arquivo:símbolo) | Destino | Etapa |
 |---|---|---|---|
-| Upload individual | `pdfding/pdf/views/pdf_views.py:Add` | `POST /api/pdfs` (multipart `file`, `thumbnail`, `preview`, `text`, `name`, `description`, `tags`, `collection_id`, `file_directory`) — [API](05-api.md); pré-processamento (thumbnail/preview/texto) roda no pdf.js do navegador antes do envio — [Frontend](06-frontend.md) | ETAPA-4-DOMINIO-PDF |
+| Upload individual | `pdfding/pdf/views/pdf_views.py:Add` | `POST /api/pdfs` (multipart `file`, `thumbnail`, `preview`, `text`, `name`, `description`, `tags`, `collection_id`) — [API](05-api.md); pré-processamento (thumbnail/preview/texto) roda no pdf.js do navegador antes do envio — [Frontend](06-frontend.md) | ETAPA-4-DOMINIO-PDF |
 | Upload em lote | `pdfding/pdf/views/pdf_views.py:BulkAdd` | `POST /api/pdfs/bulk` (multipart múltiplo) — [API](05-api.md) | ETAPA-4-DOMINIO-PDF |
 | Detecção de duplicidade por SHA-256 | `pdfding/pdf/services/pdf_services.py:compute_file_sha256`, `pdfding/pdf/services/workspace_services.py:check_if_pdf_with_hash_exists` | hash SHA-256 calculado no stream do servidor; índice único `idx_pdfs_sha256` sobre `pdfs.sha256` — [Modelo de Dados](02-modelo-de-dados.md); resposta `409` com `{"error":"PDF já existe","pdf_id","name"}` em `POST /api/pdfs`, `/bulk` e na consumo — [API](05-api.md) | ETAPA-4-DOMINIO-PDF |
 | Biblioteca com 4 layouts (compact/list/grid/minimal) | `pdfding/users/models.py:Profile.layout` | componentes de layout da rota `/` (biblioteca), persistidos em `settings['ui.layout']` — [Modelo de Dados](02-modelo-de-dados.md), [Frontend](06-frontend.md) | ETAPA-9-UI-BASE |
@@ -31,7 +31,6 @@ Este é o contrato de "nenhuma funcionalidade perdida" da refatoração. Cada li
 | Descrição | `pdfding/pdf/views/pdf_views.py:Edit` (campo `description`) | coluna `pdfs.description` — [Modelo de Dados](02-modelo-de-dados.md); `PATCH /api/pdfs/{id}` — [API](05-api.md) | ETAPA-4-DOMINIO-PDF |
 | Renomear | `pdfding/pdf/views/pdf_views.py:Edit` (campo `name`) | coluna `pdfs.name` — [Modelo de Dados](02-modelo-de-dados.md); `PATCH /api/pdfs/{id}` — [API](05-api.md) | ETAPA-4-DOMINIO-PDF |
 | Mover de coleção | `pdfding/pdf/services/collection_services.py:change_collection_of_pdf` | coluna `pdfs.collection_id` — [Modelo de Dados](02-modelo-de-dados.md); `PATCH /api/pdfs/{id}` campo `collection_id` — [API](05-api.md) | ETAPA-4-DOMINIO-PDF |
-| Subdiretórios | `pdfding/pdf/models/pdf_models.py:Pdf.file_directory` | coluna `pdfs.file_directory` — [Modelo de Dados](02-modelo-de-dados.md); validada contra `^[A-Za-z0-9_\-/]{0,120}$` — [Segurança](08-seguranca.md); `PATCH /api/pdfs/{id}` campo `file_directory` — [API](05-api.md) | ETAPA-4-DOMINIO-PDF |
 
 ### Ações sobre o PDF
 

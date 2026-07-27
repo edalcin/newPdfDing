@@ -113,7 +113,7 @@ func (s *Server) importLegacyTags(legacyDB *sql.DB) (map[string]string, error) {
 func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyMediaDir string) (map[string]string, int, error) {
 	rows, err := legacyDB.Query(`SELECT
 		id, archived, creation_date, current_page, description,
-		file_directory, file, last_viewed_date, name, notes, number_of_pages,
+		file, last_viewed_date, name, notes, number_of_pages,
 		preview, revision, starred, views
 		FROM pdf_pdf`)
 	if err != nil {
@@ -122,7 +122,7 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 	defer rows.Close()
 
 	type legacyPDF struct {
-		id, createdAt, description, fileDirectory, file,
+		id, createdAt, description, file,
 		lastViewedAt, name, notes string
 		preview                                     sql.NullString
 		archived, starred                           bool
@@ -134,7 +134,7 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 		var p legacyPDF
 		if err := rows.Scan(
 			&p.id, &p.archived, &p.createdAt, &p.currentPage, &p.description,
-			&p.fileDirectory, &p.file, &p.lastViewedAt, &p.name, &p.notes, &p.numberOfPages,
+			&p.file, &p.lastViewedAt, &p.name, &p.notes, &p.numberOfPages,
 			&p.preview, &p.revision, &p.starred, &p.views,
 		); err != nil {
 			return nil, 0, err
@@ -154,7 +154,7 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 		}
 		pdfID := id.String()
 
-		fileKey := pdfFileKey(p.fileDirectory, pdfID)
+		fileKey := pdfFileKey(pdfID)
 		sum, size, err := s.copyLegacyFile(ctx, legacyMediaDir, p.file, fileKey)
 		if err != nil {
 			log.Printf("import: pdf %q: %v, skipping", p.name, err)
@@ -203,7 +203,6 @@ func (s *Server) importLegacyPDFs(ctx context.Context, legacyDB *sql.DB, legacyM
 			Name:          p.name,
 			Description:   p.description,
 			Notes:         p.notes,
-			FileDirectory: p.fileDirectory,
 			StorageKey:    fileKey,
 			PreviewKey:    previewKey,
 			SHA256:        sum,

@@ -50,10 +50,10 @@ Erros: `POST /login` → `400` (payload malformado), `401` (senha incorreta), `4
 | Método | Caminho | Payload | Resposta |
 |---|---|---|---|
 | `GET` | `/api/pdfs` | Query: `q, tag, collection, starred, archived, sort, cursor, limit` | `200` `{"items":[<PDF>...], "next_cursor"}` |
-| `POST` | `/api/pdfs` | Multipart: `file` (obrigatório), `thumbnail`, `preview`, `text` (opcionais), `name`, `description`, `tags`, `collection_id`, `file_directory` | `201` PDF criado |
+| `POST` | `/api/pdfs` | Multipart: `file` (obrigatório), `thumbnail`, `preview`, `text` (opcionais), `name`, `description`, `tags`, `collection_id` | `201` PDF criado |
 | `POST` | `/api/pdfs/bulk` | Multipart com múltiplos `file` (um conjunto de metadados por arquivo) | `201` `{"results":[{"status":"created","pdf_id"}\|{"status":"duplicate","pdf_id","name"}, ...]}` |
 | `GET` | `/api/pdfs/{id}` | — | `200` PDF completo |
-| `PATCH` | `/api/pdfs/{id}` | JSON parcial: `name, description, notes, tags, collection_id, file_directory, starred, archived, current_page` | `200` PDF atualizado |
+| `PATCH` | `/api/pdfs/{id}` | JSON parcial: `name, description, notes, tags, collection_id, starred, archived, current_page` | `200` PDF atualizado |
 | `DELETE` | `/api/pdfs/{id}` | — | `204` |
 | `GET` | `/api/pdfs/{id}/file` | Header `Range` opcional | `200`/`206`, `application/pdf`, `Accept-Ranges: bytes` |
 | `GET` | `/api/pdfs/{id}/thumbnail` | — | `200` `image/png` |

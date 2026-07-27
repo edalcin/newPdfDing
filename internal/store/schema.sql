@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS pdfs (
   name             TEXT NOT NULL,
   description      TEXT NOT NULL DEFAULT '',
   notes            TEXT NOT NULL DEFAULT '',   -- Markdown bruto
-  file_directory   TEXT NOT NULL DEFAULT '',   -- subdiretório lógico opcional
   storage_key      TEXT NOT NULL,              -- chave relativa sob FILES
   preview_key      TEXT NOT NULL DEFAULT '',
   sha256           TEXT NOT NULL,

@@ -10,11 +10,8 @@ Toda chave é relativa à raiz `FILES`. O identificador usado na chave é sempre
 
 | Tipo de arquivo | Esquema de chave |
 |---|---|
-| PDF | `{collection_id}/pdf/{file_directory/}{pdf_id}.pdf` |
-| Thumbnail | `{collection_id}/thumb/{pdf_id}.png` |
-| Preview | `{collection_id}/preview/{pdf_id}.png` |
-
-`{file_directory/}` é o subdiretório lógico opcional (`pdfs.file_directory`, ver [Modelo de dados](02-modelo-de-dados.md)); quando vazio, o PDF fica direto sob `{collection_id}/pdf/`.
+| PDF | `pdf/{pdf_id}.pdf` |
+| Preview | `preview/{pdf_id}.png` |
 
 **Por que `pdf_id` e não um nome slugificado**, como o produto atual faz: chave por `pdf_id` elimina a renomeação em disco toda vez que o PDF é renomeado (o registro no banco muda, o arquivo em disco não precisa mudar), elimina colisão de nomes entre PDFs com títulos iguais, e elimina o sufixo UUID de desambiguação que o código atual precisa gerar para resolver essa colisão.
 

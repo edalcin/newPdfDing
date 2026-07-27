@@ -18,7 +18,6 @@ export interface PDF {
 	description: string;
 	notes: string;
 	notes_html: string;
-	file_directory: string;
 	sha256: string;
 	size_bytes: number;
 	num_pages: number;

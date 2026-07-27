@@ -13,7 +13,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -23,11 +22,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
-
-// fileDirectoryPattern is the closed charset for pdfs.file_directory (ver
-// refatoracao/08-seguranca.md, "Validação de entrada") — the absence of '.'
-// makes any ".." traversal component impossible to express.
-var fileDirectoryPattern = regexp.MustCompile(`^[A-Za-z0-9_\-/]{0,120}$`)
 
 const pdfMagic = "%PDF-"
 
@@ -41,7 +35,6 @@ type pdfResponse struct {
 	Description     string      `json:"description"`
 	Notes           string      `json:"notes"`
 	NotesHTML       string      `json:"notes_html"`
-	FileDirectory   string      `json:"file_directory"`
 	SHA256          string      `json:"sha256"`
 	SizeBytes       int64       `json:"size_bytes"`
 	NumPages        int         `json:"num_pages"`
@@ -72,7 +65,6 @@ func toPDFResponse(p store.PDF) (pdfResponse, error) {
 	resp := pdfResponse{
 		ID: p.ID, Name: p.Name, Description: p.Description,
 		Notes: p.Notes, NotesHTML: html,
-		FileDirectory: p.FileDirectory,
 		SHA256: p.SHA256, SizeBytes: p.SizeBytes, NumPages: p.NumPages,
 		CurrentPage: p.CurrentPage, Views: p.Views, Revision: p.Revision,
 		Starred: p.Starred, Archived: p.Archived, CreatedAt: p.CreatedAt,
@@ -97,12 +89,8 @@ func writePDF(w http.ResponseWriter, status int, p store.PDF) {
 // Storage key scheme (ver refatoracao/03-storage.md, "Esquema de chaves")
 // ---------------------------------------------------------------------
 
-func pdfFileKey(fileDirectory, pdfID string) string {
-	dir := fileDirectory
-	if dir != "" {
-		dir = strings.Trim(dir, "/") + "/"
-	}
-	return fmt.Sprintf("pdf/%s%s.pdf", dir, pdfID)
+func pdfFileKey(pdfID string) string {
+	return fmt.Sprintf("pdf/%s.pdf", pdfID)
 }
 
 func pdfPreviewKey(pdfID string) string {
@@ -199,7 +187,6 @@ func (s *Server) handleListPDFs(w http.ResponseWriter, r *http.Request) {
 type uploadItem struct {
 	Name          string
 	Description   string
-	FileDirectory string
 	TagNames      []string
 	Text          string
 	NumPages      int // 0 when unknown; set by the watch-dir consumer (ver consumer.go)
@@ -225,10 +212,6 @@ func (e *uploadValidationError) Error() string { return e.message }
 // written so far is cleaned up — no orphaned file is ever left behind (ver
 // refatoracao/03-storage.md, "Falhas").
 func (s *Server) createPDFFromUpload(ctx context.Context, item uploadItem) (store.PDF, error) {
-	if !fileDirectoryPattern.MatchString(item.FileDirectory) {
-		return store.PDF{}, &uploadValidationError{http.StatusBadRequest, "invalid file_directory"}
-	}
-
 	magic := make([]byte, len(pdfMagic))
 	if _, err := io.ReadFull(item.File, magic); err != nil || string(magic) != pdfMagic {
 		return store.PDF{}, &uploadValidationError{http.StatusUnsupportedMediaType, "file is not a PDF"}
@@ -264,7 +247,7 @@ func (s *Server) createPDFFromUpload(ctx context.Context, item uploadItem) (stor
 		name = strings.TrimSuffix(filepath.Base(pdfID), ".pdf")
 	}
 
-	fileKey := pdfFileKey(item.FileDirectory, pdfID)
+	fileKey := pdfFileKey(pdfID)
 	var previewKey string
 
 	writtenKeys := []string{}
@@ -292,7 +275,6 @@ func (s *Server) createPDFFromUpload(ctx context.Context, item uploadItem) (stor
 		ID:            pdfID,
 		Name:          name,
 		Description:   item.Description,
-		FileDirectory: item.FileDirectory,
 		StorageKey:    fileKey,
 		PreviewKey:    previewKey,
 		SHA256:        sum,
@@ -376,7 +358,6 @@ func (s *Server) handleCreatePDF(w http.ResponseWriter, r *http.Request) {
 	item := uploadItem{
 		Name:          r.FormValue("name"),
 		Description:   r.FormValue("description"),
-		FileDirectory: r.FormValue("file_directory"),
 		TagNames:      store.ParseTagString(r.FormValue("tags")),
 		Text:          r.FormValue("text"),
 		NumPages:      parsePositiveIntForm(r.FormValue("num_pages")),
@@ -398,7 +379,7 @@ func (s *Server) handleCreatePDF(w http.ResponseWriter, r *http.Request) {
 
 // handleBulkCreatePDFs accepts several "file" parts in one multipart
 // request. Per-file metadata is indexed by upload order: name_0/name_1/...,
-// description_N, tags_N, file_directory_N (05-api.md does
+// description_N, tags_N (05-api.md does
 // not pin an exact wire format beyond "multipart with multiple file fields,
 // one set of metadata per file" — this is that scheme).
 func (s *Server) handleBulkCreatePDFs(w http.ResponseWriter, r *http.Request) {
@@ -439,7 +420,6 @@ func (s *Server) handleBulkCreatePDFs(w http.ResponseWriter, r *http.Request) {
 		item := uploadItem{
 			Name:          r.FormValue("name" + suffix),
 			Description:   r.FormValue("description" + suffix),
-			FileDirectory: r.FormValue("file_directory" + suffix),
 			TagNames:      store.ParseTagString(r.FormValue("tags" + suffix)),
 			Text:          r.FormValue("text" + suffix),
 			NumPages:      parsePositiveIntForm(r.FormValue("num_pages" + suffix)),
@@ -494,7 +474,6 @@ func (s *Server) handlePatchPDF(w http.ResponseWriter, r *http.Request) {
 		Description   *string   `json:"description"`
 		Notes         *string   `json:"notes"`
 		Tags          *[]string `json:"tags"`
-		FileDirectory *string   `json:"file_directory"`
 		Starred       *bool     `json:"starred"`
 		Archived      *bool     `json:"archived"`
 		CurrentPage   *int      `json:"current_page"`
@@ -504,10 +483,6 @@ func (s *Server) handlePatchPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.FileDirectory != nil && !fileDirectoryPattern.MatchString(*req.FileDirectory) {
-		writeJSONError(w, http.StatusBadRequest, "invalid file_directory")
-		return
-	}
 	if req.CurrentPage != nil && *req.CurrentPage < 1 {
 		writeJSONError(w, http.StatusBadRequest, "current_page must be >= 1")
 		return
@@ -515,7 +490,6 @@ func (s *Server) handlePatchPDF(w http.ResponseWriter, r *http.Request) {
 
 	params := store.UpdateParams{
 		Name: req.Name, Description: req.Description, Notes: req.Notes,
-		FileDirectory: req.FileDirectory,
 		Starred: req.Starred, Archived: req.Archived, CurrentPage: req.CurrentPage,
 	}
 	if req.Tags != nil {

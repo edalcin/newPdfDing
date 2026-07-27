@@ -24,9 +24,6 @@
 
 	const id = $derived(page.params.id ?? '');
 
-	// Mesmo padrão do servidor (ver internal/server/handlers_pdfs.go,
-	// fileDirectoryPattern) — a ausência de '.' torna ".." impossível.
-	const FILE_DIRECTORY_PATTERN = /^[A-Za-z0-9_\-/]{0,120}$/;
 	const turndown = new TurndownService();
 
 	let pdf = $state<PDF | null>(null);
@@ -37,8 +34,6 @@
 	let nameInput = $state('');
 	let descriptionInput = $state('');
 	let tagsInput = $state('');
-	let fileDirectoryInput = $state('');
-	let fileDirectoryError = $state('');
 	let metaError = $state('');
 
 	let editorEl = $state<HTMLDivElement>();
@@ -71,8 +66,6 @@
 		nameInput = p.name;
 		descriptionInput = p.description;
 		tagsInput = p.tags.map((t) => t.name).join(' ');
-		fileDirectoryInput = p.file_directory;
-		fileDirectoryError = '';
 	}
 
 	function truncate(text: string, max = 140): string {
@@ -176,20 +169,6 @@
 		const updated = await patchPdf({ tags: names });
 		if (updated) tagsInput = updated.tags.map((t) => t.name).join(' ');
 	}
-
-	async function saveFileDirectory() {
-		const current = pdf;
-		if (!current) return;
-		if (!FILE_DIRECTORY_PATTERN.test(fileDirectoryInput)) {
-			fileDirectoryError = 'Use apenas letras, números, "_", "-" e "/" (máx. 120 caracteres).';
-			return;
-		}
-		fileDirectoryError = '';
-		if (fileDirectoryInput === current.file_directory) return;
-		const updated = await patchPdf({ file_directory: fileDirectoryInput });
-		if (updated) fileDirectoryInput = updated.file_directory;
-	}
-
 
 	async function toggleStarred() {
 		if (pdf) await patchPdf({ starred: !pdf.starred });
@@ -371,19 +350,6 @@
 				<div class="mt-1">
 					<TagPicker id="pdf-tags" value={tagsInput} onChange={saveTags} />
 				</div>
-			</div>
-
-			<div>
-				<label for="pdf-directory" class="text-sm font-medium">Subdiretório</label>
-				<Input
-					id="pdf-directory"
-					bind:value={fileDirectoryInput}
-					onblur={saveFileDirectory}
-					onkeydown={blurOnEnter}
-					placeholder="ex.: trabalho/2024"
-					class="mt-1"
-				/>
-				{#if fileDirectoryError}<p class="mt-1 text-sm text-destructive">{fileDirectoryError}</p>{/if}
 			</div>
 		</div>
 

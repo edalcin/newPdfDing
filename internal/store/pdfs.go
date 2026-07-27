@@ -18,7 +18,6 @@ type PDF struct {
 	Name          string
 	Description   string
 	Notes         string
-	FileDirectory string
 	StorageKey    string
 	PreviewKey    string
 	SHA256        string
@@ -42,13 +41,13 @@ type PDF struct {
 	HasText bool
 }
 
-const pdfColumns = `id, name, description, notes, file_directory, storage_key, preview_key, sha256, size_bytes, num_pages, current_page, views, revision, starred, archived, created_at, last_viewed_at`
+const pdfColumns = `id, name, description, notes, storage_key, preview_key, sha256, size_bytes, num_pages, current_page, views, revision, starred, archived, created_at, last_viewed_at`
 
 func scanPDF(row interface{ Scan(...any) error }) (PDF, error) {
 	var p PDF
 	var starred, archived int
 	err := row.Scan(
-		&p.ID, &p.Name, &p.Description, &p.Notes, &p.FileDirectory,
+		&p.ID, &p.Name, &p.Description, &p.Notes,
 		&p.StorageKey, &p.PreviewKey, &p.SHA256, &p.SizeBytes, &p.NumPages,
 		&p.CurrentPage, &p.Views, &p.Revision, &starred, &archived, &p.CreatedAt, &p.LastViewedAt,
 	)
@@ -78,7 +77,6 @@ type CreateParams struct {
 	Name          string
 	Description   string
 	Notes         string
-	FileDirectory string
 	StorageKey    string
 	PreviewKey    string
 	SHA256        string
@@ -99,11 +97,11 @@ func (s *PDFStore) Create(p CreateParams) (PDF, error) {
 	}
 
 	_, err = tx.Exec(`INSERT INTO pdfs (
-		id, name, description, notes, file_directory,
+		id, name, description, notes,
 		storage_key, preview_key, sha256, size_bytes, num_pages,
 		current_page, views, revision, starred, archived, created_at, last_viewed_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1, 0, 0, ?, NULL)`,
-		p.ID, p.Name, p.Description, p.Notes, p.FileDirectory,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1, 0, 0, ?, NULL)`,
+		p.ID, p.Name, p.Description, p.Notes,
 		p.StorageKey, p.PreviewKey, p.SHA256, p.SizeBytes, p.NumPages, now,
 	)
 	if err != nil {
@@ -162,7 +160,6 @@ type ImportParams struct {
 	Name          string
 	Description   string
 	Notes         string
-	FileDirectory string
 	StorageKey    string
 	PreviewKey    string
 	SHA256        string
@@ -195,11 +192,11 @@ func (s *PDFStore) Import(p ImportParams) (PDF, error) {
 	}
 
 	_, err = tx.Exec(`INSERT INTO pdfs (
-		id, name, description, notes, file_directory,
+		id, name, description, notes,
 		storage_key, preview_key, sha256, size_bytes, num_pages,
 		current_page, views, revision, starred, archived, created_at, last_viewed_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		p.ID, p.Name, p.Description, p.Notes, p.FileDirectory,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		p.ID, p.Name, p.Description, p.Notes,
 		p.StorageKey, p.PreviewKey, p.SHA256, p.SizeBytes, p.NumPages,
 		p.CurrentPage, p.Views, p.Revision, boolToInt(p.Starred), boolToInt(p.Archived), p.CreatedAt, lastViewedAt,
 	)
@@ -596,7 +593,6 @@ type UpdateParams struct {
 	Description   *string
 	Notes         *string
 	Tags          *[]string
-	FileDirectory *string
 	Starred       *bool
 	Archived      *bool
 	CurrentPage   *int
@@ -623,9 +619,6 @@ func (s *PDFStore) Update(id string, p UpdateParams) (PDF, error) {
 	}
 	if p.Notes != nil {
 		add("notes", *p.Notes)
-	}
-	if p.FileDirectory != nil {
-		add("file_directory", *p.FileDirectory)
 	}
 	if p.Starred != nil {
 		add("starred", boolToInt(*p.Starred))

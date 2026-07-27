@@ -68,7 +68,6 @@ Justificativa de cada relaxamento, nenhum é gratuito:
 - **Tipo de arquivo por magic bytes**: o upload de PDF é validado lendo os primeiros bytes do próprio stream e conferindo a assinatura `%PDF-`, sem depender de `Content-Type` declarado pelo cliente. Substitui `python-magic`/`libmagic` da versão Django — elimina uma dependência nativa (C) do binário Go, mantendo `CGO_ENABLED=0`.
 - **Limite de tamanho**: `MAX_UPLOAD_MB` (default `200`, ver [07-docker-ci-deploy.md](07-docker-ci-deploy.md)) é aplicado via `http.MaxBytesReader`, cortando a requisição antes de consumir memória ou disco além do limite.
 - **Nomes de arquivo nunca vindos do cliente**: a chave de armazenamento em disco é sempre derivada de `pdf_id` (UUIDv7 gerado no servidor), nunca do nome de arquivo enviado no `multipart/form-data`. Ver esquema de chaves em [03-storage.md](03-storage.md).
-- **`file_directory`**: validado contra a expressão regular `^[A-Za-z0-9_\-/]{0,120}$`, rejeitando qualquer valor contendo `..` — impede escrita fora da raiz `FILES` mesmo antes de chegar à validação de path do `storage.Backend` (ver [03-storage.md](03-storage.md)).
 - **SQL**: toda consulta usa parâmetros vinculados (`database/sql` com placeholders `?`), nunca concatenação de string. Nenhuma exceção em nenhum handler.
 - **Notas em Markdown**: o campo `notes` (Markdown bruto, ver [02-modelo-de-dados.md](02-modelo-de-dados.md)) é renderizado para HTML por `github.com/yuin/goldmark` e em seguida sanitizado por `bluemonday.UGCPolicy()` **antes** de sair em qualquer resposta JSON — o cliente nunca recebe HTML não sanitizado, independente de o navegador confiar ou não em CSP.
 
@@ -103,7 +102,6 @@ Justificativa de cada relaxamento, nenhum é gratuito:
 - [x] Upload valida magic bytes `%PDF-` no stream, não confia em `Content-Type` do cliente.
 - [x] `MAX_UPLOAD_MB` aplicado via `http.MaxBytesReader`.
 - [x] Nenhum caminho de disco é derivado de nome de arquivo enviado pelo cliente; chave sempre por `pdf_id`.
-- [x] `file_directory` validado contra `^[A-Za-z0-9_\-/]{0,120}$`, sem `..`.
 - [x] Todo SQL usa parâmetros vinculados, nunca concatenação.
 - [x] Notas Markdown passam por `goldmark` + `bluemonday.UGCPolicy()` antes de qualquer resposta JSON.
 - [x] Imagem final é `distroless:nonroot` (uid 65532), sem shell.

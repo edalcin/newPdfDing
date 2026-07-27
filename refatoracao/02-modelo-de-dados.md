@@ -33,7 +33,6 @@ CREATE TABLE IF NOT EXISTS pdfs (
   description      TEXT NOT NULL DEFAULT '',
   notes            TEXT NOT NULL DEFAULT '',   -- Markdown bruto
   collection_id    TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
-  file_directory   TEXT NOT NULL DEFAULT '',   -- subdiretório lógico opcional
   storage_key      TEXT NOT NULL,              -- chave relativa sob FILES
   thumbnail_key    TEXT NOT NULL DEFAULT '',
   preview_key      TEXT NOT NULL DEFAULT '',
