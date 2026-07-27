@@ -358,10 +358,22 @@ export const ptBR: Locale = {
 // qualidade 0.8 é mais barato de codificar que o PNG padrão do SDK para
 // tiles grandes (11-desempenho-viewer.md, causa C2 e Fase 3). Valores não
 // medidos em produção ainda — ajustar se o perfil de desempenho pedir.
+// wasmUrl precisa ser uma URL ABSOLUTA, não um caminho relativo: com
+// worker:true, o PDFium roda num Web Worker instanciado a partir de uma
+// blob: URL (ver comentário acima), e blob: não serve de base para
+// resolução de URL relativa — new URL('/x', 'blob:...') lança
+// "Invalid URL" dentro do worker (confirmado em produção: nenhuma
+// requisição a pdfium.wasm sequer parte, sem erro de CSP, sem erro de
+// rede — só falha de parse silenciosa, dentro do worker, invisível ao
+// console da página principal). Com worker:false (config antiga) isso
+// nunca apareceu porque o motor rodava na thread principal, cuja
+// location já é a origem real da página. window.location.origin só
+// existe no browser — esta função só é chamada em componentes .svelte,
+// nunca durante SSR/prerender do adapter-static.
 export function viewerConfig(src: string, opts: { readonly?: boolean; author?: string } = {}): PDFViewerConfig {
 	return {
 		src,
-		wasmUrl: '/embedpdf/pdfium.wasm',
+		wasmUrl: `${window.location.origin}/embedpdf/pdfium.wasm`,
 		fontFallback: null,
 		fonts: { ui: null, signature: null },
 		i18n: { defaultLocale: 'pt-BR', fallbackLocale: 'en', locales: [ptBR, enUS, esES] },
