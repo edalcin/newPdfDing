@@ -10,6 +10,7 @@ import type {
 	PDFViewerConfig,
 	Rect
 } from '@embedpdf/snippet';
+import { enUS, esES } from '@embedpdf/plugin-i18n';
 import type { Annotation, AnnotationKind } from './types';
 
 // 3a. Locale pt-BR — o pacote só traz `en` e `es`; exportamos o dicionário
@@ -60,15 +61,27 @@ export const ptBR: Locale = {
 // 3b. Fábrica de config. wasmUrl/fontFallback/fonts apontam tudo para o
 // próprio domínio — sem eles a CSP `default-src 'self'` do projeto derruba
 // o viewer (ele buscaria pdfium.wasm e fontes do jsDelivr/Google Fonts).
+// worker: false força o motor PDFium a rodar na thread principal — o worker
+// padrão é instanciado a partir de um blob: URL, e a CSP do projeto não
+// declara worker-src (cai em script-src, que não inclui blob:), então o
+// worker é bloqueado e o documento nunca termina de carregar. O snippet
+// traz um direct-engine só para esse caso; não relaxamos a CSP para
+// permitir blob: workers. O plugin de carimbo busca sua biblioteca padrão
+// em `manifests[0].url` (cdn.jsdelivr.net) por config própria — não é
+// `defaultLibrary` (esse é só o rótulo da pasta "Custom Stamps" local).
+// `manifests: []` remove essa fonte remota; o botão de carimbo continua
+// funcionando para upload de imagem própria (biblioteca "Custom Stamps").
 export function viewerConfig(src: string, opts: { readonly?: boolean; author?: string } = {}): PDFViewerConfig {
 	return {
 		src,
+		worker: false,
 		wasmUrl: '/embedpdf/pdfium.wasm',
 		fontFallback: null,
 		fonts: { ui: null, signature: null },
-		i18n: { defaultLocale: 'pt-BR', fallbackLocale: 'en', locales: [ptBR] },
+		i18n: { defaultLocale: 'pt-BR', fallbackLocale: 'en', locales: [ptBR, enUS, esES] },
 		disabledCategories: opts.readonly ? ['annotation', 'redaction', 'form'] : ['redaction', 'form'],
-		annotations: { autoCommit: true, annotationAuthor: opts.author }
+		annotations: { autoCommit: true, annotationAuthor: opts.author },
+		stamp: { manifests: [] }
 	};
 }
 

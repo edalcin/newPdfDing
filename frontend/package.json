@@ -27,6 +27,7 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
+		"@embedpdf/plugin-i18n": "2.14.4",
 		"@embedpdf/svelte-pdf-viewer": "^2.14.4",
 		"@tiptap/core": "^3.29.0",
 		"@tiptap/pm": "^3.29.0",
