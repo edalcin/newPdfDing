@@ -25,10 +25,17 @@ export default defineConfig({
 			// index.html gerado. O servidor Go lê esse hash na inicialização e
 			// mescla no header CSP real — nonce não funciona em páginas
 			// estáticas pré-renderizadas (ver refatoracao/08-seguranca.md).
+			// O navegador aplica a INTERSEÇÃO das duas CSPs (header HTTP + meta
+			// tag) quando ambas estão presentes — worker-src precisa existir
+			// nas duas, senão a política mais restrita (esta, que cai em
+			// script-src por omissão) bloqueia o worker do EmbedPDF mesmo com
+			// o header do Go correto (ver refatoracao/11-desempenho-viewer.md,
+			// causa C1, e o incidente documentado em 13-bugfix-worker-csp.md).
 			csp: {
 				mode: 'hash',
 				directives: {
-					'script-src': ['self', 'wasm-unsafe-eval']
+					'script-src': ['self', 'wasm-unsafe-eval'],
+					'worker-src': ['self', 'blob:']
 				}
 			}
 		})
