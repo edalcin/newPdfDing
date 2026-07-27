@@ -1,10 +1,10 @@
 # 11 — Desempenho do viewer em PDFs grandes
 
-**Status:** estudo crítico, sem implementação.
-**Data:** 2026-07-27.
+**Status:** estudo crítico + **Fases 1–3 implementadas e deployadas em produção**. Fase 4 (curadoria de acervo) não é código, é decisão do usuário — permanece em aberto.
+**Data do estudo:** 2026-07-27. **Data da implementação:** 2026-07-27.
 **Pergunta que este documento responde:** o travamento do viewer em PDFs grandes é contornável por configuração do EmbedPDF, ou exige trocar de SDK?
 
-**Veredito:** é majoritariamente **configuração e arquitetura da nossa integração**, não uma deficiência irreparável do SDK. Quatro das cinco causas identificadas estão no nosso código ou na nossa CSP. Uma quinta (ausência de HTTP Range) é limitação real do SDK, mas é a **menos** relevante para os arquivos que temos. **Não recomendo trocar de SDK agora.**
+**Veredito:** era majoritariamente **configuração e arquitetura da nossa integração**, não uma deficiência irreparável do SDK. Quatro das cinco causas identificadas estavam no nosso código ou na nossa CSP. Uma quinta (ausência de HTTP Range) é limitação real do SDK, mas era a **menos** relevante para os arquivos do acervo. **Não trocamos de SDK.** Ver seção 9 para o que foi implementado.
 
 ---
 
@@ -306,6 +306,62 @@ Meta mínima da Fase 1: **nenhuma long task acima de 1 s** durante a abertura. A
 - Nossa própria rotina de backfill **baixa e reprocessa o arquivo inteiro a cada abertura**, concorrendo com o motor na mesma thread. É código nosso.
 - Ausência de Range e teto de 2 GB são limitações reais do SDK, mas **não** são o que impede os arquivos de abrir.
 - **Não trocar de SDK.** Executar Fases 1–3, medir, e só então reavaliar.
+
+## 9. O que foi implementado (2026-07-27)
+
+As Fases 1–3 foram implementadas, testadas e deployadas em produção no mesmo dia do estudo. A Fase 4 (achatar a cartografia do arquivo A, recomprimir escaneados) não foi feita — é curadoria de conteúdo do acervo, não código, e é decisão do usuário.
+
+### 9.1. Mudanças de código
+
+| Arquivo | Mudança | Causa endereçada |
+|---|---|---|
+| `internal/security/headers.go` | Acrescentada a diretiva `worker-src 'self' blob:` ao `cspTemplate` | C1 |
+| `frontend/src/lib/embedpdf.ts` | Removido `worker: false` de `viewerConfig()` — volta ao padrão do SDK (`worker: true`); acrescentado `tiling: { tileSize: 1536 }` e `render: { defaultImageType: 'image/webp', defaultImageQuality: 0.8 }` | C1, C2 |
+| `frontend/src/routes/viewer/[id]/+page.svelte` | `backfillAssets()` só é chamado quando `pdf.has_text === false`; a função não recebe mais `hadText` (motivo do call já é a garantia) e envia o texto sempre que extraído (sem a checagem redundante) | C3 |
+| `refatoracao/08-seguranca.md` | CSP literal atualizada; nova entrada de justificativa para `worker-src` | — (documentação) |
+
+**Fase 4 explicitamente não feita.** Nenhum PDF do acervo foi recomprimido ou teve a cartografia achatada — está fora do escopo de código e é escolha do usuário sobre o próprio conteúdo.
+
+### 9.2. Por que cada mudança, e por que não mais
+
+- **`worker-src 'self' blob:` em vez de patchear o SDK para hospedar o worker no mesmo domínio.** A opção de worker customizado (`workerUrl`) não existe no pacote instalado (verificado por grep no `@embedpdf/engines` publicado) — só seria viável reescrevendo `createPdfiumEngine` a partir do código-fonte. A diretiva CSP é uma linha, resolve o mesmo problema, e é estritamente mais restrita que relaxar `script-src` (worker roda em contexto isolado, sem DOM).
+- **`tileSize: 1536` em vez de desligar o tiling.** Desligar o tiling renderizaria a página inteira de uma vez, o que é pior para páginas grandes (bitmap único maior, sem possibilidade de mostrar tiles parciais enquanto renderiza). Dobrar o `tileSize` linear (768 → 1536) reduz o número de tiles por página em ~4×, sem eliminar o benefício de renderização incremental.
+- **`defaultImageQuality: 0.8` em WebP, não PNG lossless.** PNG é sem perda e mais caro de codificar para tiles grandes; WebP a 0.8 é a troca padrão do próprio SDK para esse cenário (a opção existe exatamente para isso). Não há dado de produção ainda medindo a diferença — ver 9.4.
+- **`!pdf.has_text` como gate, não um novo campo de schema.** Cogitado adicionar uma coluna para marcar "preview já em alta resolução", mas isso duplicaria uma distinção que `has_text` já cobre na prática: todo documento sem texto vem de import legado ou watch-dir (nenhum dos dois popula `pdf_text` — confirmado por grep em `import_legacy.go`), e é exatamente esses que têm preview de baixa resolução herdado. Um upload normal já chega com texto e preview em alta resolução do processamento no navegador. Adicionar uma coluna só para distinguir um caso que `has_text` já distingue seria complexidade sem ganho.
+
+### 9.3. Deploy em produção (UNRAID, 192.168.1.10)
+
+Autorização do usuário: usar as credenciais do UNRAID para testar/ajustar, sem tocar em nada fora do newPdfDing. Escopo respeitado: única ação no host foi `docker pull` da nova imagem e `docker stop/rm/run` do container `newPdfDing`, recriado com a **configuração idêntica** à anterior (mesmas env vars, montagens `/data` e `/files`, porta `8778:8000`, restart policy). Nenhum outro container, template ou arquivo do UNRAID foi tocado.
+
+Sequência executada:
+
+1. `go vet ./...` e `go test ./... -timeout 120s` locais — sem erros.
+2. `npm run build` (frontend) — sem erros de tipo.
+3. `go build ./...` (backend, com o build do frontend sincronizado em `internal/server/web/dist`) — sem erros.
+4. Commit direto em `main` (política do projeto: um branch só) e push.
+5. CI (`docker-publish.yaml`) rodou test → build → push da imagem `ghcr.io/edalcin/newpdfding:latest` — [run 30273497014](https://github.com/edalcin/newPdfDing/actions/runs/30273497014), concluído com sucesso.
+6. No UNRAID: `docker pull ghcr.io/edalcin/newpdfding:latest`, depois `docker stop newPdfDing && docker rm newPdfDing && docker run ...` recriando o container com a config extraída de `docker inspect` do container anterior.
+
+### 9.4. Verificação feita — e o que não foi possível verificar
+
+**Verificado:**
+
+- Container `newPdfDing` `healthy`, `/healthz` responde 200, sem erros nos logs após a recriação.
+- `curl -sI` contra o container em produção confirma o header ao vivo:
+  ```
+  Content-Security-Policy: ...; script-src 'self' 'wasm-unsafe-eval' 'sha256-...'; worker-src 'self' blob:; ...
+  ```
+  A diretiva que resolve a causa C1 está de fato servida pelo binário rodando em produção, não só no código-fonte.
+- `go test ./...` e o job `Test` do CI (`go vet`, `go test`, `govulncheck`) passaram antes do build da imagem publicada.
+
+**Não verificado — e por quê:**
+
+- **Não confirmei visualmente, num navegador real, que o arquivo de 71,7 MB abre sem travar.** Duas tentativas falharam por razões alheias ao código mudado:
+  1. Contra `https://newpdfding.dalc.in` (Cloudflare Tunnel): a sessão headless nunca completou o login — a página reportou "offline" e nenhuma requisição de API saiu do navegador, consistente com bloqueio de bot do Cloudflare à sessão headless, não com o servidor.
+  2. Contra `http://192.168.1.10:8778` (LAN, direto no container, sem Cloudflare): o login falhou com "missing CSRF cookie" — o cookie de sessão é `Secure` (correto: só viaja em HTTPS) e a LAN é HTTP puro. Não relaxei essa proteção só para testar.
+  - **Não contornei nenhuma das duas** porque ambas são comportamento de segurança correto (proteção de bot e cookie `Secure`), e o usuário pediu para não mexer em mais nada além do necessário.
+- **Recomendação:** abrir `https://newpdfding.dalc.in/viewer/019f9ed9-b63b-7829-903e-85200ad43ff7` (o arquivo de 71,7 MB) num navegador normal e confirmar que a página rola durante o carregamento — esse é o teste que a Fase 1 promete resolver. Se ainda travar, a causa provável é C2 (replay por tile) ou C5 (teto de memória), que as Fases 3/4 mitigam mas não eliminam para o arquivo A.
+- Os ganhos de `tileSize`/WebP (Fase 3) **não foram medidos** com Performance/Network do navegador contra o arquivo real — são a mudança de configuração recomendada pelo estudo, aplicada, mas sem número de antes/depois. Ver seção 7 (Como medir) para o protocolo.
 
 ---
 
