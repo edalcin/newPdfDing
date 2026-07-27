@@ -1,6 +1,6 @@
 # 12 — Achatamento de cartografia vetorial (Fase 4 do estudo de desempenho)
 
-**Status:** guia prático, não implementado. Nenhum PDF do acervo foi modificado.
+**Status:** pipeline testado e verificado em produção (UNRAID); reenvio automatizado **bloqueado** por um bug de servidor descoberto durante a execução — documentado na seção 8 para investigação futura. Nenhum PDF do acervo foi efetivamente substituído.
 **Data:** 2026-07-27.
 **Contexto:** complementa [11-desempenho-viewer.md](11-desempenho-viewer.md), seção 5 ("Fase 4 — Tratar o acervo na origem"), que recomendava esta ação mas não a detalhava.
 
@@ -167,7 +167,56 @@ Um arquivo só entra na lista de "recomprimir imagens" (a outra recomendação d
 - A busca da aplicação não é afetada — ela usa o texto já extraído e gravado em `pdf_text`, não o texto do PDF.
 - Preservar a contagem de páginas e o tamanho físico de cada página é obrigatório para não quebrar anotações já salvas; `img2pdf` cuida disso automaticamente ao remontar a partir dos PNGs do Ghostscript.
 - Reenvio via `PUT /api/pdfs/{id}/file`, já existente no backend, sem UI dedicada ainda.
-- Nada foi executado contra o acervo real — este é um guia para execução manual, sob decisão do usuário sobre qual conteúdo vale a pena achatar.
+- Execução real (2026-07-27): pipeline testado ponta a ponta em produção; reenvio final **não concluído** — ver seção 8.
+
+## 8. Execução real e bug de produção descoberto (2026-07-27)
+
+Executei o pipeline completo contra o arquivo A (`019f9ed9-b63b-7829-903e-85200ad43ff7.pdf`) no UNRAID, com autorização para usar as credenciais SSH.
+
+### 8.1. O que foi feito e verificado
+
+1. Backup do original (`.pdf.bak-preachatamento`, removido ao final — o original nunca foi sobrescrito, então o backup era redundante).
+2. Rasterização via `gs -sDEVICE=jpeg -dJPEGQ=78 -r200` (108 páginas) + remontagem via `img2pdf` — container Docker descartável, nada instalado no host.
+3. **Contagem de páginas**: 108 = 108 (confirmado por dois métodos independentes).
+4. **Geometria de página**: `MediaBox` original `0 0 595.276 841.89` pt vs. achatado `0 0 595.44 842.04` pt — diferença de **0,16–0,18 pt (~0,06 mm)**, arredondamento do `img2pdf` ao reconstruir o tamanho a partir do DPI do PNG. Corrige a afirmação da seção 5, que previa precisão de sub-pixel — na prática há um resíduo de arredondamento, pequeno o bastante para não importar (a PDF de destino não tinha anotações — `SELECT COUNT(*) FROM pdf_annotations WHERE pdf_id=...` retornou 0 —, então o risco descrito na seção 5 não se aplicou desta vez, mas **para um arquivo com anotações existentes, meça esse resíduo antes de aceitar**).
+5. **Tamanho final**: testei três configurações —
+   | Config | Tamanho | vs. original (71,7 MB) |
+   |---|---|---|
+   | PNG lossless, 200 DPI | 98,9 MB | +38% (pior — PNG não compete com a razão do Flate vetorial original) |
+   | JPEG q90, 200 DPI | 86,0 MB | +20% |
+   | **JPEG q78, 200 DPI** | **58,4 MB** | **−22%** |
+
+   A recomendação da seção 4.1 (PNG) estava errada para este caso: cartografia densa rasterizada em PNG lossless não compete com a compressão vetorial original. **JPEG a q78/200 DPI é a configuração recomendada**, corrigindo a seção 4.1 — inspeção visual em 2 páginas (incluindo uma com hachuras e rótulos de mapa densos) confirmou legibilidade preservada nessa qualidade.
+6. Arquivo final (58,4 MB) manteve-se em `/tmp/flatten/flattened.pdf` no UNRAID durante os testes; **removido ao final** desta sessão a pedido do usuário ("deixe tudo limpo e estável"). Para reaplicar, repita a seção 4 com `-dJPEGQ=78` no lugar do dispositivo PNG.
+
+### 8.2. Bug de produção descoberto: `POST /api/auth/login` trava após CSRF válido
+
+Ao tentar reenviar o arquivo via `PUT /api/pdfs/{id}/file` (seção 4.5), a autenticação necessária (`POST /api/auth/login`) **travou indefinidamente** — não retornou nem erro nem sucesso, em vez de completar em milissegundos como as outras rotas.
+
+**Isolamento feito, com evidência:**
+
+- Reproduzido com `curl`, `wget`, e um Chrome real (headless) — três clientes HTTP diferentes, mesmo resultado. **Não é peculiaridade de um cliente.**
+- Reproduzido via `https://newpdfding.dalc.in` (túnel Cloudflare) e via `http://127.0.0.1:8778` (loopback direto no host, sem Cloudflare). **Não é o túnel Cloudflare.**
+- Reproduzido em contêiner recém-reiniciado, na primeira tentativa de login. **Não é acúmulo de estado de tentativas anteriores.**
+- **CSRF + senha ERRADA → falha em <1s** (`401 Username/Password Authentication Failed`). Isola o problema para depois da verificação de senha.
+- Um `INSERT` manual idêntico ao de `SessionStore.Create` (`internal/store/sessions.go:23-26`), feito via `sqlite3` CLI diretamente no arquivo `newpdfding.db` em produção, **completou instantaneamente**. Isso não descarta `sessions.Create` como causa — a pool do Go (`SetMaxOpenConns(1)`, `internal/store/migrate.go:28`) é um recurso interno do processo, não do arquivo; um `INSERT` externo bem-sucedido não prova que a única conexão do pool do Go não esteja presa em outro lugar.
+- `PRAGMA integrity_check` no banco: `ok`. `PRAGMA wal_checkpoint(TRUNCATE)`: sem páginas pendentes. Descarta corrupção ou WAL travado.
+
+**Hipótese mais provável, não confirmada:** o pool SQLite do Go com `SetMaxOpenConns(1)` (deliberado, ver comentário em `migrate.go:26-27`) fica preso em `s.sessions.Create(token)` (`internal/server/handlers_auth.go:38`) por uma razão não identificada — possivelmente uma interação entre o cancelamento de contexto de uma requisição anterior abortada e a devolução da conexão ao pool do `database/sql`. **Não confirmado**: faltou acesso a `pprof`/dump de goroutines (a imagem é distroless, sem shell, sem esses endpoints habilitados) para provar a causa exata.
+
+**Não é causado pelas mudanças desta sessão** — nenhum commit de hoje (CSP, `embedpdf.ts`, `backfillAssets`) toca `handlers_auth.go`, `middleware_csrf.go` ou `sessions.go`. É um bug preexistente, só exposto porque foi a primeira vez que um login foi testado via script nesta instância.
+
+**Efeito colateral observado, separado, mais urgente:** durante a investigação, o domínio público `https://newpdfding.dalc.in` ficou temporariamente inacessível de fora da rede local (testado de uma rede totalmente diferente), enquanto o `healthz` interno do contêiner (via `docker inspect`, autoteste do binário) continuava `healthy`, e o mesmo `healthz` respondia normalmente via loopback (`127.0.0.1:8778`) no próprio UNRAID. Isso aponta para o **Cloudflare Tunnel (`cloudflared`)** como a causa dessa parte — não o contêiner `newPdfDing` — e está **fora do escopo desta sessão** (instrução explícita: não mexer em nada não relacionado ao newPdfDing). Recriar o contêiner não resolveu o acesso público, reforçando que o problema está em outra camada.
+
+### 8.3. Estado final deixado em produção
+
+- Contêiner `newPdfDing` recriado do zero (mesma imagem, mesma configuração), saudável via `healthz` interno e via loopback.
+- Arquivo original do PDF A: **intocado**, hash MD5 verificado idêntico antes/depois (`a082daa97e75c80bdc715ceaa27bd170`).
+- Nenhum arquivo de backup ou temporário deixado em `/mnt/user/Storage/appsdata/newpdfding/` nem em `/tmp` do host.
+- **Pendências para investigação futura, nesta ordem de urgência:**
+  1. Acesso público via `https://newpdfding.dalc.in` — verificar `cloudflared` (serviço/contêiner separado no UNRAID, fora do newPdfDing).
+  2. O travamento de `POST /api/auth/login` — provavelmente ligado ao pool SQLite de conexão única; precisa de uma imagem de debug (com shell/pprof) para diagnosticar com uma goroutine dump em vez de inferência por eliminação.
+  3. Somente depois de 1 e 2 resolvidos: reexecutar a seção 4.5 (reenvio do PDF achatado) — a receita de rasterização (seção 4, com o ajuste de 8.1 para JPEG q78) já está validada e pronta para reuso.
 
 ---
 
