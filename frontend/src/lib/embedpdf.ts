@@ -341,27 +341,35 @@ export const ptBR: Locale = {
 // 3b. Fábrica de config. wasmUrl/fontFallback/fonts apontam tudo para o
 // próprio domínio — sem eles a CSP `default-src 'self'` do projeto derruba
 // o viewer (ele buscaria pdfium.wasm e fontes do jsDelivr/Google Fonts).
-// worker: false força o motor PDFium a rodar na thread principal — o worker
-// padrão é instanciado a partir de um blob: URL, e a CSP do projeto não
-// declara worker-src (cai em script-src, que não inclui blob:), então o
-// worker é bloqueado e o documento nunca termina de carregar. O snippet
-// traz um direct-engine só para esse caso; não relaxamos a CSP para
-// permitir blob: workers. O plugin de carimbo busca sua biblioteca padrão
+// worker: true (padrão do SDK) roda o motor PDFium num Web Worker — a CSP
+// do projeto declara `worker-src 'self' blob:` (ver internal/security/
+// headers.go) exatamente para permitir o worker que o EmbedPDF cria a
+// partir de uma blob: URL. Antes desta diretiva existir, `worker: false`
+// forçava a rasterização para a thread principal e travava a aba em PDFs
+// grandes — ver refatoracao/11-desempenho-viewer.md (causa C1) para o
+// diagnóstico completo. O plugin de carimbo busca sua biblioteca padrão
 // em `manifests[0].url` (cdn.jsdelivr.net) por config própria — não é
 // `defaultLibrary` (esse é só o rótulo da pasta "Custom Stamps" local).
 // `manifests: []` remove essa fonte remota; o botão de carimbo continua
 // funcionando para upload de imagem própria (biblioteca "Custom Stamps").
+// tiling/render: tileSize maior reduz o número de tiles por página (cada
+// tile reexecuta a display list inteira via FPDF_RenderPageBitmapWithMatrix
+// — não há renderização parcial de content stream no PDFium), e WebP a
+// qualidade 0.8 é mais barato de codificar que o PNG padrão do SDK para
+// tiles grandes (11-desempenho-viewer.md, causa C2 e Fase 3). Valores não
+// medidos em produção ainda — ajustar se o perfil de desempenho pedir.
 export function viewerConfig(src: string, opts: { readonly?: boolean; author?: string } = {}): PDFViewerConfig {
 	return {
 		src,
-		worker: false,
 		wasmUrl: '/embedpdf/pdfium.wasm',
 		fontFallback: null,
 		fonts: { ui: null, signature: null },
 		i18n: { defaultLocale: 'pt-BR', fallbackLocale: 'en', locales: [ptBR, enUS, esES] },
 		disabledCategories: opts.readonly ? ['annotation', 'redaction', 'form'] : ['redaction', 'form'],
 		annotations: { autoCommit: true, annotationAuthor: opts.author },
-		stamp: { manifests: [] }
+		stamp: { manifests: [] },
+		tiling: { tileSize: 1536 },
+		render: { defaultImageType: 'image/webp', defaultImageQuality: 0.8 }
 	};
 }
 

@@ -51,12 +51,13 @@ Todos os headers abaixo são **fixos no middleware do servidor Go**, escritos em
 ### Content-Security-Policy — string literal completa
 
 ```
-default-src 'self'; img-src 'self' data: blob:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'none'
+default-src 'self'; img-src 'self' data: blob:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'none'
 ```
 
 Justificativa de cada relaxamento, nenhum é gratuito:
 
-- **`script-src 'self' 'wasm-unsafe-eval'`**: o pdf.js embutido (ver [06-frontend.md](06-frontend.md)) compila e executa WebAssembly para decodificação de PDF; `'wasm-unsafe-eval'` é exigido pelo navegador para instanciar esse módulo Wasm. **Não** há `'unsafe-inline'` em `script-src` — nenhum script inline é permitido, elimina a classe mais comum de XSS.
+- **`script-src 'self' 'wasm-unsafe-eval'`**: o motor PDFium do EmbedPDF (ver [06-frontend.md](06-frontend.md)) compila e executa WebAssembly para decodificação de PDF; `'wasm-unsafe-eval'` é exigido pelo navegador para instanciar esse módulo Wasm. **Não** há `'unsafe-inline'` em `script-src` — nenhum script inline é permitido, elimina a classe mais comum de XSS.
+- **`worker-src 'self' blob:`**: o EmbedPDF instancia seus workers (motor PDFium e encoder de imagem) a partir de `blob:` URLs via `URL.createObjectURL` — sem esta diretiva o worker é bloqueado e o SDK precisa rodar na thread principal, o que trava a aba em PDFs grandes (ver [11-desempenho-viewer.md](11-desempenho-viewer.md), causa C1). Um worker criado a partir de `blob:` roda em contexto isolado sem acesso ao DOM, então esta diretiva é estritamente mais restrita que permitir `blob:` em `script-src` seria — não abre execução de script na página.
 - **`img-src ... blob:`**: as páginas renderizadas pelo pdf.js e as thumbnails/previews geradas no navegador (canvas → PNG) são exibidas via `blob:` URLs antes do upload.
 - **`style-src 'self' 'unsafe-inline'`**: componentes shadcn-svelte e utilitários gerados pelo Tailwind aplicam estilos inline em alguns pontos de runtime; `'unsafe-inline'` fica restrito a `style-src`, onde o impacto de segurança é muito menor que em `script-src` (não permite execução de código).
 - **`object-src 'none'`** e **`base-uri 'none'`**: fecham os dois vetores clássicos de bypass de CSP (plugins embutidos e reescrita de `<base>`), sem custo funcional — o produto não usa nenhum dos dois.

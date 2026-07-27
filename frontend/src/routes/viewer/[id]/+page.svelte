@@ -101,23 +101,31 @@
 			inverted = settings['viewer.inverted'] === '1';
 			keepAwake = settings['viewer.keep_awake'] === '1';
 			if (keepAwake) await requestWakeLock();
-			backfillAssets(pdfId, pdfData.has_text);
+			// Só reprocessa (2º download integral + extração de texto de todas
+			// as páginas) quando o documento ainda não tem texto — PDFs comuns
+			// (upload normal) já chegam com has_text=true e preview em alta
+			// resolução do processamento no navegador; reprocessar em toda
+			// abertura era puro desperdício, concorrendo por CPU/memória com o
+			// EmbedPDF na mesma abertura (ver refatoracao/11-desempenho-viewer.md,
+			// causa C3). Documentos sem texto (import legado, watch-dir) ainda
+			// passam pelo backfill completo — mas só até o texto ser gravado,
+			// depois disso has_text vira true e não repete mais.
+			if (!pdfData.has_text) backfillAssets(pdfId);
 		} catch (err) {
 			errorMsg = err instanceof Error ? err.message : 'Falha ao carregar o PDF.';
 		}
 	}
 
 	/** Extrai texto e um preview em resolução atual no navegador (mesmo
-	 * pdf.js do upload) e envia ao servidor: texto para documentos que
-	 * chegaram sem ele (import do banco legado, watch-dir), preview sempre
-	 * — reprocessa até previews antigos de baixa resolução herdados do
-	 * import legado. Melhor-esforço: silencioso em qualquer falha, nunca
-	 * bloqueia ou interrompe a abertura do viewer (ver
-	 * refatoracao/06-frontend.md, "Degradação graciosa"). */
-	async function backfillAssets(pdfId: string, hadText: boolean) {
+	 * pdf.js do upload) e envia ao servidor — só chamada para documentos que
+	 * chegaram sem texto (import do banco legado, watch-dir consumer's pure-Go
+	 * extraction gap; ver 05-api.md, "POST .../text"). Melhor-esforço:
+	 * silencioso em qualquer falha, nunca bloqueia ou interrompe a abertura
+	 * do viewer (ver refatoracao/06-frontend.md, "Degradação graciosa"). */
+	async function backfillAssets(pdfId: string) {
 		try {
 			const { text, preview } = await extractAssetsFromUrl(`/api/pdfs/${pdfId}/file`);
-			if (!hadText && text) {
+			if (text) {
 				await apiJSON(`/pdfs/${pdfId}/text`, { method: 'POST', body: { text } });
 				if (pdf && pdf.id === pdfId) pdf = { ...pdf, has_text: true };
 			}

@@ -11,7 +11,14 @@ import (
 // bootstrap script (adapter-static cannot use a nonce: pages are static,
 // not rendered per-request — ver internal/server/csp.go), so script-src
 // stays exactly 'self' 'wasm-unsafe-eval' plus that one build-specific hash.
-const cspTemplate = "default-src 'self'; img-src 'self' data: blob:; script-src 'self' 'wasm-unsafe-eval'%s; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'none'"
+// worker-src 'self' blob: exists only so the EmbedPDF PDFium engine can run
+// its PDFium/encoder workers, which it instantiates from `blob:` URLs
+// (ver refatoracao/11-desempenho-viewer.md, causa C1) — without workers,
+// PDFium rasterizes on the main thread and freezes the tab on large PDFs.
+// This directive does NOT relax script-src: a worker created from blob:
+// runs in an isolated context with no DOM access, so it is strictly
+// narrower than allowing blob: in script-src would be.
+const cspTemplate = "default-src 'self'; img-src 'self' data: blob:; script-src 'self' 'wasm-unsafe-eval'%s; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'none'"
 
 // Headers returns middleware that sets the fixed security headers on every
 // response. None of them is configurable by environment variable — they
