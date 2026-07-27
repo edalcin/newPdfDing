@@ -6,9 +6,9 @@
 	// progresso de leitura", "Anotações", "Compartilhamento e
 	// administração").
 	import { onDestroy, tick } from 'svelte';
-	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { apiJSON, ApiError } from '$lib/api';
+	import { page } from '$app/state';
+	import { apiJSON, apiRequest, ApiError } from '$lib/api';
 	import { AnnotationListStore, deleteAnnotation } from '$lib/annotations.svelte';
 	import EmbedButton from '$lib/components/embed-button.svelte';
 	import TagPicker from '$lib/components/tag-picker.svelte';
@@ -17,6 +17,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { formatBytes, formatDate } from '$lib/utils';
 	import { LEGACY_HEX } from '$lib/embedpdf';
+	import { extractAssetsFromUrl } from '$lib/pdf-process';
 	import type { PDF, Share } from '$lib/types';
 	import { Editor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
@@ -35,6 +36,8 @@
 	let descriptionInput = $state('');
 	let tagsInput = $state('');
 	let metaError = $state('');
+	let previewBust = $state(0);
+	let previewBusy = $state(false);
 
 	let editorEl = $state<HTMLDivElement>();
 	let editor: Editor | undefined;
@@ -178,6 +181,28 @@
 		if (pdf) await patchPdf({ archived: !pdf.archived });
 	}
 
+	/** Re-renderiza a página 1 no navegador (mesmo pdf.js do upload) e
+	 * reenvia via POST .../preview — útil quando o preview veio de um
+	 * import legado em baixa resolução ou saiu ruim. Falha vira mensagem
+	 * de erro, não é silenciosa como o backfill automático do viewer. */
+	async function regeneratePreview() {
+		const current = pdf;
+		if (!current) return;
+		previewBusy = true;
+		metaError = '';
+		try {
+			const { preview } = await extractAssetsFromUrl(`/api/pdfs/${current.id}/file`);
+			const form = new FormData();
+			form.append('preview', preview, 'preview.png');
+			await apiRequest(`/pdfs/${current.id}/preview`, { method: 'POST', body: form });
+			previewBust = Date.now();
+		} catch (err) {
+			metaError = err instanceof Error ? err.message : 'Falha ao regenerar preview';
+		} finally {
+			previewBusy = false;
+		}
+	}
+
 	async function saveNotes() {
 		const current = pdf;
 		if (!editor || !current) return;
@@ -280,7 +305,7 @@
 
 		<div class="flex flex-col gap-4 sm:flex-row">
 			<img
-				src={`/api/pdfs/${currentPdf.id}/preview`}
+				src={`/api/pdfs/${currentPdf.id}/preview${previewBust ? `?v=${previewBust}` : ''}`}
 				alt=""
 				class="h-64 w-48 shrink-0 self-start rounded-lg border border-border bg-muted object-cover"
 			/>
@@ -304,6 +329,10 @@
 						{currentPdf.archived ? 'Arquivado' : 'Arquivar'}
 					</Button>
 					<EmbedButton pdf={currentPdf} onUpdated={(updated) => (pdf = updated)} showLabel={true} />
+					<Button variant="outline" size="sm" onclick={regeneratePreview} disabled={previewBusy}>
+						<i class="bx bx-refresh"></i>
+						{previewBusy ? 'Gerando…' : 'Regenerar preview'}
+					</Button>
 				</div>
 
 				<div class="flex flex-wrap items-center gap-2">
