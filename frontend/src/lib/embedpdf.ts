@@ -13,47 +13,327 @@ import type {
 import { enUS, esES } from '@embedpdf/plugin-i18n';
 import type { Annotation, AnnotationKind } from './types';
 
-// 3a. Locale pt-BR — o pacote só traz `en` e `es`; exportamos o dicionário
-// inteiro (45 chaves de `commands`) explicitamente em português.
+// 3a. Locale pt-BR. IMPORTANTE: os dicionários `enUS`/`esES` embutidos no
+// pacote `@embedpdf/plugin-i18n` só cobrem o namespace `commands.*` (~26
+// chaves) — e esse namespace nunca é referenciado pelo schema de UI
+// pré-construído do snippet (`embedpdf-*.js`), que usa ~250 chaves sob
+// outros ~35 namespaces (`document.*`, `mode.*`, `zoom.*`, `annotation.*`,
+// `panel.*`, etc — confirmado por grep no bundle publicado). Sem tradução
+// própria para essas chaves reais, a UI mostra a chave literal ("mode.view",
+// "document.open") em qualquer idioma, inclusive inglês, porque o pacote
+// não embute (nem busca por rede) nenhum texto padrão para elas. Este
+// dicionário cobre o namespace real por completo.
 export const ptBR: Locale = {
 	code: 'pt-BR',
 	name: 'Português (Brasil)',
 	translations: {
-		commands: {
-			zoom: {
-				in: 'Aproximar',
-				out: 'Afastar',
-				fitWidth: 'Ajustar à largura',
-				fitPage: 'Ajustar à página',
-				automatic: 'Automático',
-				level: 'Zoom ({level}%)',
-				inArea: 'Aproximar área'
-			},
-			fullscreen: { enter: 'Tela cheia', exit: 'Sair da tela cheia' },
-			rotate: { clockwise: 'Girar à direita', counterclockwise: 'Girar à esquerda' },
-			menu: 'Menu',
-			sidebar: 'Painel lateral',
-			search: 'Buscar',
+		annotation: {
+			addLink: 'Adicionar link',
+			arrow: 'Seta',
+			blendMode: 'Modo de mesclagem',
+			borderStyle: 'Estilo da borda',
+			callout: 'Chamada',
+			caret: 'Acento',
+			circle: 'Círculo',
 			comment: 'Comentário',
-			download: 'Baixar',
-			print: 'Imprimir',
-			openFile: 'Abrir PDF',
-			save: 'Salvar',
-			settings: 'Configurações',
-			view: 'Visualizar',
-			annotate: 'Anotar',
-			shapes: 'Formas',
+			defaults: 'Padrões de {type}',
+			deleteAllSelected: 'Excluir todos selecionados',
+			deleteSelected: 'Excluir selecionado',
+			fillColor: 'Cor de preenchimento',
+			fontColor: 'Cor da fonte',
+			fontFamily: 'Família da fonte',
+			fontSize: 'Tamanho da fonte',
+			freeText: 'Texto livre',
+			gotoLink: 'Ir para o link',
+			group: 'Agrupar',
+			highlight: 'Destaque',
+			ink: 'Tinta',
+			inkHighlighter: 'Marca-texto',
+			insertText: 'Inserir texto',
+			line: 'Linha',
+			lineEnd: 'Fim da linha',
+			lineEndings: 'Terminações de linha',
+			lineStart: 'Início da linha',
+			link: 'Link',
+			moreTools: 'Mais ferramentas',
+			multiSelect: '{count} selecionados',
+			opacity: 'Opacidade',
+			overlayText: 'Texto sobreposto',
+			overlayTextPlaceholder: 'Digite o texto sobreposto',
+			polygon: 'Polígono',
+			polyline: 'Polilinha',
+			rectangle: 'Retângulo',
 			redact: 'Tarjar',
-			fillAndSign: 'Preencher e assinar',
-			form: 'Formulário',
-			pan: 'Mover',
-			pointer: 'Ponteiro',
-			undo: 'Desfazer',
-			redo: 'Refazer',
-			copy: 'Copiar',
+			removeLink: 'Remover link',
+			replaceText: 'Substituir texto',
+			rotation: 'Rotação',
+			selectAnnotation: 'Selecionar anotação',
+			square: 'Quadrado',
+			squiggly: 'Ondulado',
+			stamp: 'Carimbo',
+			strikeout: 'Tachado',
+			strokeColor: 'Cor do traço',
+			strokeWidth: 'Espessura do traço',
+			style: 'Estilo',
+			styles: 'Estilos de {type}',
+			text: 'Texto',
+			textAlign: 'Alinhamento do texto',
+			underline: 'Sublinhado',
+			ungroup: 'Desagrupar',
+			verticalAlign: 'Alinhamento vertical',
+			widgetEdit: 'Editar campo'
+		},
+		blendMode: {
+			color: 'Cor',
+			colorBurn: 'Escurecer cor',
+			colorDodge: 'Subexposição de cor',
+			darken: 'Escurecer',
+			difference: 'Diferença',
+			exclusion: 'Exclusão',
+			hardLight: 'Luz forte',
+			hue: 'Matiz',
+			lighten: 'Clarear',
+			luminosity: 'Luminosidade',
+			multiply: 'Multiplicar',
+			normal: 'Normal',
+			overlay: 'Sobrepor',
+			saturation: 'Saturação',
+			screen: 'Tela',
+			softLight: 'Luz suave'
+		},
+		capture: {
+			cancel: 'Cancelar',
+			download: 'Baixar',
+			dragTip: 'Arraste para selecionar uma área',
 			screenshot: 'Captura de tela',
-			nextPage: 'Próxima página',
-			previousPage: 'Página anterior'
+			title: 'Capturar tela'
+		},
+		comments: {
+			addComment: 'Adicionar comentário',
+			addReply: 'Adicionar resposta',
+			cancel: 'Cancelar',
+			closeAllAnnotations: 'Fechar todas as anotações',
+			commentCount: '{count} comentário',
+			commentCountPlural: '{count} comentários',
+			delete: 'Excluir',
+			edit: 'Editar',
+			emptyState: 'Nenhum comentário ainda',
+			page: 'Página {page}',
+			save: 'Salvar',
+			showAllAnnotations: 'Mostrar todas as anotações',
+			showLess: 'Mostrar menos',
+			showMore: 'Mostrar mais'
+		},
+		common: {
+			back: 'Voltar',
+			cancel: 'Cancelar',
+			close: 'Fechar'
+		},
+		document: {
+			close: 'Fechar documento',
+			export: 'Exportar',
+			fullscreen: 'Tela cheia',
+			loading: 'Carregando documento…',
+			menu: 'Menu',
+			open: 'Abrir',
+			pdf: 'PDF',
+			print: 'Imprimir',
+			protect: 'Proteger'
+		},
+		documentError: {
+			close: 'Fechar',
+			errorCode: 'Código do erro: {code}',
+			title: 'Erro ao carregar o documento',
+			unknown: 'Ocorreu um erro desconhecido'
+		},
+		emptyState: {
+			description: 'Arraste um arquivo PDF aqui ou clique para selecionar',
+			descriptionMulti: 'Arraste arquivos PDF aqui ou clique para selecionar',
+			openButton: 'Abrir arquivo',
+			supportedFormats: 'Formatos suportados: PDF',
+			title: 'Nenhum documento aberto'
+		},
+		form: {
+			addOption: 'Adicionar opção',
+			checkbox: 'Caixa de seleção',
+			comb: 'Caixas de combinação',
+			combobox: 'Caixa combinada',
+			defaultValue: 'Valor padrão',
+			fieldName: 'Nome do campo',
+			listbox: 'Lista de seleção',
+			maxLength: 'Tamanho máximo',
+			multiSelect: 'Seleção múltipla',
+			multiline: 'Múltiplas linhas',
+			options: 'Opções',
+			properties: 'Propriedades',
+			radio: 'Opção',
+			radiobutton: 'Botão de opção',
+			readOnly: 'Somente leitura',
+			removeOption: 'Remover opção',
+			required: 'Obrigatório',
+			select: 'Lista suspensa',
+			textfield: 'Campo de texto',
+			toggleFillMode: 'Alternar modo de preenchimento'
+		},
+		history: {
+			redo: 'Refazer',
+			undo: 'Desfazer'
+		},
+		insert: {
+			image: 'Imagem',
+			rubberStamp: 'Carimbo'
+		},
+		link: {
+			enterPage: 'Digite o número da página',
+			enterUrl: 'Digite a URL',
+			link: 'Link',
+			page: 'Página',
+			pageRange: 'Página 1–{totalPages}',
+			title: 'Link',
+			url: 'URL'
+		},
+		menu: {
+			moreOptions: 'Mais opções',
+			viewControls: 'Controles de visualização',
+			zoomControls: 'Controles de zoom'
+		},
+		mode: {
+			annotate: 'Anotar',
+			form: 'Formulário',
+			insert: 'Inserir',
+			redact: 'Tarjar',
+			shapes: 'Formas',
+			view: 'Visualizar'
+		},
+		outline: {
+			loading: 'Carregando sumário…',
+			noBookmarks: 'Nenhum marcador',
+			noOutline: 'Nenhum sumário disponível',
+			title: 'Sumário'
+		},
+		page: {
+			horizontal: 'Horizontal',
+			next: 'Próxima página',
+			previous: 'Página anterior',
+			rotation: 'Rotação',
+			scrollLayout: 'Layout de rolagem',
+			settings: 'Configurações de página',
+			single: 'Página única',
+			spreadMode: 'Modo de exibição',
+			twoEven: 'Duas páginas (par)',
+			twoOdd: 'Duas páginas (ímpar)',
+			vertical: 'Vertical'
+		},
+		pan: {
+			toggle: 'Mover'
+		},
+		panel: {
+			annotationStyle: 'Estilo da anotação',
+			comment: 'Comentários',
+			outline: 'Sumário',
+			redaction: 'Tarjamento',
+			search: 'Buscar',
+			sidebar: 'Painel lateral',
+			thumbnails: 'Miniaturas'
+		},
+		passwordPrompt: {
+			cancel: 'Cancelar',
+			incorrect: 'Senha incorreta',
+			incorrectWarning: 'A senha informada está incorreta. Tente novamente.',
+			label: 'Senha',
+			open: 'Abrir',
+			opening: 'Abrindo…',
+			placeholder: 'Digite a senha',
+			required: 'Este documento requer uma senha',
+			title: 'Documento protegido por senha'
+		},
+		pointer: {
+			toggle: 'Ponteiro'
+		},
+		print: {
+			all: 'Todas as páginas',
+			annotation: 'Incluir anotações',
+			cancel: 'Cancelar',
+			current: 'Página {currentPage} de {totalPages}',
+			loading: 'Preparando impressão…',
+			pages: 'Páginas',
+			print: 'Imprimir',
+			printing: 'Imprimindo…',
+			specify: 'Especificar páginas',
+			specifyEG: 'ex.: 1-3, 5, 8-10',
+			title: 'Imprimir'
+		},
+		protect: {
+			apply: 'Aplicar',
+			applyFailed: 'Falha ao aplicar a proteção',
+			applying: 'Aplicando…',
+			bothPasswordsNote: 'Defina uma senha de usuário, uma senha de proprietário, ou ambas',
+			cancel: 'Cancelar',
+			noProtectionSelected: 'Nenhuma proteção selecionada',
+			passwordMismatch: 'As senhas não coincidem',
+			removeFailed: 'Falha ao remover a proteção',
+			title: 'Proteger documento'
+		},
+		react: {
+			element: 'Elemento'
+		},
+		redaction: {
+			apply: 'Aplicar tarja',
+			applyAll: 'Aplicar todas',
+			area: 'Área',
+			clearAll: 'Limpar tudo',
+			commitSelected: 'Confirmar selecionado',
+			deleteSelected: 'Excluir selecionado',
+			emptyState: 'Nenhuma tarja ainda',
+			redact: 'Tarjar',
+			text: 'Texto'
+		},
+		rotate: {
+			clockwise: 'Girar à direita',
+			counterClockwise: 'Girar à esquerda'
+		},
+		search: {
+			caseSensitive: 'Diferenciar maiúsculas/minúsculas',
+			page: 'Página {page}',
+			placeholder: 'Buscar no documento',
+			resultsFound: '{count} resultados encontrados',
+			wholeWord: 'Palavra inteira'
+		},
+		selection: {
+			copy: 'Copiar',
+			copyToClipboard: 'Copiar para a área de transferência'
+		},
+		signature: {
+			createNew: 'Criar nova assinatura',
+			createNewWithInitials: 'Criar nova assinatura com iniciais',
+			emptyState: 'Nenhuma assinatura ainda',
+			ink: 'Desenhar',
+			placeInitials: 'Colocar iniciais',
+			placeSignature: 'Colocar assinatura',
+			remove: 'Remover',
+			stamp: 'Carimbo',
+			title: 'Assinatura'
+		},
+		stamp: {
+			allStamps: 'Todos os carimbos',
+			createFromGroup: 'Criar a partir do grupo',
+			createFromSelected: 'Criar a partir da seleção',
+			emptyState: 'Nenhum carimbo ainda',
+			rubberStamp: 'Carimbo',
+			title: 'Carimbos'
+		},
+		tabs: {
+			overflowMenu: 'Mais abas'
+		},
+		zoom: {
+			dragTip: 'Arraste para aproximar a área',
+			fitPage: 'Ajustar à página',
+			fitWidth: 'Ajustar à largura',
+			in: 'Aproximar',
+			level: 'Zoom ({level}%)',
+			marquee: 'Zoom em área',
+			menu: 'Zoom',
+			out: 'Afastar'
 		}
 	}
 };
