@@ -1,4 +1,6 @@
 # newPdfDing
+![newPdfDing UI](newPdfDingImg1.png)
+
 
 Gerenciador de PDFs self-hosted, single-user: biblioteca com **busca híbrida — léxica (FTS5) + semântica sob demanda (embeddings Gemini)** —, destaques, comentários, assinaturas, coleções e tags com autocompletar, e compartilhamento público. Backend em Go (binário único, SQLite), frontend em SvelteKit embutido no mesmo binário.
 
