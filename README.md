@@ -16,10 +16,10 @@ A caixa de busca da biblioteca não é só léxica: quando `GEMINI_API_KEY` est�
 
 Cada profissão tem seu próprio vocabulário instável — sinônimos, jargão técnico, termos que mudam de autor para autor ou de época para época. A busca léxica exige a palavra exata; a busca semântica entende o conceito por trás dela:
 
+- No mundo acadêmico, buscar por um **termo técnico antigo** ainda encontra o artigo publicado sob nomenclatura atualizada, porque a busca captura o significado do conteúdo, não a grafia exata.
 - No escritório de advocacia, buscar **"cláusula de rescisão"** encontra um contrato cujo texto só fala em *"extinção antecipada do vínculo contratual"* — redação diferente, mesma cláusula.
 - Na engenharia, buscar **"superaquecimento do motor"** traz o manual técnico que descreve *"falha térmica por sobrecarga"*, mesmo sem usar as palavras exatas.
 - Na cozinha, buscar **"sobremesa sem glúten"** recupera receitas escaneadas cujo título é só o nome do prato, porque a busca entende o conteúdo, não a etiqueta.
-- No mundo acadêmico, buscar por um **termo técnico antigo** ainda encontra o artigo publicado sob nomenclatura atualizada, porque a busca captura o significado do conteúdo, não a grafia exata.
 
 Na prática: sua biblioteca de PDFs — contratos, manuais, receitas, artigos, relatórios, o que for — vira pesquisável por **conceito**, não só por título e palavra-chave, sem depender de você lembrar exatamente como cada documento foi escrito.
 
