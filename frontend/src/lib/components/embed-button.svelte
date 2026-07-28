@@ -35,9 +35,9 @@
 	};
 
 	const ICON_TITLE: Record<PDF['embedding_status'], string> = {
-		none: 'Ainda não embedado',
-		current: 'Embedding atualizado',
-		stale: 'Conteúdo mudou desde o último embedding'
+		none: 'Sem embedding (cérebro vazio com ponto vermelho) — clique para gerar e habilitar a busca semântica.',
+		current: 'Embedding atualizado (cérebro preenchido) — este PDF já entra na busca semântica.',
+		stale: 'Embedding desatualizado (cérebro em âmbar) — o conteúdo mudou; clique para reembedar.'
 	};
 
 	const job = $derived(embedJobs.jobs[pdf.id]);

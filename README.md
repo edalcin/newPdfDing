@@ -145,21 +145,6 @@ export ADMIN_PASSWORD=dev DB_PATH=./dev.db FILES=./dev-files
 go run ./cmd/newpdfding
 ```
 
-## Migrando de uma instância Django antiga
-
-Existe um comando único de importação para trazer dados de uma instância legada (Django) para o schema novo — coleções, tags, PDFs, anotações e compartilhamentos, preservando contadores e datas originais. Nenhum PDF importado é embedado automaticamente (`pdf_embeddings` fica vazio até você clicar "Embedar" ou abrir o documento no visualizador, que faz o backfill de texto necessário):
-
-```bash
-docker run --rm \
-  -e ADMIN_PASSWORD='...' -e DB_PATH=/data/newpdfding.db -e FILES=/files \
-  -v <pasta-nova>/db:/data -v <pasta-nova>/files:/files \
-  -v <pasta-do-banco-antigo>:/legacy-db:ro -v <pasta-de-mídia-antiga>:/legacy-media:ro \
-  ghcr.io/edalcin/newpdfding:latest \
-  -import-legacy /legacy-db/db.sqlite3 /legacy-media
-```
-
-Detalhes completos, incluindo permissões de volume e um passo a passo para Unraid, em [`refatoracao/instrucoesFinais.md`](refatoracao/instrucoesFinais.md).
-
 ## Arquitetura
 
 Binário único: Go (chi, SQLite puro-Go, FTS5) servindo uma API REST e a SPA SvelteKit embutida via `go:embed`. Busca híbrida (FTS5 + embeddings Gemini sob demanda, fusão RRF), sem worker nem automação de embedding. Detalhes completos do plano de refatoração e da arquitetura alvo: [`refatoracao/`](refatoracao/README.md).

@@ -73,6 +73,11 @@
 		list.reset();
 	}
 
+	function toggleStarredFilter() {
+		list.starred = !list.starred;
+		list.reset();
+	}
+
 	async function unarchivePdf(pdf: PDF) {
 		await apiJSON<PDF>(`/pdfs/${pdf.id}`, { method: 'PATCH', body: { archived: false } });
 		list.remove(pdf.id);
@@ -89,7 +94,8 @@
 			method: 'PATCH',
 			body: { starred: !pdf.starred }
 		});
-		list.replace(updated);
+		if (list.starred && !updated.starred) list.remove(updated.id);
+		else list.replace(updated);
 	}
 
 	function handleUploaded(pdf: PDF) {
@@ -107,6 +113,15 @@
 	<div class="mt-4 flex items-center justify-between">
 		<h1 class="text-lg font-semibold">{list.archived ? 'Arquivados' : 'Biblioteca'}</h1>
 		<div class="flex gap-1">
+			<Button
+				variant={list.starred ? 'secondary' : 'ghost'}
+				size="icon"
+				onclick={toggleStarredFilter}
+				aria-label="Apenas com estrela"
+				title="Mostrar apenas os PDFs marcados com estrela"
+			>
+				<i class={`bx ${list.starred ? 'bxs-star text-yellow-500' : 'bx-star'}`}></i>
+			</Button>
 			<Button
 				variant={list.archived ? 'secondary' : 'ghost'}
 				size="icon"
@@ -175,9 +190,30 @@
 		</div>
 	{/if}
 
+	<details class="mt-3 text-xs text-muted-foreground">
+		<summary class="cursor-pointer select-none">Legenda dos ícones de embedding</summary>
+		<ul class="mt-2 space-y-1">
+			<li class="flex items-center gap-2">
+				<span class="relative inline-flex">
+					<i class="bx bx-brain text-base text-muted-foreground/40"></i>
+					<span class="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-destructive"></span>
+				</span>
+				Sem embedding — clique no ícone para gerar e habilitar a busca semântica.
+			</li>
+			<li class="flex items-center gap-2">
+				<i class="bx bxs-brain text-base text-primary"></i>
+				Embedding atualizado — o PDF já entra na busca semântica.
+			</li>
+			<li class="flex items-center gap-2">
+				<i class="bx bxs-brain text-base text-amber-500"></i>
+				Embedding desatualizado — o conteúdo mudou desde o último embedding; clique para reembedar.
+			</li>
+		</ul>
+	</details>
+
 	{#if list.items.length === 0 && !list.loading}
 		<p class="mt-8 text-center text-sm text-muted-foreground">
-			{list.query || list.tags.length > 0 ? 'Nenhum PDF encontrado.' : 'Nenhum PDF ainda. Envie um acima.'}
+			{list.query || list.tags.length > 0 || list.starred ? 'Nenhum PDF encontrado.' : 'Nenhum PDF ainda. Envie um acima.'}
 		</p>
 	{:else}
 		<div

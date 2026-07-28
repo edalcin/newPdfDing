@@ -67,11 +67,13 @@
 		{@render archivedActions()}
 	</a>
 {:else if layout === 'list'}
-	<a href={`/pdf/${pdf.id}`} class="flex items-center gap-4 rounded-md border border-border p-3 hover:bg-accent">
-		<img src={previewUrl} alt="" class="h-16 w-12 rounded object-cover bg-muted" loading="lazy" />
+	<a href={`/pdf/${pdf.id}`} class="flex items-start gap-4 rounded-md border border-border p-3 hover:bg-accent">
+		<img src={previewUrl} alt="" class="h-16 w-12 shrink-0 rounded object-cover bg-muted" loading="lazy" />
 		<div class="min-w-0 flex-1">
 			<p class="truncate font-medium">{pdf.name}</p>
-			<p class="truncate text-sm text-muted-foreground">{pdf.description}</p>
+			{#if pdf.description}
+				<p class="whitespace-pre-line break-words text-sm text-muted-foreground">{pdf.description}</p>
+			{/if}
 			<div class="mt-1 flex flex-wrap gap-1">
 				{#each pdf.tags as tag (tag.id)}
 					<span class="rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">{tag.name}</span>

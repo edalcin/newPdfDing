@@ -14,6 +14,7 @@ export class PDFListStore {
 	query = $state('');
 	tags = $state<string[]>([]);
 	archived = $state(false);
+	starred = $state(false);
 
 	async reset() {
 		this.items = [];
@@ -30,6 +31,7 @@ export class PDFListStore {
 			if (this.cursor) params.set('cursor', this.cursor);
 			if (this.query) params.set('q', this.query);
 			params.set('archived', this.archived ? 'true' : 'false');
+			if (this.starred) params.set('starred', 'true');
 			for (const t of this.tags) params.append('tag', t);
 			const page = await apiJSON<PDFListPage>(`/pdfs?${params.toString()}`);
 			this.items = [...this.items, ...page.items];
