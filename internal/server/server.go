@@ -41,14 +41,14 @@ func New(cfg *config.Config, db *sql.DB) *Server {
 		files:       storage.NewLocalBackend(cfg.Files),
 		sessions:    store.NewSessionStore(db),
 		tags:        store.NewTagStore(db),
-		pdfs:        store.NewPDFStore(db, cfg.EmbedModel),
 		annotations: store.NewAnnotationStore(db),
 		shares:      store.NewShareStore(db),
 		settings:    store.NewSettingsStore(db),
 		throttle:    security.NewLoginThrottle(cfg.TrustProxyHeaders),
-		gemini:      store.NewGeminiClient(cfg.GeminiAPIKey, cfg.EmbedModel),
+		gemini:      store.NewGeminiClient(cfg.GeminiAPIKey),
 		embeds:      newEmbedQueue(),
 	}
+	s.pdfs = store.NewPDFStore(db, s.embedModelName)
 	s.router = s.buildRouter()
 	return s
 }

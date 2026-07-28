@@ -55,6 +55,8 @@ func (s *Server) buildRouter() http.Handler {
 		protected.Put("/api/pdfs/{id}/file", s.handlePutPDFFile)
 		protected.Post("/api/pdfs/{id}/embed", s.handleEmbedPDF)
 		protected.Get("/api/embed/jobs", s.handleEmbedJobs)
+		protected.Post("/api/pdfs/{id}/describe", s.handleAIDescribe)
+		protected.Post("/api/pdfs/{id}/suggest-tags", s.handleAISuggestTags)
 
 		protected.Get("/api/annotations", s.handleListAnnotations)
 		protected.Get("/api/annotations/export", s.handleExportAnnotations)
@@ -68,6 +70,7 @@ func (s *Server) buildRouter() http.Handler {
 
 		protected.Get("/api/settings", s.handleGetSettings)
 		protected.Patch("/api/settings", s.handlePatchSettings)
+		protected.Get("/api/ai/models", s.handleAIModels)
 
 		protected.Get("/api/admin/info", s.handleAdminInfo)
 		protected.Post("/api/admin/reindex", s.handleAdminReindex)

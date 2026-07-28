@@ -92,6 +92,7 @@
 			bind:this={inputEl}
 			{id}
 			bind:value={inputText}
+			oninput={() => (open = true)}
 			onfocus={() => (open = true)}
 			onblur={() => setTimeout(() => (open = false), 150)}
 			onkeydown={handleKeydown}

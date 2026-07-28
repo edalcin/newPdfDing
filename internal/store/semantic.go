@@ -13,7 +13,9 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -147,7 +149,7 @@ func (s *PDFStore) UpsertEmbedding(pdfID, contentHashHex string, vec []float32) 
 
 // EmbedModel returns the configured embedding model, used by handlers to
 // build the same text hashed at write time.
-func (s *PDFStore) EmbedModel() string { return s.embedModel }
+func (s *PDFStore) EmbedModel() string { return s.embedModel() }
 
 // BuildEmbedText and ContentHash expose the pure functions above for the
 // embed handler (ver handlers_search.go).
@@ -214,7 +216,7 @@ func (s *PDFStore) attachEmbeddingStatus(items []PDF) error {
 			p.EmbeddingStatus = "none"
 			continue
 		}
-		current := contentHash(s.embedModel, buildEmbedText(p.Name, p.Description, bodies[p.ID]))
+		current := contentHash(s.embedModel(), buildEmbedText(p.Name, p.Description, bodies[p.ID]))
 		if storedHash == current {
 			p.EmbeddingStatus = "current"
 		} else {
@@ -330,16 +332,14 @@ func SemanticSearch(db *sql.DB, queryVec []float32) ([]string, error) {
 }
 
 // ---------------------------------------------------------------------
-// Gemini embedding API client (ver 04-busca-hibrida.md, "Chamada à API
-// Gemini")
+// Gemini API client (embeddings, listagem de modelos e geração de texto)
 // ---------------------------------------------------------------------
 
-// GeminiClient calls the Gemini batchEmbedContents endpoint with a single
-// text per call — there is no batch embedding path in this product (ver
-// "Sem worker, sem automatismo").
+// GeminiClient calls the Gemini API (embeddings, model listing, text
+// generation) with a single text per embed call — there is no batch
+// embedding path in this product (ver "Sem worker, sem automatismo").
 type GeminiClient struct {
 	APIKey     string
-	Model      string
 	HTTPClient *http.Client
 	// BaseURL overrides the Gemini endpoint host — used to point at a mock
 	// server in tests. Defaults to the real API when empty.
@@ -350,16 +350,54 @@ const geminiBaseURL = "https://generativelanguage.googleapis.com"
 
 // NewGeminiClient builds a client with a bounded request timeout. Returns
 // nil if apiKey is empty — callers check for nil to short-circuit with 412.
-func NewGeminiClient(apiKey, model string) *GeminiClient {
+func NewGeminiClient(apiKey string) *GeminiClient {
 	if apiKey == "" {
 		return nil
 	}
 	return &GeminiClient{
 		APIKey:     apiKey,
-		Model:      model,
-		HTTPClient: &http.Client{Timeout: 30 * time.Second},
+		HTTPClient: &http.Client{Timeout: 120 * time.Second},
 		BaseURL:    geminiBaseURL,
 	}
+}
+
+// do issues one authenticated Gemini request. The API key travels in the
+// x-goog-api-key header, never in the URL: a transport failure surfaces as
+// *url.Error, whose message embeds the URL and would leak the key into logs.
+func (c *GeminiClient) do(ctx context.Context, method, path string, body any) ([]byte, error) {
+	base := c.BaseURL
+	if base == "" {
+		base = geminiBaseURL
+	}
+	var reader io.Reader
+	if body != nil {
+		payload, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+		reader = bytes.NewReader(payload)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, base+path, reader)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("x-goog-api-key", c.APIKey)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	out, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("gemini %s: status %d: %s", path, resp.StatusCode, string(out))
+	}
+	return out, nil
 }
 
 type geminiEmbedPart struct {
@@ -382,43 +420,20 @@ type geminiBatchResponse struct {
 	Embeddings []geminiEmbedding `json:"embeddings"`
 }
 
-// Embed returns the raw (not yet normalized) embedding vector for text.
-func (c *GeminiClient) Embed(ctx context.Context, text string) ([]float32, error) {
+// Embed returns the raw (not yet normalized) embedding vector for text,
+// using the caller-supplied model (ver Server.embedModelName).
+func (c *GeminiClient) Embed(ctx context.Context, model, text string) ([]float32, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	reqBody := geminiBatchRequest{
 		Requests: []geminiEmbedRequest{
-			{Model: c.Model, Content: geminiEmbedContent{Parts: []geminiEmbedPart{{Text: text}}}},
+			{Model: model, Content: geminiEmbedContent{Parts: []geminiEmbedPart{{Text: text}}}},
 		},
 	}
-	payload, err := json.Marshal(reqBody)
+	body, err := c.do(ctx, http.MethodPost, "/v1beta/"+model+":batchEmbedContents", reqBody)
 	if err != nil {
 		return nil, err
 	}
-
-	base := c.BaseURL
-	if base == "" {
-		base = geminiBaseURL
-	}
-	url := fmt.Sprintf("%s/v1beta/%s:batchEmbedContents?key=%s", base, c.Model, c.APIKey)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("gemini embed: status %d: %s", resp.StatusCode, string(body))
-	}
-
 	var out geminiBatchResponse
 	if err := json.Unmarshal(body, &out); err != nil {
 		return nil, fmt.Errorf("gemini embed: decode response: %w", err)
@@ -427,4 +442,139 @@ func (c *GeminiClient) Embed(ctx context.Context, text string) ([]float32, error
 		return nil, errors.New("gemini embed: empty response")
 	}
 	return out.Embeddings[0].Values, nil
+}
+
+// GeminiModel is one models.list entry reduced to what the settings UI needs.
+type GeminiModel struct {
+	Name        string `json:"name"`         // "models/gemini-2.5-flash"
+	DisplayName string `json:"display_name"` // "Gemini 2.5 Flash"
+}
+
+// textModelDenySubstrings drops models that advertise generateContent but
+// cannot return the plain prose the description/tag features need (áudio,
+// imagem, vídeo, embeddings, answering-only).
+var textModelDenySubstrings = []string{"-tts", "-image", "imagen", "veo", "aqa", "embedding"}
+
+type geminiListModelsResponse struct {
+	Models []struct {
+		Name                       string   `json:"name"`
+		DisplayName                string   `json:"displayName"`
+		SupportedGenerationMethods []string `json:"supportedGenerationMethods"`
+	} `json:"models"`
+	NextPageToken string `json:"nextPageToken"`
+}
+
+// isDeniedTextModel reports whether name matches any entry in
+// textModelDenySubstrings.
+func isDeniedTextModel(name string) bool {
+	for _, sub := range textModelDenySubstrings {
+		if strings.Contains(name, sub) {
+			return true
+		}
+	}
+	return false
+}
+
+// ListModels returns every model the API key can see, split by capability:
+// embed = suporta embedContent; text = suporta generateContent e não cai na
+// deny list acima. Ambas as listas vêm ordenadas por Name.
+func (c *GeminiClient) ListModels(ctx context.Context) (embed, text []GeminiModel, err error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	embed = []GeminiModel{}
+	text = []GeminiModel{}
+
+	path := "/v1beta/models?pageSize=1000"
+	for range 5 {
+		body, doErr := c.do(ctx, http.MethodGet, path, nil)
+		if doErr != nil {
+			return nil, nil, doErr
+		}
+		var out geminiListModelsResponse
+		if unmarshalErr := json.Unmarshal(body, &out); unmarshalErr != nil {
+			return nil, nil, fmt.Errorf("gemini list models: decode response: %w", unmarshalErr)
+		}
+		for _, m := range out.Models {
+			displayName := m.DisplayName
+			if displayName == "" {
+				displayName = m.Name
+			}
+			model := GeminiModel{Name: m.Name, DisplayName: displayName}
+			for _, method := range m.SupportedGenerationMethods {
+				switch method {
+				case "embedContent":
+					embed = append(embed, model)
+				case "generateContent":
+					if !isDeniedTextModel(m.Name) {
+						text = append(text, model)
+					}
+				}
+			}
+		}
+		if out.NextPageToken == "" {
+			break
+		}
+		path = "/v1beta/models?pageSize=1000&pageToken=" + url.QueryEscape(out.NextPageToken)
+	}
+
+	sort.Slice(embed, func(i, j int) bool { return embed[i].Name < embed[j].Name })
+	sort.Slice(text, func(i, j int) bool { return text[i].Name < text[j].Name })
+	return embed, text, nil
+}
+
+type geminiPart struct {
+	Text string `json:"text"`
+}
+type geminiContent struct {
+	Parts []geminiPart `json:"parts"`
+}
+type geminiGenerationConfig struct {
+	Temperature     float64 `json:"temperature"`
+	MaxOutputTokens int     `json:"maxOutputTokens"`
+}
+type geminiGenerateRequest struct {
+	SystemInstruction *geminiContent         `json:"systemInstruction,omitempty"`
+	Contents          []geminiContent        `json:"contents"`
+	GenerationConfig  geminiGenerationConfig `json:"generationConfig"`
+}
+type geminiGenerateResponse struct {
+	Candidates []struct {
+		Content      geminiContent `json:"content"`
+		FinishReason string        `json:"finishReason"`
+	} `json:"candidates"`
+}
+
+// GenerateText runs model:generateContent with one system instruction and
+// one user prompt, returning the concatenated text of the first candidate.
+// Não envia thinkingConfig nem responseMimeType: a API rejeita ambos em
+// modelos que não os suportam, e o modelo aqui é escolha livre do usuário.
+func (c *GeminiClient) GenerateText(ctx context.Context, model, system, prompt string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
+	reqBody := geminiGenerateRequest{
+		SystemInstruction: &geminiContent{Parts: []geminiPart{{Text: system}}},
+		Contents:          []geminiContent{{Parts: []geminiPart{{Text: prompt}}}},
+		GenerationConfig:  geminiGenerationConfig{Temperature: 0.2, MaxOutputTokens: 2048},
+	}
+	body, err := c.do(ctx, http.MethodPost, "/v1beta/"+model+":generateContent", reqBody)
+	if err != nil {
+		return "", err
+	}
+	var out geminiGenerateResponse
+	if err := json.Unmarshal(body, &out); err != nil {
+		return "", fmt.Errorf("gemini generate: decode response: %w", err)
+	}
+	if len(out.Candidates) == 0 {
+		return "", errors.New("gemini generate: empty response")
+	}
+	var sb strings.Builder
+	for _, p := range out.Candidates[0].Content.Parts {
+		sb.WriteString(p.Text)
+	}
+	text := sb.String()
+	if text == "" {
+		return "", fmt.Errorf("gemini generate: empty response (finishReason=%s)", out.Candidates[0].FinishReason)
+	}
+	return text, nil
 }

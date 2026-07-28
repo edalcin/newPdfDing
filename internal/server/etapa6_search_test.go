@@ -102,7 +102,7 @@ func testServer(t *testing.T, withGemini bool) (*Server, *httptest.Server) {
 	if withGemini {
 		mockGemini = newMockGeminiServer(t)
 		t.Cleanup(mockGemini.Close)
-		srv.gemini = store.NewGeminiClient(cfg.GeminiAPIKey, cfg.EmbedModel)
+		srv.gemini = store.NewGeminiClient(cfg.GeminiAPIKey)
 		srv.gemini.BaseURL = mockGemini.URL
 		srv.gemini.HTTPClient = mockGemini.Client()
 	}

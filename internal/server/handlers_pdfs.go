@@ -144,7 +144,7 @@ func (s *Server) handleListPDFs(w http.ResponseWriter, r *http.Request) {
 	if query := q.Get("q"); query != "" {
 		params.Query = query
 		if s.gemini != nil {
-			if vec, err := s.gemini.Embed(r.Context(), query); err == nil {
+			if vec, err := s.gemini.Embed(r.Context(), s.pdfs.EmbedModel(), query); err == nil {
 				params.QueryVector = vec
 			} else {
 				log.Printf("warning: gemini query embed failed, falling back to lexical-only search: %v", err)

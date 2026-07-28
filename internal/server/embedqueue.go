@@ -145,18 +145,14 @@ func (s *Server) runEmbedJob(ctx context.Context, pdfID string) {
 		return
 	}
 
-	body, _ := s.pdfs.GetText(pdfID)
-	if body == "" {
-		text, _, extractErr := s.extractPDFTextFromStorage(ctx, pdf.StorageKey)
-		if extractErr != nil || text == "" {
-			s.embeds.setState(pdfID, embedFailed, "não foi possível extrair texto deste PDF")
-			return
-		}
-		if err := s.pdfs.SetText(pdfID, text); err != nil {
-			s.embeds.setState(pdfID, embedFailed, "erro interno")
-			return
-		}
-		body = text
+	body, err := s.textFor(ctx, pdf)
+	if errors.Is(err, errNoText) {
+		s.embeds.setState(pdfID, embedFailed, "não foi possível extrair texto deste PDF")
+		return
+	}
+	if err != nil {
+		s.embeds.setState(pdfID, embedFailed, "erro interno")
+		return
 	}
 
 	s.embeds.setState(pdfID, embedEmbedding, "")
@@ -169,7 +165,7 @@ func (s *Server) runEmbedJob(ctx context.Context, pdfID string) {
 		return
 	}
 
-	vec, err := s.gemini.Embed(ctx, text)
+	vec, err := s.gemini.Embed(ctx, s.pdfs.EmbedModel(), text)
 	if err != nil {
 		s.embeds.setState(pdfID, embedFailed, "falha ao chamar a API de embeddings")
 		return

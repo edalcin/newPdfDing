@@ -3,7 +3,7 @@
 	import { apiJSON, ApiError } from '$lib/api';
 	import { theme, type ThemeSetting } from '$lib/theme.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import type { Layout, PDFSort, Settings } from '$lib/types';
+	import type { AIModel, AIModels, Layout, PDFSort, Settings } from '$lib/types';
 
 	const SORT_OPTIONS: { value: PDFSort; label: string }[] = [
 		{ value: 'newest', label: 'Mais recentes' },
@@ -21,6 +21,10 @@
 	let inverted = $state(false);
 	let keepAwake = $state(false);
 	let showProgressBars = $state(true);
+	let embedModel = $state('');
+	let textModel = $state('');
+	let aiModels = $state<AIModels>({ embed: [], text: [] });
+	let aiError = $state('');
 
 	let loaded = $state(false);
 	let status = $state('');
@@ -35,10 +39,21 @@
 			inverted = settings['viewer.inverted'] === '1';
 			keepAwake = settings['viewer.keep_awake'] === '1';
 			showProgressBars = settings['ui.show_progress_bars'] === '1';
+			embedModel = settings['ai.embed_model'];
+			textModel = settings['ai.text_model'];
 		} catch {
 			// defaults stand
 		} finally {
 			loaded = true;
+		}
+
+		try {
+			aiModels = await apiJSON<AIModels>('/ai/models');
+		} catch (err) {
+			aiError =
+				err instanceof ApiError && err.status === 412
+					? 'Defina GEMINI_API_KEY no servidor para habilitar a seleção de modelos.'
+					: 'Não foi possível listar os modelos da API Gemini.';
 		}
 	});
 
@@ -86,6 +101,25 @@
 		showProgressBars = next;
 		patch('ui.show_progress_bars', next ? '1' : '0');
 	}
+
+	function setEmbedModel(next: string) {
+		embedModel = next;
+		patch('ai.embed_model', next);
+	}
+
+	function setTextModel(next: string) {
+		textModel = next;
+		patch('ai.text_model', next);
+	}
+
+	// Garante que o valor salvo apareça mesmo que models.list não o devolva
+	// (chave trocada, modelo retirado do catálogo).
+	function withCurrent(list: AIModel[], current: string): AIModel[] {
+		if (!current || list.some((m) => m.name === current)) return list;
+		return [{ name: current, display_name: `${current} (indisponível)` }, ...list];
+	}
+	const embedOptions = $derived(withCurrent(aiModels.embed, embedModel));
+	const textOptions = $derived(withCurrent(aiModels.text, textModel));
 
 </script>
 
@@ -187,6 +221,48 @@
 						onchange={(e) => setKeepAwake((e.target as HTMLInputElement).checked)}
 					/>
 				</label>
+			</div>
+		</section>
+
+		<section class="mt-6">
+			<h2 class="text-sm font-semibold text-muted-foreground">IA</h2>
+			<div class="mt-3 space-y-4 rounded-lg border border-border p-4">
+				{#if aiError}
+					<p class="text-sm text-muted-foreground">{aiError}</p>
+				{/if}
+				<div>
+					<div class="flex items-center justify-between gap-4">
+						<span class="text-sm">Modelo de embedding</span>
+						<select
+							class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+							value={embedModel}
+							disabled={!!aiError}
+							onchange={(e) => setEmbedModel((e.target as HTMLSelectElement).value)}
+						>
+							<option value="">Padrão do servidor (EMBED_MODEL)</option>
+							{#each embedOptions as m (m.name)}
+								<option value={m.name}>{m.display_name}</option>
+							{/each}
+						</select>
+					</div>
+					<p class="mt-1 text-xs text-muted-foreground">
+						Trocar o modelo de embedding marca todos os embeddings existentes como desatualizados.
+					</p>
+				</div>
+				<div class="flex items-center justify-between gap-4">
+					<span class="text-sm">Modelo para descrição e sugestão de tags</span>
+					<select
+						class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+						value={textModel}
+						disabled={!!aiError}
+						onchange={(e) => setTextModel((e.target as HTMLSelectElement).value)}
+					>
+						<option value="">— não selecionado —</option>
+						{#each textOptions as m (m.name)}
+							<option value={m.name}>{m.display_name}</option>
+						{/each}
+					</select>
+				</div>
 			</div>
 		</section>
 	{/if}

@@ -27,6 +27,8 @@ var settingDefs = map[string]settingDef{
 	"annotation.sorting":    {def: "newest"},
 	"viewer.inverted":       {def: "0", valid: map[string]bool{"0": true, "1": true}},
 	"viewer.keep_awake":     {def: "0", valid: map[string]bool{"0": true, "1": true}},
+	"ai.embed_model":        {def: ""},
+	"ai.text_model":         {def: ""},
 }
 
 // SettingsStore provides validated key-value persistence over the settings
@@ -62,6 +64,18 @@ func (s *SettingsStore) All() (map[string]string, error) {
 		}
 	}
 	return out, rows.Err()
+}
+
+// Get returns the stored value for key, or the key's default when unset,
+// unknown, or unreadable — callers that only need one preference and have
+// no error path to report (ver Server.embedModelName).
+func (s *SettingsStore) Get(key string) string {
+	def := settingDefs[key].def
+	var value string
+	if err := s.db.QueryRow(`SELECT value FROM settings WHERE key = ?`, key).Scan(&value); err != nil {
+		return def
+	}
+	return value
 }
 
 // ErrInvalidSetting is returned by Patch for an unknown key or an

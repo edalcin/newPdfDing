@@ -274,7 +274,7 @@
 </script>
 
 <div class="flex h-[calc(100vh-3.5rem)] flex-col">
-	<div class="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
+	<div class="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2">
 		<a
 			href={`/pdf/${id}`}
 			class="flex items-center gap-1 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -311,7 +311,7 @@
 	{/if}
 
 	{#if pdf}
-		<div class="flex-1">
+		<div class="min-h-0 flex-1 overflow-hidden">
 			<PdfViewer
 				src={fileUrl}
 				{inverted}

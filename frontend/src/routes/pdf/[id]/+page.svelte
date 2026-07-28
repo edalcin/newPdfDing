@@ -38,6 +38,9 @@
 	let metaError = $state('');
 	let previewBust = $state(0);
 	let previewBusy = $state(false);
+	let describeBusy = $state(false);
+	let tagsBusy = $state(false);
+	let tagSuggestions = $state<string[]>([]);
 
 	let editorEl = $state<HTMLDivElement>();
 	let editor: Editor | undefined;
@@ -93,6 +96,7 @@
 		shareError = '';
 		notesMessage = '';
 		annotationsError = '';
+		tagSuggestions = [];
 
 		let fetched: PDF;
 		try {
@@ -201,6 +205,53 @@
 		} finally {
 			previewBusy = false;
 		}
+	}
+
+	/** Gera a descrição com o modelo escolhido em Configurações → IA a partir
+	 * do texto do documento já salvo (pdf_text) e salva via PATCH. */
+	async function describeWithAI() {
+		const current = pdf;
+		if (!current) return;
+		if (descriptionInput.trim() && !confirm('Substituir a descrição atual pela gerada pela IA?')) return;
+		describeBusy = true;
+		metaError = '';
+		try {
+			const { description } = await apiJSON<{ description: string }>(
+				`/pdfs/${current.id}/describe`,
+				{ method: 'POST' }
+			);
+			descriptionInput = description;
+			await saveDescription();
+		} catch (err) {
+			metaError = err instanceof Error ? err.message : 'Falha ao descrever com IA';
+		} finally {
+			describeBusy = false;
+		}
+	}
+
+	async function suggestTags() {
+		const current = pdf;
+		if (!current) return;
+		tagsBusy = true;
+		metaError = '';
+		tagSuggestions = [];
+		try {
+			const { tags } = await apiJSON<{ tags: string[] }>(`/pdfs/${current.id}/suggest-tags`, {
+				method: 'POST'
+			});
+			const already = new Set(current.tags.map((t) => t.name));
+			tagSuggestions = tags.filter((t) => !already.has(t));
+			if (tagSuggestions.length === 0) metaError = 'Nenhuma tag existente combina com este documento.';
+		} catch (err) {
+			metaError = err instanceof Error ? err.message : 'Falha ao sugerir tags';
+		} finally {
+			tagsBusy = false;
+		}
+	}
+
+	function acceptSuggestion(name: string) {
+		tagSuggestions = tagSuggestions.filter((t) => t !== name);
+		saveTags([...tagsInput.split(/\s+/).filter(Boolean), name]);
 	}
 
 	async function saveNotes() {
@@ -363,7 +414,13 @@
 
 		<div class="space-y-4 rounded-lg border border-border p-4">
 			<div>
-				<label for="pdf-description" class="text-sm font-medium">Descrição</label>
+				<div class="flex items-center justify-between gap-2">
+					<label for="pdf-description" class="text-sm font-medium">Descrição</label>
+					<Button variant="outline" size="sm" onclick={describeWithAI} disabled={describeBusy}>
+						<i class="bx bx-bulb"></i>
+						{describeBusy ? 'Descrevendo…' : 'Descrever com IA'}
+					</Button>
+				</div>
 				<textarea
 					id="pdf-description"
 					bind:value={descriptionInput}
@@ -375,10 +432,30 @@
 			</div>
 
 			<div>
-				<label for="pdf-tags" class="text-sm font-medium">Tags</label>
+				<div class="flex items-center justify-between gap-2">
+					<label for="pdf-tags" class="text-sm font-medium">Tags</label>
+					<Button variant="outline" size="sm" onclick={suggestTags} disabled={tagsBusy}>
+						<i class="bx bx-purchase-tag"></i>
+						{tagsBusy ? 'Sugerindo…' : 'Sugerir tags'}
+					</Button>
+				</div>
 				<div class="mt-1">
 					<TagPicker id="pdf-tags" value={tagsInput} onChange={saveTags} />
 				</div>
+				{#if tagSuggestions.length > 0}
+					<div class="mt-2 flex flex-wrap items-center gap-1">
+						<span class="text-xs text-muted-foreground">Sugestões:</span>
+						{#each tagSuggestions as name (name)}
+							<button
+								type="button"
+								class="flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground hover:bg-accent"
+								onclick={() => acceptSuggestion(name)}
+							>
+								<i class="bx bx-plus"></i>{name}
+							</button>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		</div>
 

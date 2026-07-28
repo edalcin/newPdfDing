@@ -160,3 +160,23 @@ func (s *Server) extractPDFTextFromStorage(ctx context.Context, key string) (str
 
 	return extractPDFText(tmpPath)
 }
+
+// errNoText means the PDF has no extractable text layer (scan puro sem OCR).
+var errNoText = errors.New("no extractable text")
+
+// textFor returns the PDF's extracted text, extracting and persisting it on
+// first use when pdf_text is empty. Retorna errNoText quando o documento não
+// tem camada de texto — o chamador decide a mensagem ao usuário.
+func (s *Server) textFor(ctx context.Context, pdf store.PDF) (string, error) {
+	if body, _ := s.pdfs.GetText(pdf.ID); body != "" {
+		return body, nil
+	}
+	text, _, err := s.extractPDFTextFromStorage(ctx, pdf.StorageKey)
+	if err != nil || text == "" {
+		return "", errNoText
+	}
+	if err := s.pdfs.SetText(pdf.ID, text); err != nil {
+		return "", err
+	}
+	return text, nil
+}

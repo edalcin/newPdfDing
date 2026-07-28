@@ -62,12 +62,13 @@ func scanPDF(row interface{ Scan(...any) error }) (PDF, error) {
 // PDFStore provides CRUD, listing and cursor pagination over the pdfs table.
 type PDFStore struct {
 	db         *sql.DB
-	embedModel string
+	embedModel func() string
 }
 
-// NewPDFStore wraps db in a PDFStore. embedModel is used to derive
-// embedding_status on every read (ver 04-busca-hibrida.md).
-func NewPDFStore(db *sql.DB, embedModel string) *PDFStore {
+// NewPDFStore wraps db in a PDFStore. embedModel resolves the current
+// embedding model on every call (settings can change it at runtime) and is
+// used to derive embedding_status on every read (ver 04-busca-hibrida.md).
+func NewPDFStore(db *sql.DB, embedModel func() string) *PDFStore {
 	return &PDFStore{db: db, embedModel: embedModel}
 }
 

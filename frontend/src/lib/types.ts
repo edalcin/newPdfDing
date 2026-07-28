@@ -96,4 +96,16 @@ export interface Settings {
 	'annotation.sorting': string;
 	'viewer.inverted': '0' | '1';
 	'viewer.keep_awake': '0' | '1';
+	'ai.embed_model': string;
+	'ai.text_model': string;
+}
+
+export interface AIModel {
+	name: string;
+	display_name: string;
+}
+
+export interface AIModels {
+	embed: AIModel[];
+	text: AIModel[];
 }
