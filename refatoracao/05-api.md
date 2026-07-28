@@ -109,6 +109,24 @@ Erros:
 
 `GET /api/pdfs` e `GET /api/pdfs/{id}` devolvem o campo derivado `embedding_status` (`none`, `current` ou `stale`) que habilita/desabilita o botão na interface — ver [PDFs](#pdfs) e [Busca híbrida](04-busca-hibrida.md).
 
+## Modelos de IA
+
+Três rotas usadas pela área "Configurações → IA" e pelos botões "Descrever com IA"/"Sugerir tags" da página do PDF ([Frontend](06-frontend.md)); mecânica do `GeminiClient` (autenticação por header, `ListModels`, `GenerateText`) em [Busca Híbrida](04-busca-hibrida.md#autenticação-por-header).
+
+| Método | Caminho | Payload | Resposta |
+|---|---|---|---|
+| `GET` | `/api/ai/models` | — | `200` `{"embed":[{"name","display_name"}...],"text":[...]}` — listas nunca `null`, sempre `[]` quando vazias |
+| `POST` | `/api/pdfs/{id}/describe` | — | `200` `{"description":"<texto>"}` — não persiste; o frontend salva pelo `PATCH /api/pdfs/{id}` já existente |
+| `POST` | `/api/pdfs/{id}/suggest-tags` | — | `200` `{"tags":["..."]}` — sempre um array, nunca `null`; contém **apenas** nomes de tags já existentes no acervo (filtro determinístico no servidor, não confiança no prompt) |
+
+Todas exigem **Sessão**.
+
+Erros por rota:
+- `GET /api/ai/models` → `401`; `412` `GEMINI_API_KEY` ausente; `502` a listagem falhou na API Gemini (mensagem sanitizada, nunca o corpo bruto do upstream).
+- `POST /api/pdfs/{id}/describe` e `POST /api/pdfs/{id}/suggest-tags` → `401`; `404` PDF inexistente; `412` `GEMINI_API_KEY` ausente, ou nenhum modelo de texto escolhido em Configurações → IA (`settings['ai.text_model']` vazio); `422` documento sem texto extraído (mesma extração sob demanda do backfill do viewer — ver [Busca Híbrida](04-busca-hibrida.md#backfill-de-texto-pdf_text-ausente)); `502` a chamada generativa falhou na API Gemini; `500` erro interno.
+
+`suggest-tags` nunca inventa uma tag: a resposta do modelo é normalizada (minúsculas, sem espaços nas bordas) e cruzada contra `GET /api/tags`, descartando qualquer linha que não bata com uma tag existente, cortada em 5 sugestões.
+
 ## Anotações
 
 | Método | Caminho | Payload | Resposta |

@@ -83,6 +83,7 @@ Justificativa de cada relaxamento, nenhum é gratuito:
 ## Segredos
 
 - **Nada embutido na imagem**: nenhuma credencial, chave ou senha é copiada para a imagem Docker em nenhum estágio do build. Todas as credenciais (`ADMIN_PASSWORD`, `GEMINI_API_KEY`) chegam exclusivamente por variável de ambiente em tempo de execução.
+- **`GEMINI_API_KEY` nunca trafega em query string**: toda chamada à API Gemini (embed, `models.list`, `generateContent`) envia a chave no header `x-goog-api-key`. Com a chave na URL, uma falha de transporte devolve `*url.Error` (a mensagem inclui a URL completa) e um `log.Printf` de erro gravaria a chave em texto claro no log do servidor.
 - **`.env` fora do git**: o arquivo `.env` real (com valores de produção) está no `.gitignore`; apenas `.env.example`, com placeholders genéricos, é versionado (ver [07-docker-ci-deploy.md](07-docker-ci-deploy.md)).
 
 ## CI

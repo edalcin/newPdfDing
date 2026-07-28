@@ -37,10 +37,20 @@ Funciona assim:
 
 Sem `GEMINI_API_KEY` configurada, nada disso quebra: o botão "Embedar" aparece desabilitado com um aviso, e a busca cai de volta para puramente léxica (FTS5 + fallback `LIKE`). Ver a mecânica completa — fórmula do texto embedado, fusão RRF, custo, tetos de escala — em [`refatoracao/04-busca-hibrida.md`](refatoracao/04-busca-hibrida.md).
 
+## Metadados com IA
+
+Com `GEMINI_API_KEY` configurada, a página de detalhes de cada PDF ganha dois atalhos que reaproveitam o texto já extraído do documento (o mesmo usado pela busca):
+
+- **Descrever com IA**: gera um parágrafo de até 60 palavras a partir do conteúdo e preenche/salva o campo Descrição — útil para os PDFs escaneados/importados que chegam sem descrição nenhuma.
+- **Sugerir tags**: lê o mesmo texto e sugere, como chips clicáveis, apenas tags que **já existem** no seu acervo — nunca inventa uma tag nova; um clique aplica a sugestão.
+
+O modelo usado em cada atalho — e o modelo de embedding da busca semântica acima — é escolhido em **Configurações → IA**, numa lista alimentada em tempo real pela `models.list` da própria chave configurada, sem modelo fixo no código. Sem `GEMINI_API_KEY`, os dois botões continuam visíveis mas respondem com uma mensagem clara pedindo a chave, em vez de falhar em silêncio.
+
 ## Funcionalidades
 
 - **Biblioteca**: 4 layouts (grade/lista/compacto/mínimo), 7 ordenações, rolagem infinita, upload individual e em lote com processamento no navegador (thumbnail, preview e texto via pdf.js) — nada de fila de processamento no servidor, o PDF já entra pronto para busca.
 - **Busca híbrida**: caixa única na biblioteca, léxica sempre ativa, semântica quando configurada (ver acima) — pesquise por conceito, não só por título exato.
+- **Metadados com IA**: descrição e sugestão de tags geradas sob demanda a partir do texto do PDF via Gemini (ver acima) — sem custo de API além do que você aciona explicitamente.
 - **Tags**: autocompletar com sugestão das tags existentes e criação de tag nova inline, direto na página de detalhes do PDF; lista de tags clicável na biblioteca para filtrar por tag; administração (renomear/excluir/fundir) em `/tags` — organize contratos, manuais e receitas do seu jeito, sem taxonomia imposta.
 - **Coleções**: organização em coleções, com contagem de PDFs por coleção; coleção padrão protegida contra exclusão — separe clientes, projetos ou assuntos.
 - **Anotações**: comentários e destaques por página, com exportação em YAML/JSON — grife o que importa e leve as anotações para fora, sem lock-in.
@@ -110,6 +120,8 @@ Lista fechada — nenhuma variável fora dela é lida pelo binário. Ver [`.env.
 | `CONSUME_INTERVAL_MINUTES` | Não | `5` |
 | `CONSUME_TAGS` | Não | `""` |
 | `CONSUME_SKIP_EXISTING` | Não | `true` |
+
+`EMBED_MODEL` e o modelo de texto usado por "Descrever com IA"/"Sugerir tags" também podem ser escolhidos em **Configurações → IA**, numa lista populada pela sua própria chave — a variável de ambiente vira só o default de embedding, nunca obrigatória além de existir a chave.
 
 ## Desenvolvimento
 

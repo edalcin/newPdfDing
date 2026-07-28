@@ -109,11 +109,12 @@ Cada acionamento do botão dispara **uma chamada à API com um único texto** �
 
 ## Chamada à API Gemini
 
-Formato literal da chamada (igual a `pkd`, adaptado para um texto por chamada):
+Formato literal da chamada (autenticação por header, não por query string — ver "Autenticação por header" abaixo):
 
 ```http
-POST https://generativelanguage.googleapis.com/v1beta/{EMBED_MODEL}:batchEmbedContents?key={GEMINI_API_KEY}
+POST https://generativelanguage.googleapis.com/v1beta/{EMBED_MODEL}:batchEmbedContents
 Content-Type: application/json
+x-goog-api-key: {GEMINI_API_KEY}
 ```
 
 Corpo (literal): `{"requests":[{"model":"<EMBED_MODEL>","content":{"parts":[{"text":"..."}]}}]}`
@@ -141,7 +142,7 @@ Expandido para leitura:
 }
 ```
 
-Default: `EMBED_MODEL=models/gemini-embedding-001` — variável documentada em [Docker, CI e deploy](07-docker-ci-deploy.md).
+Default: `EMBED_MODEL=models/gemini-embedding-001` — variável documentada em [Docker, CI e deploy](07-docker-ci-deploy.md). A seleção em Configurações → IA (`settings['ai.embed_model']`, ver [Modelo de dados](02-modelo-de-dados.md)), quando preenchida, tem precedência sobre a variável.
 
 Referência de implementação Go (mesma forma de `pkd` `internal/store/semantic.go:embedBatch`, adaptada para um texto por chamada):
 
@@ -159,6 +160,19 @@ req := reqBody{
 // POST com Content-Type: application/json
 // decodifica out.Embeddings[0].Values
 ```
+
+## Autenticação por header
+
+Todas as chamadas ao Gemini (embed, listagem de modelos, geração de texto) enviam a chave no header `x-goog-api-key`, nunca na query string. Motivo: quando `HTTPClient.Do` falha, o erro devolvido é `*url.Error`, cujo `Error()` inclui a URL completa — e o `log.Printf` de erro do handler gravaria a `GEMINI_API_KEY` no log do servidor se ela estivesse na URL. Documentado pela própria API Gemini em https://ai.google.dev/gemini-api/docs/api-key.
+
+## Modelos de IA — listagem e geração de texto
+
+Além de `Embed`, `GeminiClient` expõe dois métodos usados pela área "Configurações → IA" e pelos botões "Descrever com IA"/"Sugerir tags" na página do PDF (contrato HTTP completo em [API](05-api.md)):
+
+- **`ListModels(ctx) (embed, text []GeminiModel, err error)`** — `GET /v1beta/models?pageSize=1000`, paginado (máximo 5 páginas), dividindo o catálogo por capacidade: `embed` = modelos com `embedContent` em `supportedGenerationMethods`; `text` = modelos com `generateContent`, exceto os que caem numa deny list de substrings do nome (`-tts`, `-image`, `imagen`, `veo`, `aqa`, `embedding`) — modelos que não devolvem prosa plana.
+- **`GenerateText(ctx, model, system, prompt) (string, error)`** — `POST /v1beta/{model}:generateContent` com uma instrução de sistema e um prompt de usuário, `generationConfig: {temperature: 0.2, maxOutputTokens: 2048}` (margem para modelos com "thinking" ligado por padrão, que consomem orçamento de saída antes de escrever). Devolve o texto concatenado do primeiro candidato; resposta vazia vira erro com o `finishReason` embutido.
+
+O modelo de embedding é resolvido a cada chamada via `Server.embedModelName()` — `settings['ai.embed_model']` quando preenchido, senão `EMBED_MODEL` do ambiente — nunca fixado uma única vez na inicialização do servidor, porque a seleção em Configurações pode mudar em runtime. O modelo de texto (`settings['ai.text_model']`) não tem default: os dois botões respondem `412` até o usuário escolher um.
 
 ## Armazenamento vetorial
 

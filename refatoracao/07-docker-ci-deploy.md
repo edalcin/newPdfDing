@@ -232,7 +232,7 @@ Lista final e fechada — nenhuma variável fora desta tabela é lida pelo biná
 | `TRUST_PROXY_HEADERS` | Não | `false` | Se `true`, confia nos cabeçalhos `X-Forwarded-*` (IP/proto) recebidos de um proxy reverso. |
 | `LOG_LEVEL` | Não | `info` | Nível de log do servidor. |
 | `GEMINI_API_KEY` | Não | *(vazio)* | Chave da API Gemini. Sem ela, a busca semântica fica desligada e o botão de embedding aparece desabilitado ([Busca Híbrida](04-busca-hibrida.md)). |
-| `EMBED_MODEL` | Não | `models/gemini-embedding-001` | Modelo usado na chamada `batchEmbedContents`. |
+| `EMBED_MODEL` | Não | `models/gemini-embedding-001` | Modelo usado na chamada `batchEmbedContents` — só o default; `settings['ai.embed_model']` em Configurações → IA tem precedência quando preenchido ([Modelo de dados](02-modelo-de-dados.md)). |
 | `CONSUME_ENABLE` | Não | `false` | Habilita a watch-dir de consumo automático. |
 | `CONSUME_DIR` | Não | `<FILES>/consume` | Diretório observado para importação automática de PDFs. |
 | `CONSUME_INTERVAL_MINUTES` | Não | `5` | Intervalo, em minutos, do ticker que varre `CONSUME_DIR`. |
@@ -290,6 +290,9 @@ LOG_LEVEL=info
 # ─── Busca semântica (opcional — vazio desliga a busca semântica) ────────────
 GEMINI_API_KEY=
 EMBED_MODEL=models/gemini-embedding-001
+# EMBED_MODEL é apenas o default: a seleção em Configurações → IA, quando
+# preenchida, tem precedência. O modelo de descrição/sugestão de tags é
+# escolhido só pela interface (Configurações → IA).
 
 # ─── Consumo automático via watch-dir (opcional) ──────────────────────────────
 CONSUME_ENABLE=false

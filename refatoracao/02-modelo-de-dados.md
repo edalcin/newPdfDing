@@ -165,6 +165,8 @@ Lista fechada — nenhuma outra chave é válida; `PATCH /api/settings` (ver [AP
 | `viewer.inverted` | `0` | `0\|1` (booleano) | — |
 | `viewer.keep_awake` | `0` | `0\|1` (booleano) | — |
 | `current.collection_id` | `""` (vazio) | UUIDv7 de um `collections.id` existente, ou vazio | Vazio = nenhuma coleção selecionada. |
+| `ai.embed_model` | `""` (vazio) | livre — nome de modelo Gemini, ou vazio | Vazio = usa o default `EMBED_MODEL` do ambiente ([Docker, CI e Deploy](07-docker-ci-deploy.md)). Resolvido por `Server.embedModelName()` a cada leitura, nunca fixado na inicialização — ver [Busca Híbrida](04-busca-hibrida.md). |
+| `ai.text_model` | `""` (vazio) | livre — nome de modelo Gemini, ou vazio | Modelo usado por "Descrever com IA" e "Sugerir tags". Vazio = os dois recursos ficam desabilitados (`412`) até o usuário escolher um em Configurações → IA — sem default embutido, porque o catálogo de modelos depende da chave do usuário. |
 
 ## Regra de normalização de tags
 
