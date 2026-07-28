@@ -38,5 +38,8 @@
 		"tailwind-merge": "^3.6.0",
 		"tailwind-variants": "^3.2.2",
 		"turndown": "^7.2.4"
+	},
+	"overrides": {
+		"cookie": "^0.7.0"
 	}
 }
