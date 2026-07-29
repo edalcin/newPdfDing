@@ -30,10 +30,10 @@ type Server struct {
 	throttle    *security.LoginThrottle
 	gemini      *store.GeminiClient // nil when GEMINI_API_KEY is unset — semantic search/embed disabled
 	embeds      *embedQueue         // fila em memória do worker de embedding assíncrono (ver embedqueue.go)
+	restart     func()              // triggers a process restart after handleAdminRestore swaps the DB file; overridden in tests
 	router      http.Handler
 }
 
-// New builds the chi router with all middleware and routes wired up.
 func New(cfg *config.Config, db *sql.DB) *Server {
 	s := &Server{
 		cfg:         cfg,
@@ -47,6 +47,7 @@ func New(cfg *config.Config, db *sql.DB) *Server {
 		throttle:    security.NewLoginThrottle(cfg.TrustProxyHeaders),
 		gemini:      store.NewGeminiClient(cfg.GeminiAPIKey),
 		embeds:      newEmbedQueue(),
+		restart:     defaultRestart,
 	}
 	s.pdfs = store.NewPDFStore(db, s.embedModelName)
 	s.router = s.buildRouter()

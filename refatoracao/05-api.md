@@ -241,14 +241,22 @@ Erros por rota:
 |---|---|---|---|
 | `GET` | `/api/admin/info` | — | `200` `{"version","pdfs_count","tags_count","collections_count","files_bytes","embedding_status_counts":{"none","current","stale"}}` |
 | `POST` | `/api/admin/reindex` | — | `200` `{"reindexed": true}` |
+| `GET` | `/api/admin/backup` | — | `200` binário `application/vnd.sqlite3`, `Content-Disposition: attachment` |
+| `POST` | `/api/admin/restore` | corpo bruto: arquivo `.db`/`.sqlite3` | `200` `{"restored": true, "restarting": true}` |
 
 Todas exigem **Sessão**.
 
 Erros por rota:
 - `GET /api/admin/info` → `401`, `500`.
 - `POST /api/admin/reindex` → `401`, `500`.
+- `GET /api/admin/backup` → `401`, `500`.
+- `POST /api/admin/restore` → `400` (upload vazio, não é SQLite, `PRAGMA integrity_check` falhou, ou faltam as tabelas `pdfs`/`tags`/`settings`), `401`, `413` (excede `MAX_UPLOAD_MB`), `500`.
 
 `POST /api/admin/reindex` reconstrói **somente** o índice FTS5 (`delete-all` + `INSERT ... SELECT`, ver [Busca híbrida](04-busca-hibrida.md)) — não dispara embedding de nada, porque embedding é sempre sob demanda. Não existe endpoint de storage: não há backend para escolher (ver [Storage](03-storage.md)).
+
+`GET /api/admin/backup` gera o arquivo com `VACUUM INTO` (primitiva nativa de backup online do SQLite): produz uma cópia coerente de arquivo único, sem WAL, mesmo com o servidor respondendo outras requisições — não pausa escritores. Contém apenas o banco (metadados, tags, anotações, configurações, embeddings); os PDFs em si vivem em `FILES` e não fazem parte do backup.
+
+`POST /api/admin/restore` valida o upload (`PRAGMA integrity_check` + presença das tabelas obrigatórias) antes de tocar no banco em uso. Validado, fecha a conexão ativa, remove os sidecars `-wal`/`-shm` do banco anterior e substitui o arquivo em `DB_PATH` pelo upload. Em seguida envia `SIGTERM` a si mesmo — o mesmo caminho de shutdown gracioso que o processo já usa para o sinal do SO (ver `cmd/newpdfding/main.go`) — para que a política de restart do container (`restart: unless-stopped` em `compose.yaml`) suba um processo novo com todo store e worker reabertos contra o arquivo restaurado. Fora de um orquestrador com restart automático, o processo simplesmente encerra após o `SIGTERM` e precisa ser iniciado de novo manualmente.
 
 ## Saúde
 

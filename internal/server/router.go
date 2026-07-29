@@ -74,6 +74,8 @@ func (s *Server) buildRouter() http.Handler {
 
 		protected.Get("/api/admin/info", s.handleAdminInfo)
 		protected.Post("/api/admin/reindex", s.handleAdminReindex)
+		protected.Get("/api/admin/backup", s.handleAdminBackup)
+		protected.Post("/api/admin/restore", s.handleAdminRestore)
 	})
 
 	// SPA estática embutida via go:embed — fallback para index.html em
