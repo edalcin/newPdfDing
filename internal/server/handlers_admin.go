@@ -85,7 +85,7 @@ func (s *Server) handleAdminBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := fmt.Sprintf("newpdfding-backup-%s.db", time.Now().Format("20060102-150405"))
+	filename := fmt.Sprintf("newpdfding-backup-%s.sqlite", time.Now().Format("2006-01-02"))
 	w.Header().Set("Content-Type", "application/vnd.sqlite3")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", info.Size()))
