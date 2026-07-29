@@ -177,6 +177,12 @@
 		if (suppressPersist || e.type === 'loaded') return;
 
 		if (e.type === 'create') {
+			// EmbedPDF emite 'create' duas vezes por anotação nova: uma vez
+			// otimista (`committed: false`, antes do engine persistir) e de
+			// novo após `commit()` confirmar (`committed: true`) — autoCommit
+			// está ligado em viewerConfig(). Sem este guard, cada destaque/
+			// comentário criado gerava duas linhas em pdf_annotations.
+			if (!e.committed) return;
 			const item: AnnotationTransferItem = { annotation: e.annotation, ctx: e.ctx };
 			const payload = toAnnotationPayload(item, lastSelectedText);
 			createAnnotation(id, payload.kind, payload.page, payload.text, {
