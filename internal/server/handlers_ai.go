@@ -24,15 +24,6 @@ const aiDescriptionChars = 1200
 // returns, mirroring the limit given to the model in the prompt.
 const aiMaxSuggestedTags = 5
 
-// embedModelName resolves the embedding model: a seleção em Configurações →
-// IA vence; EMBED_MODEL (env) é o default. Passado como closure ao PDFStore.
-func (s *Server) embedModelName() string {
-	if m := s.settings.Get("ai.embed_model"); m != "" {
-		return m
-	}
-	return s.cfg.EmbedModel
-}
-
 // aiTextModel is the generative model chosen in Configurações → IA, or ""
 // when the user has not chosen one — sem default embutido, porque nomes de
 // modelo dependem da chave de API do usuário.
@@ -72,13 +63,13 @@ func (s *Server) handleAIModels(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusPreconditionFailed, "GEMINI_API_KEY não configurada")
 		return
 	}
-	embed, text, err := s.gemini.ListModels(r.Context())
+	text, err := s.gemini.ListModels(r.Context())
 	if err != nil {
 		log.Printf("warning: gemini list models: %v", err)
 		writeJSONError(w, http.StatusBadGateway, "falha ao listar modelos da API Gemini")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"embed": embed, "text": text})
+	writeJSON(w, http.StatusOK, map[string]any{"text": text})
 }
 
 // ---------------------------------------------------------------------

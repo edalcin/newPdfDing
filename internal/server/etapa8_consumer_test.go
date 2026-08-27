@@ -33,7 +33,7 @@ func TestETAPA8_ConsumeWatchDir(t *testing.T) {
 	}
 	cfg := &config.Config{
 		DBPath: filepath.Join(dir, "db.sqlite"), AdminPassword: "correcthorse", Files: filesDir,
-		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200, EmbedModel: "mock-embed-model",
+		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200,
 		ConsumeEnable: true, ConsumeDir: consumeDir, ConsumeInterval: 5, ConsumeSkipExisting: true,
 		ConsumeTags: "imported auto",
 	}
@@ -108,7 +108,7 @@ func TestETAPA8_ConsumeDuplicateSkipped(t *testing.T) {
 	os.MkdirAll(consumeDir, 0o750)
 	cfg := &config.Config{
 		DBPath: filepath.Join(dir, "db.sqlite"), AdminPassword: "correcthorse", Files: filesDir,
-		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200, EmbedModel: "mock-embed-model",
+		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200,
 		ConsumeEnable: true, ConsumeDir: consumeDir, ConsumeInterval: 5, ConsumeSkipExisting: true,
 	}
 	srv := New(cfg, db)

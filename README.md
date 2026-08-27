@@ -44,7 +44,7 @@ Com `GEMINI_API_KEY` configurada, a página de detalhes de cada PDF ganha dois a
 - **Descrever com IA**: gera um parágrafo de até 60 palavras a partir do conteúdo e preenche/salva o campo Descrição — útil para os PDFs escaneados/importados que chegam sem descrição nenhuma.
 - **Sugerir tags**: lê o mesmo texto e sugere, como chips clicáveis, apenas tags que **já existem** no seu acervo — nunca inventa uma tag nova; um clique aplica a sugestão.
 
-O modelo usado em cada atalho — e o modelo de embedding da busca semântica acima — é escolhido em **Configurações → IA**, numa lista alimentada em tempo real pela `models.list` da própria chave configurada, sem modelo fixo no código. Sem `GEMINI_API_KEY`, os dois botões continuam visíveis mas respondem com uma mensagem clara pedindo a chave, em vez de falhar em silêncio.
+O modelo usado em cada atalho é escolhido em **Configurações → IA**, numa lista alimentada em tempo real pela `models.list` da própria chave configurada. O modelo de embedding da busca semântica, por sua vez, é fixo no binário (`models/gemini-embedding-2`, ver [`refatoracao/04-busca-hibrida.md`](refatoracao/04-busca-hibrida.md)) — trocá-lo exigiria recompilar, porque mudaria o `content_hash` e invalidaria todo vetor já gravado. Sem `GEMINI_API_KEY`, os dois botões continuam visíveis mas respondem com uma mensagem clara pedindo a chave, em vez de falhar em silêncio.
 
 ## Funcionalidades
 
@@ -114,14 +114,13 @@ Lista fechada — nenhuma variável fora dela é lida pelo binário. Ver [`.env.
 | `TRUST_PROXY_HEADERS` | Não | `false` |
 | `LOG_LEVEL` | Não | `info` |
 | `GEMINI_API_KEY` | Não | *(vazio — desliga a busca semântica)* |
-| `EMBED_MODEL` | Não | `models/gemini-embedding-001` |
 | `CONSUME_ENABLE` | Não | `false` |
 | `CONSUME_DIR` | Não | `<FILES>/consume` |
 | `CONSUME_INTERVAL_MINUTES` | Não | `5` |
 | `CONSUME_TAGS` | Não | `""` |
 | `CONSUME_SKIP_EXISTING` | Não | `true` |
 
-`EMBED_MODEL` e o modelo de texto usado por "Descrever com IA"/"Sugerir tags" também podem ser escolhidos em **Configurações → IA**, numa lista populada pela sua própria chave — a variável de ambiente vira só o default de embedding, nunca obrigatória além de existir a chave.
+O modelo de texto usado por "Descrever com IA"/"Sugerir tags" pode ser escolhido em **Configurações → IA**, numa lista populada pela sua própria chave. O modelo de embedding não é configurável: é fixo em `models/gemini-embedding-2` (ver [`refatoracao/04-busca-hibrida.md`](refatoracao/04-busca-hibrida.md)).
 
 ## Desenvolvimento
 

@@ -232,14 +232,13 @@ Lista final e fechada — nenhuma variável fora desta tabela é lida pelo biná
 | `TRUST_PROXY_HEADERS` | Não | `false` | Se `true`, confia nos cabeçalhos `X-Forwarded-*` (IP/proto) recebidos de um proxy reverso. |
 | `LOG_LEVEL` | Não | `info` | Nível de log do servidor. |
 | `GEMINI_API_KEY` | Não | *(vazio)* | Chave da API Gemini. Sem ela, a busca semântica fica desligada e o botão de embedding aparece desabilitado ([Busca Híbrida](04-busca-hibrida.md)). |
-| `EMBED_MODEL` | Não | `models/gemini-embedding-001` | Modelo usado na chamada `batchEmbedContents` — só o default; `settings['ai.embed_model']` em Configurações → IA tem precedência quando preenchido ([Modelo de dados](02-modelo-de-dados.md)). |
 | `CONSUME_ENABLE` | Não | `false` | Habilita a watch-dir de consumo automático. |
 | `CONSUME_DIR` | Não | `<FILES>/consume` | Diretório observado para importação automática de PDFs. |
 | `CONSUME_INTERVAL_MINUTES` | Não | `5` | Intervalo, em minutos, do ticker que varre `CONSUME_DIR`. |
 | `CONSUME_TAGS` | Não | `""` | Tags aplicadas automaticamente aos PDFs importados pela watch-dir. |
 | `CONSUME_SKIP_EXISTING` | Não | `true` | Pula (não importa) um arquivo cujo hash já exista no acervo. |
 
-Mecânica completa da busca semântica sob demanda em [Busca Híbrida](04-busca-hibrida.md).
+O modelo de embedding não é uma variável de ambiente: é a constante `config.EmbedModel = "models/gemini-embedding-2"`, fixa no código — trocá-lo exige um commit, porque muda o `content_hash` e invalida todo vetor já gravado. Mecânica completa da busca semântica sob demanda em [Busca Híbrida](04-busca-hibrida.md).
 
 ## Variáveis eliminadas
 
@@ -289,10 +288,9 @@ LOG_LEVEL=info
 
 # ─── Busca semântica (opcional — vazio desliga a busca semântica) ────────────
 GEMINI_API_KEY=
-EMBED_MODEL=models/gemini-embedding-001
-# EMBED_MODEL é apenas o default: a seleção em Configurações → IA, quando
-# preenchida, tem precedência. O modelo de descrição/sugestão de tags é
-# escolhido só pela interface (Configurações → IA).
+# O modelo de embedding é fixo no binário (models/gemini-embedding-2); trocá-lo exige
+# recompilar, porque muda o content_hash e invalidaria todo vetor já gravado. O modelo
+# de descrição/sugestão de tags é escolhido pela interface (Configurações → IA).
 
 # ─── Consumo automático via watch-dir (opcional) ──────────────────────────────
 CONSUME_ENABLE=false
@@ -313,6 +311,10 @@ services:
     build: .
     image: ghcr.io/edalcin/newpdfding:latest
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    mem_limit: 1g  # limite de memória: um processo descontrolado vira restart do container, não crash do host
     ports:
       - "8000:8000"
     env_file:
@@ -342,6 +344,8 @@ volumes:
 | Port | Container `8000` → Host `8000` (ou outra porta livre do host) | Porta HTTP do binário — variável `LISTEN_ADDR`, default `:8000`. |
 | Path | Container `/data` → Host `/mnt/user/appdata/newpdfding` | Contém o arquivo SQLite (`DB_PATH`). Precisa ser gravável pelo container. |
 | Path | Container `/files` → Host `<share de PDFs escolhido pelo usuário>` | Acervo de PDFs (`FILES`). Precisa ser gravável pelo container. |
+| Path | Container `/files/tmp` → Host `/mnt/user/Storage/appsdata/newpdfding/temp` | Diretório temporário usado pela extração de texto de PDF. Precisa ficar num volume de disco: no Unraid, `/tmp` é RAM, e gravar ali um arquivo temporário de um PDF grande esgotaria a memória do host. Precisa ser gravável pelo container. |
+| Extra Parameters | `--read-only --cap-drop=ALL --memory=1g` | `--read-only --cap-drop=ALL`: a imagem é distroless e só escreve nos volumes `/data`, `/files` e `/files/tmp` acima. `--memory=1g`: limite de memória do container — um processo descontrolado vira reinício do container, não um travamento do host. |
 
 ### Variáveis de ambiente obrigatórias
 
@@ -356,7 +360,8 @@ volumes:
 | Variável | Valor sugerido |
 |---|---|
 | `GEMINI_API_KEY` | Chave da API Gemini — sem ela, a busca semântica fica desligada e o botão de embedding aparece desabilitado. |
-| `EMBED_MODEL` | `models/gemini-embedding-001` (default; normalmente não precisa mudar). |
+
+O modelo de embedding usado pela busca semântica é fixo no binário (`models/gemini-embedding-2`) — não existe variável de ambiente para trocá-lo; mudar o modelo exige um novo build.
 
 ### Troubleshooting
 

@@ -81,6 +81,7 @@ export interface AdminInfo {
 	pdfs_count: number;
 	tags_count: number;
 	files_bytes: number;
+	embed_model: string;
 	embedding_status_counts: Record<EmbeddingStatus, number>;
 }
 
@@ -96,7 +97,6 @@ export interface Settings {
 	'annotation.sorting': string;
 	'viewer.inverted': '0' | '1';
 	'viewer.keep_awake': '0' | '1';
-	'ai.embed_model': string;
 	'ai.text_model': string;
 }
 
@@ -106,6 +106,5 @@ export interface AIModel {
 }
 
 export interface AIModels {
-	embed: AIModel[];
 	text: AIModel[];
 }

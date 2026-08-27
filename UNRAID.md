@@ -11,7 +11,8 @@ Guia de instalação manual via **Docker → Add Container** no Unraid. Não há
 | Port | Container `8000` → Host `8000` (ou outra porta livre do host) | Porta HTTP do binário — variável `LISTEN_ADDR`, default `:8000`. |
 | Path | Container `/data` → Host `/mnt/user/appdata/newpdfding` | Contém o arquivo SQLite (`DB_PATH`). Precisa ser gravável pelo container. |
 | Path | Container `/files` → Host `<share de PDFs escolhido pelo usuário>` | Acervo de PDFs (`FILES`). Precisa ser gravável pelo container. |
-| Extra Parameters | `--read-only --cap-drop=ALL` | Recomendado (ver [`refatoracao/08-seguranca.md`](refatoracao/08-seguranca.md#menor-privilégio)): a imagem é distroless e só escreve nos volumes `/data` e `/files` acima, então travar o resto do filesystem como somente-leitura e derrubar todas as capabilities Linux não quebra nada. |
+| Path | Container `/files/tmp` → Host `/mnt/user/Storage/appsdata/newpdfding/temp` | Diretório temporário usado pela extração de texto de PDF. Precisa ficar num volume de disco: no Unraid, `/tmp` é RAM, e gravar ali um arquivo temporário de um PDF grande esgotaria a memória do host. Precisa ser gravável pelo container. |
+| Extra Parameters | `--read-only --cap-drop=ALL --memory=1g` | `--read-only --cap-drop=ALL` (ver [`refatoracao/08-seguranca.md`](refatoracao/08-seguranca.md#menor-privilégio)): a imagem é distroless e só escreve nos volumes `/data`, `/files` e `/files/tmp` acima, então travar o resto do filesystem como somente-leitura e derrubar todas as capabilities Linux não quebra nada. `--memory=1g`: limite de memória do container — um processo descontrolado vira reinício do container, não um travamento do host. |
 
 ## Variáveis de ambiente obrigatórias
 
@@ -26,7 +27,8 @@ Guia de instalação manual via **Docker → Add Container** no Unraid. Não há
 | Variável | Valor sugerido |
 |---|---|
 | `GEMINI_API_KEY` | Chave da API Gemini — sem ela, a busca semântica fica desligada e o botão de embedding aparece desabilitado. |
-| `EMBED_MODEL` | `models/gemini-embedding-001` (default; normalmente não precisa mudar). |
+
+O modelo de embedding usado pela busca semântica é fixo no binário (`models/gemini-embedding-2`, ver [`refatoracao/04-busca-hibrida.md`](refatoracao/04-busca-hibrida.md)) — não existe variável de ambiente para trocá-lo; mudar o modelo exige um novo build.
 
 Lista completa de variáveis (incluindo consumo automático via watch-dir): ver [`.env.example`](.env.example) e [`refatoracao/07-docker-ci-deploy.md`](refatoracao/07-docker-ci-deploy.md).
 

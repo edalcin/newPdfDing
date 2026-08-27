@@ -2,7 +2,7 @@
 
 Este documento fixa o desenho da busca híbrida: índice léxico FTS5, embeddings semânticos Gemini sob demanda, e fusão por Reciprocal Rank Fusion (RRF) numa caixa única. É a implementação das decisões 4, 5 e 6 de [Visão geral](00-visao-geral.md) — caixa única de busca, embedding só sob acionamento manual (nunca automático), vetor como BLOB com cosseno calculado em Go.
 
-As tabelas envolvidas (`pdfs_fts`, `pdf_text`, `pdf_embeddings`) estão definidas em [Modelo de dados](02-modelo-de-dados.md); o contrato HTTP completo (rotas, payloads, códigos de status) está em [API](05-api.md); o botão de embedding na interface está em [Frontend](06-frontend.md); as variáveis de ambiente `GEMINI_API_KEY` e `EMBED_MODEL` estão em [Docker, CI e deploy](07-docker-ci-deploy.md).
+As tabelas envolvidas (`pdfs_fts`, `pdf_text`, `pdf_embeddings`) estão definidas em [Modelo de dados](02-modelo-de-dados.md); o contrato HTTP completo (rotas, payloads, códigos de status) está em [API](05-api.md); o botão de embedding na interface está em [Frontend](06-frontend.md); a variável de ambiente `GEMINI_API_KEY` está em [Docker, CI e deploy](07-docker-ci-deploy.md). O modelo de embedding não é configurável: é a constante `config.EmbedModel = "models/gemini-embedding-2"`, fixada no código.
 
 ## Índice léxico (FTS5)
 
@@ -102,7 +102,7 @@ text := pdf.Name + "\n" + pdf.Description + "\n" + firstNChars(pdfText.Body, emb
 Hash de conteúdo, gravado junto com o vetor em `pdf_embeddings.content_hash`:
 
 ```
-content_hash = sha256(EMBED_MODEL + "\x00" + text)
+content_hash = sha256(config.EmbedModel + "\x00" + text)
 ```
 
 Cada acionamento do botão dispara **uma chamada à API com um único texto** — não existe endpoint de embedding em lote, porque não existe processamento em massa (decisão 5 em [Visão geral](00-visao-geral.md)).
@@ -112,12 +112,12 @@ Cada acionamento do botão dispara **uma chamada à API com um único texto** �
 Formato literal da chamada (autenticação por header, não por query string — ver "Autenticação por header" abaixo):
 
 ```http
-POST https://generativelanguage.googleapis.com/v1beta/{EMBED_MODEL}:batchEmbedContents
+POST https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:batchEmbedContents
 Content-Type: application/json
 x-goog-api-key: {GEMINI_API_KEY}
 ```
 
-Corpo (literal): `{"requests":[{"model":"<EMBED_MODEL>","content":{"parts":[{"text":"..."}]}}]}`
+Corpo (literal): `{"requests":[{"model":"models/gemini-embedding-2","content":{"parts":[{"text":"..."}]}}]}`
 
 Resposta (literal): `{"embeddings":[{"values":[...]}]}`
 
@@ -127,7 +127,7 @@ Expandido para leitura:
 {
   "requests": [
     {
-      "model": "<EMBED_MODEL>",
+      "model": "models/gemini-embedding-2",
       "content": { "parts": [{ "text": "..." }] }
     }
   ]
@@ -142,7 +142,7 @@ Expandido para leitura:
 }
 ```
 
-Default: `EMBED_MODEL=models/gemini-embedding-001` — variável documentada em [Docker, CI e deploy](07-docker-ci-deploy.md). A seleção em Configurações → IA (`settings['ai.embed_model']`, ver [Modelo de dados](02-modelo-de-dados.md)), quando preenchida, tem precedência sobre a variável.
+O modelo é sempre `config.EmbedModel` — constante fixa no código, sem variável de ambiente nem chave de configuração equivalente. Trocá-lo exige um commit, porque muda o `content_hash` (abaixo) e invalida todo vetor já gravado.
 
 Referência de implementação Go (mesma forma de `pkd` `internal/store/semantic.go:embedBatch`, adaptada para um texto por chamada):
 
@@ -169,28 +169,24 @@ Todas as chamadas ao Gemini (embed, listagem de modelos, geração de texto) env
 
 Além de `Embed`, `GeminiClient` expõe dois métodos usados pela área "Configurações → IA" e pelos botões "Descrever com IA"/"Sugerir tags" na página do PDF (contrato HTTP completo em [API](05-api.md)):
 
-- **`ListModels(ctx) (embed, text []GeminiModel, err error)`** — `GET /v1beta/models?pageSize=1000`, paginado (máximo 5 páginas), dividindo o catálogo por capacidade: `embed` = modelos com `embedContent` em `supportedGenerationMethods`; `text` = modelos com `generateContent`, exceto os que caem numa deny list de substrings do nome (`-tts`, `-image`, `imagen`, `veo`, `aqa`, `embedding`) — modelos que não devolvem prosa plana.
+- **`ListModels(ctx) (text []GeminiModel, err error)`** — `GET /v1beta/models?pageSize=1000`, paginado (máximo 5 páginas), devolvendo só os modelos de texto: os que têm `generateContent` em `supportedGenerationMethods`, exceto os que caem numa deny list de substrings do nome (`-tts`, `-image`, `imagen`, `veo`, `aqa`, `embedding`) — modelos que não devolvem prosa plana. O modelo de embedding não entra nessa listagem porque não é escolhível: é a constante `config.EmbedModel`.
 - **`GenerateText(ctx, model, system, prompt) (string, error)`** — `POST /v1beta/{model}:generateContent` com uma instrução de sistema e um prompt de usuário, `generationConfig: {temperature: 0.2, maxOutputTokens: 2048}` (margem para modelos com "thinking" ligado por padrão, que consomem orçamento de saída antes de escrever). Devolve o texto concatenado do primeiro candidato; resposta vazia vira erro com o `finishReason` embutido.
 
-O modelo de embedding é resolvido a cada chamada via `Server.embedModelName()` — `settings['ai.embed_model']` quando preenchido, senão `EMBED_MODEL` do ambiente — nunca fixado uma única vez na inicialização do servidor, porque a seleção em Configurações pode mudar em runtime. O modelo de texto (`settings['ai.text_model']`) não tem default: os dois botões respondem `412` até o usuário escolher um.
+O modelo de embedding usado em cada chamada é sempre `config.EmbedModel`, sem resolução em runtime. O modelo de texto (`settings['ai.text_model']`) não tem default: os dois botões respondem `412` até o usuário escolher um em Configurações → IA.
 
 ## Armazenamento vetorial
 
 O vetor é gravado em `pdf_embeddings.embedding` como `float32` little-endian concatenados num `BLOB`, via um par de funções `encodeEmbedding`/`decodeEmbedding`. A normalização L2 acontece **na gravação**, não na consulta — assim a similaridade de cosseno na busca é um produto escalar puro, sem recalcular norma a cada comparação.
 
-`gemini-embedding-001` produz vetores de **3072 dimensões**: 3072 × 4 bytes ≈ 12 KB por vetor; a 20.000 PDFs isso é ~245 MB de BLOB acumulado em `pdf_embeddings`. **Contingência pré-decidida, não implementada nesta refatoração**: se esse tamanho (ou o custo do KNN, abaixo) incomodar, pedir `outputDimensionality: 768` na chamada `batchEmbedContents` — o modelo suporta truncamento MRL (Matryoshka Representation Learning) — e renormalizar o vetor truncado, sem trocar de modelo nem de arquitetura.
+`gemini-embedding-2` (como `gemini-embedding-001`, que substituiu) produz vetores de **3072 dimensões**: 3072 × 4 bytes ≈ 12 KB por vetor; a 20.000 PDFs isso é ~245 MB de BLOB acumulado em `pdf_embeddings`. **Contingência pré-decidida, não implementada nesta refatoração**: se esse tamanho (ou o custo do KNN, abaixo) incomodar, pedir `outputDimensionality: 768` na chamada `batchEmbedContents` — o modelo suporta truncamento MRL (Matryoshka Representation Learning) — e renormalizar o vetor truncado, sem trocar de modelo nem de arquitetura.
 
-Trocar o modelo de embedding pode trocar a dimensionalidade dos vetores. Como o `content_hash` inclui o nome do modelo, todo vetor gravado pelo modelo anterior fica `stale` na hora — mas continua no banco até ser reembedado. Comparar um vetor de 3072 dimensões com um de outro tamanho não faz sentido algum, e um produto escalar sobre o prefixo comum produziria uma pontuação falsa capaz de passar do `semanticFloor`. Por isso `dotProduct` devolve `0` quando os comprimentos diferem: os vetores do modelo antigo simplesmente não pontuam até serem regravados (ver "Reembedar o acervo inteiro", abaixo).
+O guard de dimensionalidade vale mesmo com modelo fixo: como o `content_hash` inclui o nome do modelo, qualquer vetor gravado por um modelo diferente do atual fica `stale` na hora, mas continua no banco até ser reembedado. Comparar um vetor de 3072 dimensões com um de outro tamanho (ou de um espaço vetorial incompatível) não faz sentido algum, e um produto escalar sobre o prefixo comum produziria uma pontuação falsa capaz de passar do `semanticFloor`. Por isso `dotProduct` devolve `0` quando os comprimentos diferem. `gemini-embedding-2` tem a mesma dimensionalidade (3072) de `gemini-embedding-001`, mas os dois modelos produzem espaços vetoriais incompatíveis entre si — comparar um vetor de um com o outro dá pontuação sem sentido mesmo com o mesmo tamanho; por isso os vetores gravados com `-001` foram apagados do banco em vez de reaproveitados.
 
 ## Sem worker, sem automatismo
 
 Decisão explícita, não um detalhe de implementação em aberto: **não existe** goroutine de varredura, `time.Ticker`, canal `notify()`, nem varredura no boot para embedding. `EMBED_SWEEP_MINUTES` **não existe** como variável de ambiente — o único processo periódico do produto é o consumo por watch-dir (`CONSUME_INTERVAL_MINUTES`); embedding não é ele, e não há job de backup nesta refatoração (decisão 8 em [Visão geral](00-visao-geral.md)).
 
-O **único** caminho de código que grava em `pdf_embeddings` é o handler de `POST /api/pdfs/{id}/embed` (contrato completo em [API](05-api.md)). Um `sync.Mutex` no servidor serializa os acionamentos do botão: nunca há duas chamadas simultâneas à API Gemini. Um segundo clique enquanto o primeiro ainda está em curso recebe `409`.
-
-### Reembedar o acervo inteiro
-
-Trocar `settings['ai.embed_model']` em Configurações → IA marca **todos** os embeddings existentes como `stale` de uma vez, e um acervo grande não se reembeda clique por clique. `POST /api/admin/reembed` (contrato em [API](05-api.md)) resolve isso sem quebrar a decisão acima: ele **não** é automatismo — é uma ação explícita do usuário em Administração — e não abre um segundo caminho de gravação, apenas enfileira no mesmo worker serial todos os `pdf_id` cujo `embedding_status` não é `current`. Diferente do botão individual, o envio ao canal é bloqueante (não existe cliente esperando um `503`), o que auto-regula a fila: no máximo `cap(ch)` jobs ficam à frente do worker, então o mapa de jobs lido por `GET /api/embed/jobs` nunca cresce até o tamanho do acervo.
+O **único** caminho de código que grava em `pdf_embeddings` é o handler de `POST /api/pdfs/{id}/embed` (contrato completo em [API](05-api.md)). Um `sync.Mutex` no servidor serializa os acionamentos do botão: nunca há duas chamadas simultâneas à API Gemini. Um segundo clique enquanto o primeiro ainda está em curso recebe `409`. Documentos são embedados um de cada vez, por ação explícita do usuário, através do botão em cada card — não existe reembedagem em lote.
 
 ## Estado de embedding (`embedding_status`)
 
@@ -200,12 +196,12 @@ Campo derivado devolvido em `GET /api/pdfs` e `GET /api/pdfs/{id}` (contrato em 
 |---|---|---|---|
 | `none` | não existe linha em `pdf_embeddings` para o `pdf_id` | habilitado | "Embedar" |
 | `current` | existe linha e `content_hash` bate com o hash do conteúdo atual | desabilitado | "Embedado" |
-| `stale` | existe linha mas `content_hash` diverge (nome, descrição ou texto mudaram, ou `EMBED_MODEL` mudou) | habilitado | "Reembedar" |
+| `stale` | existe linha mas `content_hash` diverge — nome, descrição ou texto mudaram | habilitado | "Reembedar" |
 
 O hash atual **não** é uma coluna extra no schema — é recalculado em Go a cada leitura, sobre os mesmos campos usados na gravação:
 
 ```go
-current := sha256Hex(embedModel + "\x00" + buildEmbedText(pdf, pdfText))
+current := sha256Hex(config.EmbedModel + "\x00" + buildEmbedText(pdf, pdfText))
 
 switch {
 case row == nil:

@@ -165,6 +165,9 @@ func ContentHash(embedModel, text string) string { return contentHash(embedModel
 // attachEmbeddingStatus derives embedding_status for each PDF in items (ver
 // 04-busca-hibrida.md, "Estado de embedding") and sets p.EmbeddingStatus.
 // The hash is recomputed on every read, never cached — an accepted cost.
+// Only the first embedBodyChars characters of the body travel from SQLite:
+// buildEmbedText truncates to the same cap anyway, and a handful of ids at
+// a time (paginated listing) makes the IN (...) clause legitimate here.
 func (s *PDFStore) attachEmbeddingStatus(items []PDF) error {
 	if len(items) == 0 {
 		return nil
@@ -176,7 +179,8 @@ func (s *PDFStore) attachEmbeddingStatus(items []PDF) error {
 	placeholders, args := idPlaceholders(ids)
 
 	bodies := make(map[string]string, len(ids))
-	rows, err := s.db.Query(fmt.Sprintf(`SELECT pdf_id, body FROM pdf_text WHERE pdf_id IN (%s)`, placeholders), args...)
+	bodyArgs := append([]any{embedBodyChars}, args...)
+	rows, err := s.db.Query(fmt.Sprintf(`SELECT pdf_id, substr(body, 1, ?) FROM pdf_text WHERE pdf_id IN (%s)`, placeholders), bodyArgs...)
 	if err != nil {
 		return err
 	}
@@ -233,70 +237,51 @@ func (s *PDFStore) attachEmbeddingStatus(items []PDF) error {
 // PDFStats is the aggregate view GET /api/admin/info reports (ver
 // 05-api.md, "Admin").
 type PDFStats struct {
-	Total                int
+	Total                 int
 	EmbeddingStatusCounts map[string]int // keys "none"|"current"|"stale"
 }
 
-// allWithEmbeddingStatus loads every PDF with its derived embedding_status.
-func (s *PDFStore) allWithEmbeddingStatus() ([]PDF, error) {
-	rows, err := s.db.Query(`SELECT id, name, description FROM pdfs ORDER BY id`)
-	if err != nil {
-		return nil, err
-	}
-	var items []PDF
-	for rows.Next() {
-		var p PDF
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description); err != nil {
-			rows.Close()
-			return nil, err
-		}
-		items = append(items, p)
-	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
-		return nil, err
-	}
-	rows.Close()
-
-	if err := s.attachEmbeddingStatus(items); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 // Stats computes the total PDF count and the embedding_status breakdown
-// across the whole acervo, reusing the same per-row derivation as every
-// other read (ver attachEmbeddingStatus) so the counts can never drift
-// from what GET /api/pdfs reports.
+// across the whole acervo with one streaming query — LEFT JOIN instead of
+// the IN (...) clause attachEmbeddingStatus uses, because here every row
+// in the table is in scope, never just a page of ~25. Only a running count
+// is kept: no body, vector or even a []PDF for the whole acervo is ever
+// held in memory at once (ver docs/proximosPassos.md, OOM em ~160 PDFs).
 func (s *PDFStore) Stats() (PDFStats, error) {
-	items, err := s.allWithEmbeddingStatus()
+	rows, err := s.db.Query(`
+		SELECT p.name, p.description, substr(t.body, 1, ?) AS body, e.content_hash
+		FROM pdfs p
+		LEFT JOIN pdf_text t ON t.pdf_id = p.id
+		LEFT JOIN pdf_embeddings e ON e.pdf_id = p.id`, embedBodyChars)
 	if err != nil {
 		return PDFStats{}, err
 	}
-	counts := map[string]int{"none": 0, "current": 0, "stale": 0}
-	for _, p := range items {
-		counts[p.EmbeddingStatus]++
-	}
-	return PDFStats{Total: len(items), EmbeddingStatusCounts: counts}, nil
-}
+	defer rows.Close()
 
-// PendingEmbeddingIDs returns the ids of every PDF whose embedding is not
-// current for the model in effect now — "none" (never embedded) plus
-// "stale" (content or embedding model changed). Feeds POST
-// /api/admin/reembed, so switching the model in Configurações → IA can be
-// applied to the whole acervo in one action.
-func (s *PDFStore) PendingEmbeddingIDs() ([]string, error) {
-	items, err := s.allWithEmbeddingStatus()
-	if err != nil {
-		return nil, err
-	}
-	var ids []string
-	for _, p := range items {
-		if p.EmbeddingStatus != "current" {
-			ids = append(ids, p.ID)
+	model := s.embedModel()
+	counts := map[string]int{"none": 0, "current": 0, "stale": 0}
+	total := 0
+	for rows.Next() {
+		var name, description string
+		var body, storedHash sql.NullString
+		if err := rows.Scan(&name, &description, &body, &storedHash); err != nil {
+			return PDFStats{}, err
+		}
+		total++
+		if !storedHash.Valid {
+			counts["none"]++
+			continue
+		}
+		if storedHash.String == contentHash(model, buildEmbedText(name, description, body.String)) {
+			counts["current"]++
+		} else {
+			counts["stale"]++
 		}
 	}
-	return ids, nil
+	if err := rows.Err(); err != nil {
+		return PDFStats{}, err
+	}
+	return PDFStats{Total: total, EmbeddingStatusCounts: counts}, nil
 }
 
 // ---------------------------------------------------------------------
@@ -452,7 +437,7 @@ type geminiBatchResponse struct {
 }
 
 // Embed returns the raw (not yet normalized) embedding vector for text,
-// using the caller-supplied model (ver Server.embedModelName).
+// using the caller-supplied model (ver config.EmbedModel).
 func (c *GeminiClient) Embed(ctx context.Context, model, text string) ([]float32, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -506,42 +491,42 @@ func isDeniedTextModel(name string) bool {
 	return false
 }
 
-// ListModels returns every model the API key can see, split by capability:
-// embed = suporta embedContent; text = suporta generateContent e não cai na
-// deny list acima. Ambas as listas vêm ordenadas por Name.
-func (c *GeminiClient) ListModels(ctx context.Context) (embed, text []GeminiModel, err error) {
+// ListModels returns every model the API key can see that supports
+// generateContent and isn't in the text deny list acima, ordenado por
+// Name. O modelo de embedding não é mais escolhido pelo usuário (ver
+// config.EmbedModel).
+func (c *GeminiClient) ListModels(ctx context.Context) (text []GeminiModel, err error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	embed = []GeminiModel{}
 	text = []GeminiModel{}
 
 	path := "/v1beta/models?pageSize=1000"
 	for range 5 {
 		body, doErr := c.do(ctx, http.MethodGet, path, nil)
 		if doErr != nil {
-			return nil, nil, doErr
+			return nil, doErr
 		}
 		var out geminiListModelsResponse
 		if unmarshalErr := json.Unmarshal(body, &out); unmarshalErr != nil {
-			return nil, nil, fmt.Errorf("gemini list models: decode response: %w", unmarshalErr)
+			return nil, fmt.Errorf("gemini list models: decode response: %w", unmarshalErr)
 		}
 		for _, m := range out.Models {
+			supportsText := false
+			for _, method := range m.SupportedGenerationMethods {
+				if method == "generateContent" {
+					supportsText = true
+					break
+				}
+			}
+			if !supportsText || isDeniedTextModel(m.Name) {
+				continue
+			}
 			displayName := m.DisplayName
 			if displayName == "" {
 				displayName = m.Name
 			}
-			model := GeminiModel{Name: m.Name, DisplayName: displayName}
-			for _, method := range m.SupportedGenerationMethods {
-				switch method {
-				case "embedContent":
-					embed = append(embed, model)
-				case "generateContent":
-					if !isDeniedTextModel(m.Name) {
-						text = append(text, model)
-					}
-				}
-			}
+			text = append(text, GeminiModel{Name: m.Name, DisplayName: displayName})
 		}
 		if out.NextPageToken == "" {
 			break
@@ -549,9 +534,8 @@ func (c *GeminiClient) ListModels(ctx context.Context) (embed, text []GeminiMode
 		path = "/v1beta/models?pageSize=1000&pageToken=" + url.QueryEscape(out.NextPageToken)
 	}
 
-	sort.Slice(embed, func(i, j int) bool { return embed[i].Name < embed[j].Name })
 	sort.Slice(text, func(i, j int) bool { return text[i].Name < text[j].Name })
-	return embed, text, nil
+	return text, nil
 }
 
 type geminiPart struct {

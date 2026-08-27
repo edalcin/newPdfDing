@@ -90,7 +90,7 @@ func testServer(t *testing.T, withGemini bool) (*Server, *httptest.Server) {
 	}
 	cfg := &config.Config{
 		DBPath: filepath.Join(dir, "db.sqlite"), AdminPassword: "correcthorse", Files: filesDir,
-		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200, EmbedModel: "mock-embed-model",
+		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200,
 	}
 	if withGemini {
 		cfg.GeminiAPIKey = "fake-test-key"

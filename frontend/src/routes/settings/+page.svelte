@@ -21,9 +21,8 @@
 	let inverted = $state(false);
 	let keepAwake = $state(false);
 	let showProgressBars = $state(true);
-	let embedModel = $state('');
 	let textModel = $state('');
-	let aiModels = $state<AIModels>({ embed: [], text: [] });
+	let aiModels = $state<AIModels>({ text: [] });
 	let aiError = $state('');
 
 	let loaded = $state(false);
@@ -39,7 +38,6 @@
 			inverted = settings['viewer.inverted'] === '1';
 			keepAwake = settings['viewer.keep_awake'] === '1';
 			showProgressBars = settings['ui.show_progress_bars'] === '1';
-			embedModel = settings['ai.embed_model'];
 			textModel = settings['ai.text_model'];
 		} catch {
 			// defaults stand
@@ -102,11 +100,6 @@
 		patch('ui.show_progress_bars', next ? '1' : '0');
 	}
 
-	function setEmbedModel(next: string) {
-		embedModel = next;
-		patch('ai.embed_model', next);
-	}
-
 	function setTextModel(next: string) {
 		textModel = next;
 		patch('ai.text_model', next);
@@ -118,7 +111,6 @@
 		if (!current || list.some((m) => m.name === current)) return list;
 		return [{ name: current, display_name: `${current} (indisponível)` }, ...list];
 	}
-	const embedOptions = $derived(withCurrent(aiModels.embed, embedModel));
 	const textOptions = $derived(withCurrent(aiModels.text, textModel));
 
 </script>
@@ -230,28 +222,6 @@
 				{#if aiError}
 					<p class="text-sm text-muted-foreground">{aiError}</p>
 				{/if}
-				<div>
-					<div class="flex items-center justify-between gap-4">
-						<span class="text-sm">Modelo de embedding</span>
-						<select
-							class="h-9 rounded-md border border-input bg-background px-3 text-sm"
-							value={embedModel}
-							disabled={!!aiError}
-							onchange={(e) => setEmbedModel((e.target as HTMLSelectElement).value)}
-						>
-							<option value="">Padrão do servidor (EMBED_MODEL)</option>
-							{#each embedOptions as m (m.name)}
-								<option value={m.name}>{m.display_name}</option>
-							{/each}
-						</select>
-					</div>
-					<p class="mt-1 text-xs text-muted-foreground">
-						Trocar o modelo de embedding marca todos os embeddings existentes como
-						desatualizados. Use <a class="underline" href="/admin">Administração → Reembedar pendentes</a>
-						para reembedar o acervo inteiro com o novo modelo; até então, os documentos
-						desatualizados ficam fora da busca semântica.
-					</p>
-				</div>
 				<div class="flex items-center justify-between gap-4">
 					<span class="text-sm">Modelo para descrição e sugestão de tags</span>
 					<select

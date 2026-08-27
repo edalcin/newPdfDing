@@ -49,7 +49,7 @@ func New(cfg *config.Config, db *sql.DB) *Server {
 		embeds:      newEmbedQueue(),
 		restart:     defaultRestart,
 	}
-	s.pdfs = store.NewPDFStore(db, s.embedModelName)
+	s.pdfs = store.NewPDFStore(db, func() string { return config.EmbedModel })
 	s.router = s.buildRouter()
 	return s
 }

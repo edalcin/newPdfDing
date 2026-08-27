@@ -11,6 +11,10 @@ import (
 // Config holds runtime configuration loaded from environment variables.
 // Fields are added incrementally, one per etapa, as the code that consumes
 // them lands — see refatoracao/07-docker-ci-deploy.md for the full target list.
+
+// EmbedModel é o único modelo de embedding suportado. Trocá-lo invalida todo vetor gravado.
+const EmbedModel = "models/gemini-embedding-2"
+
 type Config struct {
 	// Required
 	DBPath        string
@@ -24,7 +28,6 @@ type Config struct {
 	TrustProxyHeaders   bool
 	MaxUploadMB         int64
 	GeminiAPIKey        string // empty disables semantic search entirely
-	EmbedModel          string
 	BaseURL             string // empty = derive from the incoming request's Host header
 	ConsumeEnable       bool
 	ConsumeDir          string // default <FILES>/consume, resolved after FILES is known
@@ -60,7 +63,6 @@ func Load() (*Config, error) {
 		SessionIdleMinutes:  43200,
 		TrustProxyHeaders:   false,
 		MaxUploadMB:         200,
-		EmbedModel:          "models/gemini-embedding-001",
 		ConsumeDir:          files + string(os.PathSeparator) + "consume",
 		ConsumeInterval:     5,
 		ConsumeSkipExisting: true,
@@ -100,10 +102,6 @@ func Load() (*Config, error) {
 
 	if v := os.Getenv("GEMINI_API_KEY"); v != "" {
 		cfg.GeminiAPIKey = v
-	}
-
-	if v := os.Getenv("EMBED_MODEL"); v != "" {
-		cfg.EmbedModel = v
 	}
 
 	if v := os.Getenv("BASE_URL"); v != "" {

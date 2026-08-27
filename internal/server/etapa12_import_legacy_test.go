@@ -98,7 +98,7 @@ func TestETAPA12_ImportLegacy(t *testing.T) {
 	}
 	cfg := &config.Config{
 		DBPath: filepath.Join(dir, "db.sqlite"), AdminPassword: "correcthorse", Files: filesDir,
-		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200, EmbedModel: "mock-embed-model",
+		ListenAddr: ":0", SessionIdleMinutes: 43200, MaxUploadMB: 200,
 	}
 	srv := New(cfg, db)
 

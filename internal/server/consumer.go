@@ -112,6 +112,27 @@ func (s *Server) consumeFile(ctx context.Context, path string) {
 	}
 }
 
+// extractedTextCapBytes bounds how much text extractPDFText keeps per PDF.
+// Without it, GetPlainText() on a large scanned/OCR'd PDF (MAX_UPLOAD_MB
+// defaults to 200) can parse into a multi-hundred-MB string and blow out
+// memory. Mirrors TEXT_LIMIT_BYTES in frontend/src/lib/pdf-process.ts, so
+// server-side and browser-side extraction agree on the same cap.
+const extractedTextCapBytes = 2 * 1024 * 1024
+
+// capText copies at most extractedTextCapBytes from r into a pre-grown
+// buffer: buf.Grow reserves the cap up front so the buffer never doubles
+// its way there, and the only copy of the payload is the final
+// buf.String(). A source longer than the cap is truncated, not an error —
+// partial text still serves search/embedding.
+func capText(r io.Reader) (string, error) {
+	var buf bytes.Buffer
+	buf.Grow(extractedTextCapBytes)
+	if _, err := io.CopyN(&buf, r, extractedTextCapBytes); err != nil && err != io.EOF {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
 // extractPDFText pulls the plain text body and page count from a PDF on
 // disk using a pure-Go parser (ver 01-arquitetura.md, dependência
 // github.com/ledongthuc/pdf — "usada apenas no caminho da watch-dir").
@@ -122,20 +143,54 @@ func extractPDFText(path string) (string, int, error) {
 	}
 	defer f.Close()
 
-	var buf bytes.Buffer
 	body, err := r.GetPlainText()
 	if err != nil {
 		return "", r.NumPage(), err
 	}
-	if _, err := buf.ReadFrom(body); err != nil {
+	text, err := capText(body)
+	if err != nil {
 		return "", r.NumPage(), err
 	}
-	return buf.String(), r.NumPage(), nil
+	return text, r.NumPage(), nil
+}
+
+// createTempFile stages the temp file used by extractPDFTextFromStorage.
+// A package var instead of a direct os.CreateTemp call so tests can
+// intercept it and assert exactly which directory receives the file,
+// without racing real disk-copy timing.
+var createTempFile = os.CreateTemp
+
+// orphanedTempFileAge is how old an npd-*.pdf staging file must be before
+// cleanOrphanedTempFiles removes it — long enough that it can't be one a
+// concurrent extraction is still writing.
+const orphanedTempFileAge = 6 * time.Hour
+
+// cleanOrphanedTempFiles removes stale npd-*.pdf files left behind by an
+// extraction that crashed or was killed before its own defer os.Remove
+// ran. Best-effort housekeeping: errors are ignored, this is not the
+// extraction path itself.
+func cleanOrphanedTempFiles(dir string) {
+	matches, err := filepath.Glob(filepath.Join(dir, "npd-*.pdf"))
+	if err != nil {
+		return
+	}
+	cutoff := time.Now().Add(-orphanedTempFileAge)
+	for _, m := range matches {
+		info, err := os.Stat(m)
+		if err != nil || info.ModTime().After(cutoff) {
+			continue
+		}
+		os.Remove(m)
+	}
 }
 
 // extractPDFTextFromStorage copies key out of the storage backend into a
 // temp file and runs extractPDFText on it — ledongthuc/pdf needs an
 // io.ReaderAt with a known size, which the Backend interface does not give.
+// The temp file is staged under <cfg.Files>/tmp, never the OS temp dir: the
+// container runs --read-only with /tmp as a small tmpfs, and on UNRAID the
+// rootfs itself is RAM, so copying a large PDF into system temp there can
+// take down the whole host, not just the container.
 func (s *Server) extractPDFTextFromStorage(ctx context.Context, key string) (string, int, error) {
 	rc, _, err := s.files.Get(ctx, key)
 	if err != nil {
@@ -143,7 +198,13 @@ func (s *Server) extractPDFTextFromStorage(ctx context.Context, key string) (str
 	}
 	defer rc.Close()
 
-	tmp, err := os.CreateTemp("", "npd-*.pdf")
+	tmpDir := filepath.Join(s.cfg.Files, "tmp")
+	if err := os.MkdirAll(tmpDir, 0o750); err != nil {
+		return "", 0, err
+	}
+	cleanOrphanedTempFiles(tmpDir)
+
+	tmp, err := createTempFile(tmpDir, "npd-*.pdf")
 	if err != nil {
 		return "", 0, err
 	}
