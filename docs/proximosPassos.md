@@ -1,74 +1,94 @@
 # Próximos passos
 
-> Handoff da sessão de 2026-08-27 (segunda sessão do dia). Estado: `main` limpo, tudo empurrado.
-> A sessão anterior deixou cinco tarefas pendentes. Duas foram feitas, duas foram **eliminadas por decisão** e uma virou gatilho, não tarefa.
+> Handoff de 2026-08-27, fim da segunda sessão do dia. Estado: `main` em `d184741`, árvore limpa, CI verde, imagem publicada e **em produção no UNRAID**.
+> A sessão anterior deixou cinco tarefas pendentes: três foram feitas, duas foram **eliminadas por decisão** — nenhuma continua aberta.
 
 ---
 
-## 1. Estado de produção
+## 1. Estado de produção — em operação
 
-O banco em `192.168.1.10:/mnt/user/Storage/appsdata/newpdfding/db` foi zerado de vetores para começar do zero com `gemini-embedding-2`.
+Imagem `ghcr.io/edalcin/newpdfding:latest` do commit `d184741` rodando no UNRAID desde 2026-08-27 ~20:55. Embedding manual, um documento por vez, **funcionando e verificado no banco**.
 
 | | |
 |---|---|
-| Backup | `newpdfding.db.bak-20260827-164727` (`VACUUM INTO`, `integrity_check ok`, md5 `32e4341e1da290c84c30c64c39ee3216`) |
-| Cópia fora do servidor | `D:/git/backups/newpdfding.db.bak-20260827-164727`, md5 idêntico |
-| Antes | 167 PDFs, 117 vetores, 124 textos extraídos, 2 anotações, 57 tags |
-| Depois | 167 PDFs, **0 vetores**, 124 textos extraídos, 2 anotações, 57 tags |
-| Também apagado | linha `settings.ai_embed_model` (chave não existe mais no código) |
-| Arquivo | 32,0 MB → 29,3 MB após `VACUUM` |
-| Criado no host | `/mnt/user/Storage/appsdata/newpdfding/temp` (0777) |
+| Vetores gravados | 2 de 167 (o usuário está embedando aos poucos, de propósito) |
+| Dimensões | 3072 em todos, 12.288 bytes `float32` — coerente com `gemini-embedding-2` |
+| Tamanhos distintos de vetor | 1 — nenhum vetor do modelo antigo sobrou misturado |
+| `content_hash` | 64 caracteres (sha256 completo) em todos |
+| Órfãos em `pdf_embeddings` | 0 |
+| `integrity_check` | `ok` |
+| Chave `ai.embed_model` | ausente do banco e do código |
+| Memória do container | **30 MiB de 1 GiB (2,94%)** |
+| `/mnt/user/Storage/appsdata/newpdfding/temp` | vazio |
 
-`pdf_text` **não** foi tocado: texto extraído não depende de modelo, e apagá-lo forçaria 124 extrações de PDF desnecessárias — justamente o caminho que derrubou o host.
+**Backup pré-limpeza, em dois lugares:** `newpdfding.db.bak-20260827-164727` (`VACUUM INTO`, `integrity_check ok`, md5 `32e4341e1da290c84c30c64c39ee3216`) no próprio servidor e em `D:/git/backups/`. Continha 167 PDFs, 117 vetores do modelo antigo, 124 textos extraídos, 2 anotações, 57 tags.
 
-Todos os 167 documentos estão em estado `nenhum`. A busca léxica (FTS5) funciona sobre todos eles agora; a semântica só alcança o que for embedado.
+`pdf_text` **não** foi tocado na limpeza: texto extraído não depende de modelo, e apagá-lo forçaria 124 extrações de PDF desnecessárias — justamente o caminho que derrubou o host.
 
-## 2. O que mudou no código
+**Observação de desempenho do usuário:** `gemini-embedding-2` é perceptivelmente mais lento que `gemini-embedding-001`. O tempo é da API do Google (uma chamada HTTP por documento); não há nada a otimizar do nosso lado, e o modelo é maior e multimodal.
 
-**Modelo fixo.** `config.EmbedModel = "models/gemini-embedding-2"`, constante. Sumiram: a variável de ambiente `EMBED_MODEL`, o campo `cfg.EmbedModel`, a chave de configuração `ai.embed_model`, `Server.embedModelName()` e o pulldown em Configurações → IA. `/admin` exibe "Modelo de embedding (fixo): models/gemini-embedding-2", sem controle. `ai.text_model` (descrição e sugestão de tags) continua escolhível. Ver [ADR 0001](adr/0001-modelo-de-embedding-fixo-no-codigo.md).
+### Configuração real em produção
 
-**Sem embedding em massa.** Removidos `POST /api/admin/reembed`, `enqueueBulk`, `PendingEmbeddingIDs`, o botão "Reembedar pendentes" e o `pollInfo` de 5 s. Documentos são embedados um por vez pelo ícone de cérebro no card (`POST /api/pdfs/{id}/embed`, intocado). Ver [ADR 0002](adr/0002-sem-embedding-em-massa.md).
+```
+-v /mnt/user/Storage/appsdata/newpdfding/db:/data:rw
+-v /mnt/user/Storage/appsdata/newpdfding/files:/files:rw
+-v /mnt/user/Storage/appsdata/newpdfding/temp:/files/tmp:rw
+--read-only --cap-drop=ALL --memory=1g
+-p 8778:8000
+```
 
-**Extração sai da RAM.** O temporário vai para `<FILES>/tmp` com `os.MkdirAll(..., 0o750)`, não mais para `/tmp` (que é RAM em UNRAID). `capText` limita o texto extraído a `extractedTextCapBytes = 2 MB` com `io.CopyN` + `buf.Grow`, espelhando `TEXT_LIMIT_BYTES` do navegador. `cleanOrphanedTempFiles` remove `npd-*.pdf` com mais de 6 h.
+`EMBED_MODEL` não está mais no template. O aviso `kernel does not support swap limit capabilities` na subida é inofensivo: o host não tem swap (`Swap: 0`), então `--memory=1g` é teto rígido.
+
+## 2. O que mudou no código (commit `d184741`, `+243 −573`)
+
+**Modelo fixo.** `config.EmbedModel = "models/gemini-embedding-2"`, constante. Sumiram: `EMBED_MODEL`, `cfg.EmbedModel`, a chave `ai.embed_model`, `Server.embedModelName()` e o pulldown em Configurações → IA. `/admin` exibe "Modelo de embedding (fixo): models/gemini-embedding-2", sem controle. `ai.text_model` (descrição e sugestão de tags) continua escolhível. Ver [ADR 0001](adr/0001-modelo-de-embedding-fixo-no-codigo.md).
+
+**Sem embedding em massa.** Removidos `POST /api/admin/reembed`, `enqueueBulk`, `PendingEmbeddingIDs`, o botão "Reembedar pendentes" e o `pollInfo` de 5 s. Um documento por vez, pelo ícone de cérebro no card (`POST /api/pdfs/{id}/embed`, intocado). Ver [ADR 0002](adr/0002-sem-embedding-em-massa.md).
+
+**Extração sai da RAM.** Temporário em `<FILES>/tmp` com `os.MkdirAll(..., 0o750)`, não mais em `/tmp` (RAM no UNRAID). `capText` limita o texto extraído a `extractedTextCapBytes = 2 MB` com `io.CopyN` + `buf.Grow`, espelhando `TEXT_LIMIT_BYTES` do navegador. `cleanOrphanedTempFiles` remove `npd-*.pdf` com mais de 6 h.
 
 **`Stats()` para de carregar bodies inteiros.** Query única em streaming com `LEFT JOIN pdf_text` e `LEFT JOIN pdf_embeddings`, sem cláusula `IN` (que estouraria `SQLITE_MAX_VARIABLE_NUMBER` num acervo grande). O caminho paginado de 25 itens mantém o `IN` e ganhou `substr(body, 1, embedBodyChars)`. `TestAttachEmbeddingStatusHashSurvivesSQLCharTruncation` prova que o hash não mudou de valor — a invariante que, se quebrasse, marcaria o acervo todo como desatualizado.
 
-**Limite de memória.** `mem_limit: 1g` no `compose.yaml`; `--memory=1g` em Extra Parameters no `UNRAID.md`. Um runaway futuro passa a ser restart de container, nunca queda de host.
+**Limite de memória.** `mem_limit: 1g` no `compose.yaml`, `--memory=1g` no `UNRAID.md`.
 
-## 3. Antes de subir a imagem no UNRAID
+## 3. Verificação: o que está provado e o que falta
 
-O template precisa de duas mudanças manuais na interface do Docker do UNRAID (o `UNRAID.md` já documenta as duas):
-
-1. **Novo Path:** host `/mnt/user/Storage/appsdata/newpdfding/temp` → container `/files/tmp`, rw. Se esquecer, os temporários caem em `/files/tmp` dentro do volume `files` — ainda em disco, ainda seguro, só fora do diretório escolhido.
-2. **Extra Parameters:** `--memory=1g`.
-
-A variável `EMBED_MODEL`, se ainda estiver no template, pode ser removida: o binário a ignora.
-
-## 4. Verificação feita, e o que ficou sem prova
-
-Feito na imagem Docker real (`newpdfding:verify`, `--read-only --memory=1g`), pelo navegador em `http://127.0.0.1:8907`:
+Provado na imagem Docker real (`--read-only --memory=1g`) e, depois, em produção:
 
 | Checado | Resultado |
 |---|---|
-| `GET /api/admin/info` | `"embed_model":"models/gemini-embedding-2"` presente, quatro contadores intactos |
+| `GET /api/admin/info` | `"embed_model":"models/gemini-embedding-2"`, quatro contadores intactos |
 | `POST /api/admin/reembed` | `405` — rota não existe |
 | `PATCH /api/settings` com `ai.embed_model` | `400 unknown key "ai.embed_model"` |
-| `/admin` | "Modelo de embedding (fixo): models/gemini-embedding-2", sem botão de lote |
-| `/settings` → IA | só "Modelo para descrição e sugestão de tags"; pulldown de embedding sumiu |
-| Container | `--memory=1g`, `--read-only`, healthy |
+| `/admin` | nome do modelo exibido, sem botão de lote |
+| `/settings` → IA | só o modelo de texto |
+| Vetores em produção | 3072 dims, hash sha256, sem órfãos, `integrity_check ok` |
+| Memória em produção | 30 MiB de 1 GiB |
+| CI do commit | `Test` + `Build & Publish Image` verdes (run `33114619047`) |
 
 `go build`/`go vet`/`go test ./...` limpos; `npm run check` 0 erros/0 warnings; `npm run build` ok.
 
-**Sem prova de container:** o caminho de extração (`extractPDFTextFromStorage`) não foi exercitado por HTTP dentro do container. Ele está coberto por teste comportamental — `TestExtractPDFTextFromStorage_TempFileUnderFilesTmp` intercepta `createTempFile` e afirma que o diretório é exatamente `<cfg.Files>/tmp` e nunca `os.TempDir()`, nos caminhos de sucesso **e** de erro, e que nada sobra depois —, mas não por um upload real seguido de clique em embedar. Motivo: o shell deste harness não tem rota de rede para o host (nem para os containers), e o CDP do navegador relay travou no meio da sessão.
+**Único ponto ainda sem prova de produção:** o caminho `extractPDFTextFromStorage` (temporário em disco). Os dois documentos embedados até agora **já tinham texto extraído**, então nem passaram por ele — o `temp` ficou vazio o tempo todo, o que é o comportamento correto, não uma falha. Cobertura atual: `TestExtractPDFTextFromStorage_TempFileUnderFilesTmp` intercepta `createTempFile` e afirma que o diretório é exatamente `<cfg.Files>/tmp` e nunca `os.TempDir()`, nos caminhos de sucesso **e** de erro, e que nada sobra depois.
 
-**Como fechar essa lacuna em 30 segundos, no UNRAID:** embedar **um** documento pela interface e, com o container no ar, olhar se apareceu `/mnt/user/Storage/appsdata/newpdfding/temp` com nada dentro depois (o arquivo é apagado no fim da extração). Se aparecer e ficar vazio, o caminho está correto. Enquanto isso, `docker stats newpdfding` mostra o pico real de memória — que é também o número para refinar o `mem_limit`, hoje escolhido por raciocínio e não por medição.
+**Como fechar:** embedar um dos **43 documentos sem texto extraído** (167 PDFs − 124 textos) olhando o diretório:
 
-## 5. Decisões desta sessão que não devem ser relitigadas
+```bash
+watch -n 2 'docker stats --no-stream --format "{{.MemUsage}} {{.MemPerc}}" newPdfDing; ls /mnt/user/Storage/appsdata/newpdfding/temp'
+```
 
-- **Sem filtro por estado de embedding na listagem.** Cogitado e recusado por não ser necessário: todos os 167 documentos estão em `nenhum`, então não há o que "achar", e `/admin` já responde quantos faltam. **Gatilho para implementar:** se rolar a lista caçando ícone âmbar incomodar na prática. A implementação certa é `WHERE NOT EXISTS (SELECT 1 FROM pdf_embeddings WHERE pdf_id = pdfs.id)` — SQL puro, compatível com o cursor, ~5 linhas, sem depender do estado derivado em Go. Isso encerra a "decisão aberta" da seção 3 do handoff anterior.
-- **Sem rótulo textual de embedding nos cards.** Ideia minha da sessão passada, não pedido do usuário. O ícone âmbar com tooltip basta.
+Um `npd-*.pdf` que **aparece durante** a extração e **desaparece no fim** é a prova positiva. Um que **fica** depois é defeito — um `defer os.Remove` não rodou.
+
+## 4. Decisões desta sessão que não devem ser relitigadas
+
+- **Sem filtro por estado de embedding na listagem.** Cogitado e recusado por não ser necessário; `/admin` já responde quantos faltam. **Gatilho para implementar:** se rolar a lista caçando o ícone âmbar incomodar na prática. A implementação certa é `WHERE NOT EXISTS (SELECT 1 FROM pdf_embeddings WHERE pdf_id = pdfs.id)` — SQL puro, compatível com a paginação por cursor, ~5 linhas, sem depender do estado derivado em Go. Isso encerra a "decisão aberta" do handoff anterior.
+- **Sem rótulo textual de embedding nos cards.** Ideia minha, não pedido do usuário. O ícone âmbar com tooltip basta.
 - **`MAX_UPLOAD_MB` fica em 200.** Baixar para 50 protegeria contra um caminho que o teto de 2 MB já corrigiu, ao custo de rejeitar upload legítimo.
-- **A hipótese de OOM continua não confirmada.** O host reiniciou antes de eu chegar nele (up 2:52) e o syslog do UNRAID vive em RAM. A evidência sumiu; as correções foram aplicadas sem ela, o que é o motivo de o `mem_limit` existir.
+- **`mem_limit` fica em `1g`.** Com 30 MiB medidos em regime normal, é folga de 33×, deliberada: o pico que importa é a extração de um PDF grande, e esse ainda não foi medido. Apertar para `256m` continua sendo 8× o regime — decisão adiada até haver medição do pico de extração.
+- **A hipótese de OOM do incidente continua não confirmada.** O host reiniciou antes de qualquer acesso e o syslog do UNRAID vive em RAM. A evidência sumiu; as correções foram aplicadas sem ela, o que é o motivo de o `mem_limit` existir.
+
+## 5. Pendência operacional, não de código
+
+**Rotacionar duas credenciais**, expostas em texto puro durante a sessão (print de tela e comando de run colados no chat): `ADMIN_PASSWORD` e `GEMINI_API_KEY`. Gerar chave nova em `aistudio.google.com` e revogar a atual.
 
 ## 6. Ambiente — incantações que funcionam aqui
 
@@ -82,15 +102,25 @@ docker run -d --name npdverify --read-only --memory=1g -p 8907:8000 \
   -v npdverify-data:/data -v npdverify-files:/files \
   -e ADMIN_PASSWORD=... -e DB_PATH=/data/db.sqlite -e FILES=/files newpdfding:verify
 
-# produção
+# produção (somente leitura ao inspecionar!)
 ssh -i C:/Users/EDalcin/Desktop/id_rsa_unraid root@192.168.1.10
-sqlite3 -readonly /mnt/user/Storage/appsdata/newpdfding/db/newpdfding.db 'select count(*) from pdf_embeddings;'
+sqlite3 -readonly /mnt/user/Storage/appsdata/newpdfding/db/newpdfding.db \
+  'select count(*), min(length(embedding)/4) from pdf_embeddings;'
 ```
 
-Armadilhas descobertas na prática nesta sessão:
+Armadilhas descobertas na prática:
 
 - **`grep` de shell está bloqueado neste harness e trava o comando inteiro.** Usar `awk`.
-- **O shell não tem rota de rede para `127.0.0.1` do Windows** (`curl` devolve `000`), e containers auxiliares também não alcançaram o container em teste. Verificação por HTTP só pelo navegador.
-- **A imagem é distroless:** `docker exec ... ls` falha, não há shell. Para inspecionar o volume, montar em um container `alpine`.
-- **Service worker antigo trava o app.** Reusar a mesma porta de uma verificação anterior deixa a página presa em "Carregando…" para sempre, sem erro no console. Verificar em porta nova a cada rodada.
+- **O shell não tem rota de rede para `127.0.0.1` do Windows** (`curl` devolve `000`); containers auxiliares também não alcançaram o container em teste. Verificação por HTTP só pelo navegador.
+- **A imagem é distroless:** `docker exec ... ls` falha, não há shell. Para inspecionar um volume, montá-lo em um container `alpine`.
+- **Service worker antigo trava o app.** Reusar a porta de uma verificação anterior deixa a página presa em "Carregando…" para sempre, sem erro no console. Porta nova a cada rodada.
+- **O navegador relay é o Chrome real do usuário** e o CDP dele degrada em sessões longas (`Runtime.callFunctionOn` estourando 20 s). Fazer as verificações de UI cedo, em chamadas curtas.
 - Cookies de sessão são `Secure`; em `http://127.0.0.1` um reload perde a sessão.
+- `newpdfding.db-wal` na casa de 10 MB é normal em WAL, não vazamento: o SQLite faz checkpoint sozinho e o arquivo desaparece quando o container para.
+
+## 7. Documentação do projeto
+
+- [`CONTEXT.md`](../CONTEXT.md) — glossário. Registra, entre outras coisas, a recusa deliberada do termo "pendente", que juntava `nenhum` e `desatualizado` num único nome e escondia que são situações diferentes.
+- [`docs/adr/0001-modelo-de-embedding-fixo-no-codigo.md`](adr/0001-modelo-de-embedding-fixo-no-codigo.md)
+- [`docs/adr/0002-sem-embedding-em-massa.md`](adr/0002-sem-embedding-em-massa.md)
+- `refatoracao/` — especificação por etapa, atualizada junto com o código desta sessão.

@@ -153,7 +153,7 @@ Implementar a busca híbrida (FTS5 + embeddings sob demanda com fusão RRF), sem
 - Fusão RRF
 - Filtros combinados
 - **Nenhum worker, nenhum agendamento, nenhum embedding disparado por upload ou edição.**
-- Variáveis lidas: `GEMINI_API_KEY`, `EMBED_MODEL` — ver [07-docker-ci-deploy.md](07-docker-ci-deploy.md).
+- Variável lida: `GEMINI_API_KEY` — ver [07-docker-ci-deploy.md](07-docker-ci-deploy.md). O modelo de embedding é a constante `config.EmbedModel`, não uma variável de ambiente.
 
 **Depende de**
 - ETAPA-4-DOMINIO-PDF
