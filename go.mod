@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.26.7
 
 require (
-	github.com/go-chi/chi/v5 v5.3.1
+	github.com/go-chi/chi/v5 v5.3.2
 	github.com/google/uuid v1.6.0
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/microcosm-cc/bluemonday v1.0.27
