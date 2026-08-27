@@ -32,7 +32,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.26"
           cache: true
 
       - name: go vet
@@ -44,9 +44,12 @@ jobs:
       - name: Instalar govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
+      # Bloqueante de propósito: com continue-on-error o scanner só decorava o
+      # log e as vulnerabilidades acumulavam sem ninguém notar (13 achados de
+      # uma vez, incluindo 3 no chi). Falhar aqui é o único jeito de a
+      # atualização de dependência acontecer junto com a descoberta.
       - name: govulncheck
         run: govulncheck ./...
-        continue-on-error: true
 
   publish:
     name: Build & Publish Image

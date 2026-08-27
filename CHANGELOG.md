@@ -21,5 +21,11 @@ Todas as mudanças notáveis deste projeto são documentadas aqui.
 - Criar um destaque/comentário no visualizador gerava duas linhas duplicadas em `pdf_annotations`: o SDK EmbedPDF emite o evento `create` duas vezes por anotação nova (uma vez otimista, com `committed: false`, e outra após o `commit()` automático confirmar a escrita no engine, com `committed: true`), e `handleAnnotationEvent` (`frontend/src/routes/viewer/[id]/+page.svelte`) chamava a API de criação em ambas, sem checar a flag. Corrigido ignorando eventos `create` com `committed: false`.
 - Busca semântica podia pontuar vetores gravados por um modelo de embedding com dimensionalidade diferente: `dotProduct` truncava para o comprimento menor, e o produto escalar sobre o prefixo comum é uma similaridade inventada, capaz de passar do piso de 0,30 e poluir o ranking. Agora comprimentos diferentes pontuam `0` — os vetores do modelo antigo ficam fora dos resultados até serem reembedados.
 
+### Security
+
+- Resolvidas as 14 vulnerabilidades apontadas pelo Dependabot e mais uma achada pelo `npm audit`: `nanoid` 3.3.16 → 3.3.18 (alta, transitiva via `postcss`), `@sveltejs/kit` → 2.70.2 (ReDoS na negociação de conteúdo), `github.com/go-chi/chi/v5` 5.2.5 → 5.3.1 (três vulnerabilidades no roteador, todas alcançáveis pelo código) e a linha do Go para 1.26 (`toolchain go1.26.7` no `go.mod`, `golang:1.26-alpine` no Dockerfile, `go-version: "1.26"` no CI), fechando dez achados de biblioteca padrão em `net/http`, `crypto/tls`, `crypto/x509`, `net/url`, `encoding/asn1` e `net/textproto`. `govulncheck ./...` e `npm audit` agora reportam zero.
+- `govulncheck` no CI deixa de ser `continue-on-error`. Era decorativo — reportava no log e o build passava mesmo assim, e foi por isso que 13 achados acumularam sem ninguém notar.
+- Os 12 alertas restantes do Dependabot (`django`, `sqlparse`, `pypdf` em `uv.lock`) foram dispensados como *not used*: a stack Django legada foi removida em `5b292f0` e não existe mais nenhum arquivo Python no repositório — nada disso entra na imagem publicada.
+
 ### Changed
 
