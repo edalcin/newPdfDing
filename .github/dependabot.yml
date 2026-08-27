@@ -14,6 +14,14 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # A imagem de build do frontend segue a linha LTS ativa do Node, não a
+      # release "Current". Sem isso o Dependabot reabre PR para cada major
+      # nova (26, 28…) que ainda não é LTS, e o PR fica pendente para sempre
+      # porque a resposta correta é sempre "não". Major do Node é subida
+      # manual, quando a linha vira LTS.
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

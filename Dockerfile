@@ -2,7 +2,7 @@
 # Ver refatoracao/07-docker-ci-deploy.md, "Dockerfile de três estágios".
 
 # ── Stage 1: Frontend build (Node + EmbedPDF/PDFium) ────────────────────────
-FROM node:22-alpine AS frontend
+FROM node:24-alpine AS frontend
 
 WORKDIR /app/frontend
 
@@ -20,7 +20,7 @@ RUN npm run build
 
 
 # ── Stage 2: Go build ────────────────────────────────────────────────────────
-FROM golang:1.26-alpine AS build
+FROM golang:1.27-alpine AS build
 
 WORKDIR /src
 

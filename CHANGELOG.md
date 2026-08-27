@@ -23,9 +23,14 @@ Todas as mudanças notáveis deste projeto são documentadas aqui.
 
 ### Security
 
-- Resolvidas as 14 vulnerabilidades apontadas pelo Dependabot e mais uma achada pelo `npm audit`: `nanoid` 3.3.16 → 3.3.18 (alta, transitiva via `postcss`), `@sveltejs/kit` → 2.70.2 (ReDoS na negociação de conteúdo), `github.com/go-chi/chi/v5` 5.2.5 → 5.3.1 (três vulnerabilidades no roteador, todas alcançáveis pelo código) e a linha do Go para 1.26 (`toolchain go1.26.7` no `go.mod`, `golang:1.26-alpine` no Dockerfile, `go-version: "1.26"` no CI), fechando dez achados de biblioteca padrão em `net/http`, `crypto/tls`, `crypto/x509`, `net/url`, `encoding/asn1` e `net/textproto`. `govulncheck ./...` e `npm audit` agora reportam zero.
+- Resolvidas as 14 vulnerabilidades apontadas pelo Dependabot e mais uma achada pelo `npm audit`: `nanoid` 3.3.16 → 3.3.18 (alta, transitiva via `postcss`), `@sveltejs/kit` → 2.70.3 (ReDoS na negociação de conteúdo), `github.com/go-chi/chi/v5` 5.2.5 → 5.3.2 (três vulnerabilidades no roteador, todas alcançáveis pelo código) e a linha do Go para 1.27 (`toolchain go1.27.0` no `go.mod`, `golang:1.27-alpine` no Dockerfile, `go-version: "1.27"` no CI), fechando dez achados de biblioteca padrão em `net/http`, `crypto/tls`, `crypto/x509`, `net/url`, `encoding/asn1` e `net/textproto`. `govulncheck ./...` e `npm audit` agora reportam zero.
 - `govulncheck` no CI deixa de ser `continue-on-error`. Era decorativo — reportava no log e o build passava mesmo assim, e foi por isso que 13 achados acumularam sem ninguém notar.
 - Os 12 alertas restantes do Dependabot (`django`, `sqlparse`, `pypdf` em `uv.lock`) foram dispensados como *not used*: a stack Django legada foi removida em `5b292f0` e não existe mais nenhum arquivo Python no repositório — nada disso entra na imagem publicada.
+- `aquasecurity/trivy-action` deixa de ser referenciada por `@master` e passa a uma tag fixa (`0.36.0`). Action apontada para branch móvel executa código novo a cada run, e o Dependabot não consegue versioná-la.
 
 ### Changed
+
+- Todas as dependências passaram para a versão corrente, zerando a fila de PRs do Dependabot: `pdfjs-dist` 5.5.207 → 6.2.108 (major, sem nenhuma mudança de código necessária — a v6 tornou `canvas` obrigatório em `RenderParameters` e `pdf-process.ts` já passava esse campo), `@embedpdf/*` 2.14.4 → 2.15.0, `modernc.org/sqlite` 1.48.2 → 1.57.0, `goldmark` 1.8.4 → 1.8.5, `svelte`, `vite`, `svelte-check`, `@tiptap/*`, `tailwind-variants`, as bases Docker (`node:22-alpine` → `node:24-alpine`, a LTS ativa) e as actions do CI (`checkout` v7, `setup-node` v7, `setup-go` v7, `login-action` v4, `setup-buildx-action` v4, `build-push-action` v7, `metadata-action` v6).
+- `typescript` fica em 6.0.3 de propósito: a 7.0.2 viola o peer range declarado por `@sveltejs/kit` e `svelte-check` (`^5.3.3 || ^6.0.0`). Sobe quando o SvelteKit passar a suportar.
+- `.github/dependabot.yml` passa a ignorar major do `node`: a imagem de build segue a linha LTS ativa, não a "Current". Sem isso o Dependabot reabre um PR por major nova (26, 28…) cuja resposta correta é sempre "ainda não".
 
