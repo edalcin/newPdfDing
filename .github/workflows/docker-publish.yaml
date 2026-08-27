@@ -94,7 +94,7 @@ jobs:
       # executa código arbitrário novo a cada run e o Dependabot não consegue
       # versioná-la.
       - name: Scan de vulnerabilidades (Trivy)
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           format: table
