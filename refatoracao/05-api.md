@@ -241,6 +241,7 @@ Erros por rota:
 |---|---|---|---|
 | `GET` | `/api/admin/info` | — | `200` `{"version","pdfs_count","tags_count","collections_count","files_bytes","embedding_status_counts":{"none","current","stale"}}` |
 | `POST` | `/api/admin/reindex` | — | `200` `{"reindexed": true}` |
+| `POST` | `/api/admin/reembed` | — | `202` `{"queued": <n>, "model": "<modelo em vigor>"}` |
 | `GET` | `/api/admin/backup` | — | `200` binário `application/vnd.sqlite3`, `Content-Disposition: attachment` |
 | `POST` | `/api/admin/restore` | corpo bruto: arquivo `.db`/`.sqlite3` | `200` `{"restored": true, "restarting": true}` |
 
@@ -249,10 +250,13 @@ Todas exigem **Sessão**.
 Erros por rota:
 - `GET /api/admin/info` → `401`, `500`.
 - `POST /api/admin/reindex` → `401`, `500`.
+- `POST /api/admin/reembed` → `401`, `412` (sem `GEMINI_API_KEY`), `500`.
 - `GET /api/admin/backup` → `401`, `500`.
 - `POST /api/admin/restore` → `400` (upload vazio, não é SQLite, `PRAGMA integrity_check` falhou, ou faltam as tabelas `pdfs`/`tags`/`settings`), `401`, `413` (excede `MAX_UPLOAD_MB`), `500`.
 
 `POST /api/admin/reindex` reconstrói **somente** o índice FTS5 (`delete-all` + `INSERT ... SELECT`, ver [Busca híbrida](04-busca-hibrida.md)) — não dispara embedding de nada, porque embedding é sempre sob demanda. Não existe endpoint de storage: não há backend para escolher (ver [Storage](03-storage.md)).
+
+`POST /api/admin/reembed` enfileira **todos** os documentos cujo `embedding_status` não é `current` — os `none` (nunca embedados) e os `stale` (conteúdo ou modelo de embedding mudou) — no mesmo worker serial de `POST /api/pdfs/{id}/embed`, e responde na hora com quantos entraram na fila. É o caminho para aplicar uma troca de modelo em Configurações → IA ao acervo inteiro sem clicar em "Reembedar" documento por documento: trocar `settings['ai.embed_model']` marca todo vetor existente como `stale` (o `content_hash` inclui o nome do modelo — ver [Busca híbrida](04-busca-hibrida.md), "Hash de conteúdo"). O progresso é lido pelo mesmo `GET /api/embed/jobs` do botão individual. A enfileiração é auto-regulada: no máximo o tamanho do buffer do canal fica à frente do worker, então a fila nunca cresce até o tamanho do acervo. Continua não existindo automatismo: nada dispara essa rota sozinho.
 
 `GET /api/admin/backup` gera o arquivo com `VACUUM INTO` (primitiva nativa de backup online do SQLite): produz uma cópia coerente de arquivo único, sem WAL, mesmo com o servidor respondendo outras requisições — não pausa escritores. Contém apenas o banco (metadados, tags, anotações, configurações, embeddings); os PDFs em si vivem em `FILES` e não fazem parte do backup.
 

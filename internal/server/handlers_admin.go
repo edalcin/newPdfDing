@@ -58,6 +58,27 @@ func (s *Server) handleAdminReindex(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"reindexed": true})
 }
 
+// handleAdminReembed serves POST /api/admin/reembed: queues every PDF whose
+// embedding is not current for the model in effect now — the ones never
+// embedded plus the ones marked stale, which is what switching the model in
+// Configurações → IA produces for the whole acervo at once. The single
+// background worker then re-embeds them serially against the new model, so
+// this replaces clicking "Reembedar" on each document. Progress is polled
+// through the same GET /api/embed/jobs the per-document button uses.
+func (s *Server) handleAdminReembed(w http.ResponseWriter, r *http.Request) {
+	if s.gemini == nil {
+		writeJSONError(w, http.StatusPreconditionFailed, "busca semântica desabilitada")
+		return
+	}
+	ids, err := s.pdfs.PendingEmbeddingIDs()
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	go s.embeds.enqueueBulk(ids)
+	writeJSON(w, http.StatusAccepted, map[string]any{"queued": len(ids), "model": s.embedModelName()})
+}
+
 // handleAdminBackup serves GET /api/admin/backup: streams a consistent
 // snapshot of the SQLite database as a file download. VACUUM INTO is
 // SQLite's built-in online-backup primitive — it writes a coherent

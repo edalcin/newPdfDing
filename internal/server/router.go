@@ -74,6 +74,7 @@ func (s *Server) buildRouter() http.Handler {
 
 		protected.Get("/api/admin/info", s.handleAdminInfo)
 		protected.Post("/api/admin/reindex", s.handleAdminReindex)
+		protected.Post("/api/admin/reembed", s.handleAdminReembed)
 		protected.Get("/api/admin/backup", s.handleAdminBackup)
 		protected.Post("/api/admin/restore", s.handleAdminRestore)
 	})

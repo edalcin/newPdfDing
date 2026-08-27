@@ -40,10 +40,14 @@ type embedQueue struct {
 	mu   sync.Mutex
 	jobs map[string]*embedJob // pdf_id -> estado
 	ch   chan string          // buffer 256
+	// ctx is the worker's lifetime, recorded by StartEmbedWorker so a bulk
+	// enqueue blocked on a full channel unwinds at shutdown instead of
+	// leaking its goroutine.
+	ctx context.Context
 }
 
 func newEmbedQueue() *embedQueue {
-	return &embedQueue{jobs: make(map[string]*embedJob), ch: make(chan string, 256)}
+	return &embedQueue{jobs: make(map[string]*embedJob), ch: make(chan string, 256), ctx: context.Background()}
 }
 
 // enqueue adds pdfID to the queue unless a non-terminal job for it already
@@ -61,6 +65,32 @@ func (q *embedQueue) enqueue(pdfID string) error {
 	default:
 		delete(q.jobs, pdfID)
 		return errQueueFull
+	}
+}
+
+// enqueueBulk registers ids and feeds them to the worker with a blocking
+// send, so a re-embedding of the whole acervo is not capped by the channel
+// buffer (enqueue's non-blocking send exists to answer 503 to a single
+// click; here there is no client waiting). It self-throttles: at most
+// cap(ch) jobs sit ahead of the worker, so the jobs map — polled by GET
+// /api/embed/jobs — never grows to the size of the acervo. Ids already
+// queued or running are skipped. Runs in its own goroutine.
+func (q *embedQueue) enqueueBulk(ids []string) {
+	for _, id := range ids {
+		q.mu.Lock()
+		if job, ok := q.jobs[id]; ok && job.State != embedDone && job.State != embedFailed {
+			q.mu.Unlock()
+			continue
+		}
+		q.jobs[id] = &embedJob{State: embedQueued}
+		q.mu.Unlock()
+
+		select {
+		case q.ch <- id:
+		case <-q.ctx.Done():
+			q.cancel(id)
+			return
+		}
 	}
 }
 
@@ -117,6 +147,7 @@ func (q *embedQueue) snapshot() map[string]embedJob {
 // A nil s.gemini (GEMINI_API_KEY unset) means enqueue is never reachable
 // from handleEmbedPDF, so the worker simply has nothing to do.
 func (s *Server) StartEmbedWorker(ctx context.Context) {
+	s.embeds.ctx = ctx
 	go func() {
 		for {
 			select {

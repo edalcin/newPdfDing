@@ -11,6 +11,8 @@
 	let loadError = $state('');
 	let reindexing = $state(false);
 	let reindexMessage = $state('');
+	let reembedding = $state(false);
+	let reembedMessage = $state('');
 	let revoking = $state<string | null>(null);
 	let copiedId = $state<string | null>(null);
 	let restoreInput = $state<HTMLInputElement>();
@@ -42,6 +44,47 @@
 		} finally {
 			reindexing = false;
 		}
+	}
+
+	// pendingEmbeddings mirrors the server's own definition of "not current
+	// for the model in effect now": never embedded + stale.
+	const pendingEmbeddings = $derived(
+		info ? info.embedding_status_counts.none + info.embedding_status_counts.stale : 0
+	);
+
+	async function reembed() {
+		if (
+			!confirm(
+				`Reembedar ${pendingEmbeddings} documento(s) com o modelo de embedding selecionado em Configurações → IA? Cada documento consome uma chamada à API Gemini.`
+			)
+		)
+			return;
+		reembedding = true;
+		reembedMessage = '';
+		try {
+			const res = await apiJSON<{ queued: number; model: string }>('/admin/reembed', {
+				method: 'POST'
+			});
+			reembedMessage = `${res.queued} documento(s) na fila (${res.model || 'modelo padrão do servidor'}).`;
+			pollInfo();
+		} catch (err) {
+			reembedMessage = err instanceof Error ? err.message : 'Falha ao enfileirar reembedding.';
+		} finally {
+			reembedding = false;
+		}
+	}
+
+	// pollInfo refreshes the counters while the background worker drains the
+	// queue, so "Desatualizado" visibly falls to zero without a page reload.
+	function pollInfo() {
+		const timer = setInterval(async () => {
+			try {
+				info = await apiJSON<AdminInfo>('/admin/info');
+				if (pendingEmbeddings === 0) clearInterval(timer);
+			} catch {
+				clearInterval(timer);
+			}
+		}, 5000);
 	}
 
 	function shareUrl(id: string): string {
@@ -144,12 +187,18 @@
 				</div>
 			</div>
 
-			<div class="mt-4 flex items-center gap-3">
+			<div class="mt-4 flex flex-wrap items-center gap-3">
 				<Button variant="outline" size="sm" onclick={reindex} disabled={reindexing}>
 					{reindexing ? 'Reindexando…' : 'Reindexar FTS5'}
 				</Button>
+				<Button variant="outline" size="sm" onclick={reembed} disabled={reembedding || pendingEmbeddings === 0}>
+					{reembedding ? 'Enfileirando…' : `Reembedar pendentes (${pendingEmbeddings})`}
+				</Button>
 				{#if reindexMessage}
 					<p class="text-sm text-muted-foreground">{reindexMessage}</p>
+				{/if}
+				{#if reembedMessage}
+					<p class="text-sm text-muted-foreground">{reembedMessage}</p>
 				{/if}
 			</div>
 		</section>

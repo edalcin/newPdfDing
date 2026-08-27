@@ -84,13 +84,17 @@ func normalizeL2(vec []float32) []float32 {
 }
 
 // dotProduct is the cosine similarity of two already-L2-normalized vectors.
+// Vectors of different lengths come from different embedding models (or a
+// different outputDimensionality) and are not comparable at all: a partial
+// dot product over the common prefix is a meaningless score that can still
+// clear semanticFloor, so it is reported as 0 instead. Those rows are
+// stale by content_hash and disappear once re-embedded.
 func dotProduct(a, b []float32) float64 {
-	n := len(a)
-	if len(b) < n {
-		n = len(b)
+	if len(a) != len(b) {
+		return 0
 	}
 	var sum float64
-	for i := range n {
+	for i := range a {
 		sum += float64(a[i]) * float64(b[i])
 	}
 	return sum
@@ -233,39 +237,66 @@ type PDFStats struct {
 	EmbeddingStatusCounts map[string]int // keys "none"|"current"|"stale"
 }
 
-// Stats computes the total PDF count and the embedding_status breakdown
-// across the whole acervo, reusing the same per-row derivation as every
-// other read (ver attachEmbeddingStatus) so the counts can never drift
-// from what GET /api/pdfs reports.
-func (s *PDFStore) Stats() (PDFStats, error) {
-	rows, err := s.db.Query(`SELECT id, name, description FROM pdfs`)
+// allWithEmbeddingStatus loads every PDF with its derived embedding_status.
+func (s *PDFStore) allWithEmbeddingStatus() ([]PDF, error) {
+	rows, err := s.db.Query(`SELECT id, name, description FROM pdfs ORDER BY id`)
 	if err != nil {
-		return PDFStats{}, err
+		return nil, err
 	}
 	var items []PDF
 	for rows.Next() {
 		var p PDF
 		if err := rows.Scan(&p.ID, &p.Name, &p.Description); err != nil {
 			rows.Close()
-			return PDFStats{}, err
+			return nil, err
 		}
 		items = append(items, p)
 	}
 	if err := rows.Err(); err != nil {
 		rows.Close()
-		return PDFStats{}, err
+		return nil, err
 	}
 	rows.Close()
 
 	if err := s.attachEmbeddingStatus(items); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// Stats computes the total PDF count and the embedding_status breakdown
+// across the whole acervo, reusing the same per-row derivation as every
+// other read (ver attachEmbeddingStatus) so the counts can never drift
+// from what GET /api/pdfs reports.
+func (s *PDFStore) Stats() (PDFStats, error) {
+	items, err := s.allWithEmbeddingStatus()
+	if err != nil {
 		return PDFStats{}, err
 	}
-
 	counts := map[string]int{"none": 0, "current": 0, "stale": 0}
 	for _, p := range items {
 		counts[p.EmbeddingStatus]++
 	}
 	return PDFStats{Total: len(items), EmbeddingStatusCounts: counts}, nil
+}
+
+// PendingEmbeddingIDs returns the ids of every PDF whose embedding is not
+// current for the model in effect now — "none" (never embedded) plus
+// "stale" (content or embedding model changed). Feeds POST
+// /api/admin/reembed, so switching the model in Configurações → IA can be
+// applied to the whole acervo in one action.
+func (s *PDFStore) PendingEmbeddingIDs() ([]string, error) {
+	items, err := s.allWithEmbeddingStatus()
+	if err != nil {
+		return nil, err
+	}
+	var ids []string
+	for _, p := range items {
+		if p.EmbeddingStatus != "current" {
+			ids = append(ids, p.ID)
+		}
+	}
+	return ids, nil
 }
 
 // ---------------------------------------------------------------------

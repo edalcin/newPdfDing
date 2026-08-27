@@ -246,7 +246,10 @@
 						</select>
 					</div>
 					<p class="mt-1 text-xs text-muted-foreground">
-						Trocar o modelo de embedding marca todos os embeddings existentes como desatualizados.
+						Trocar o modelo de embedding marca todos os embeddings existentes como
+						desatualizados. Use <a class="underline" href="/admin">Administração → Reembedar pendentes</a>
+						para reembedar o acervo inteiro com o novo modelo; até então, os documentos
+						desatualizados ficam fora da busca semântica.
 					</p>
 				</div>
 				<div class="flex items-center justify-between gap-4">

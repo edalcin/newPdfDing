@@ -180,11 +180,17 @@ O vetor é gravado em `pdf_embeddings.embedding` como `float32` little-endian co
 
 `gemini-embedding-001` produz vetores de **3072 dimensões**: 3072 × 4 bytes ≈ 12 KB por vetor; a 20.000 PDFs isso é ~245 MB de BLOB acumulado em `pdf_embeddings`. **Contingência pré-decidida, não implementada nesta refatoração**: se esse tamanho (ou o custo do KNN, abaixo) incomodar, pedir `outputDimensionality: 768` na chamada `batchEmbedContents` — o modelo suporta truncamento MRL (Matryoshka Representation Learning) — e renormalizar o vetor truncado, sem trocar de modelo nem de arquitetura.
 
+Trocar o modelo de embedding pode trocar a dimensionalidade dos vetores. Como o `content_hash` inclui o nome do modelo, todo vetor gravado pelo modelo anterior fica `stale` na hora — mas continua no banco até ser reembedado. Comparar um vetor de 3072 dimensões com um de outro tamanho não faz sentido algum, e um produto escalar sobre o prefixo comum produziria uma pontuação falsa capaz de passar do `semanticFloor`. Por isso `dotProduct` devolve `0` quando os comprimentos diferem: os vetores do modelo antigo simplesmente não pontuam até serem regravados (ver "Reembedar o acervo inteiro", abaixo).
+
 ## Sem worker, sem automatismo
 
 Decisão explícita, não um detalhe de implementação em aberto: **não existe** goroutine de varredura, `time.Ticker`, canal `notify()`, nem varredura no boot para embedding. `EMBED_SWEEP_MINUTES` **não existe** como variável de ambiente — o único processo periódico do produto é o consumo por watch-dir (`CONSUME_INTERVAL_MINUTES`); embedding não é ele, e não há job de backup nesta refatoração (decisão 8 em [Visão geral](00-visao-geral.md)).
 
 O **único** caminho de código que grava em `pdf_embeddings` é o handler de `POST /api/pdfs/{id}/embed` (contrato completo em [API](05-api.md)). Um `sync.Mutex` no servidor serializa os acionamentos do botão: nunca há duas chamadas simultâneas à API Gemini. Um segundo clique enquanto o primeiro ainda está em curso recebe `409`.
+
+### Reembedar o acervo inteiro
+
+Trocar `settings['ai.embed_model']` em Configurações → IA marca **todos** os embeddings existentes como `stale` de uma vez, e um acervo grande não se reembeda clique por clique. `POST /api/admin/reembed` (contrato em [API](05-api.md)) resolve isso sem quebrar a decisão acima: ele **não** é automatismo — é uma ação explícita do usuário em Administração — e não abre um segundo caminho de gravação, apenas enfileira no mesmo worker serial todos os `pdf_id` cujo `embedding_status` não é `current`. Diferente do botão individual, o envio ao canal é bloqueante (não existe cliente esperando um `503`), o que auto-regula a fila: no máximo `cap(ch)` jobs ficam à frente do worker, então o mapa de jobs lido por `GET /api/embed/jobs` nunca cresce até o tamanho do acervo.
 
 ## Estado de embedding (`embedding_status`)
 
