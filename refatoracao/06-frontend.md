@@ -38,7 +38,6 @@ Lista fechada — nenhuma rota além destas onze:
 | `/viewer/[id]` | Viewer |
 | `/highlights` | Visão geral de destaques |
 | `/comments` | Visão geral de comentários |
-| `/collections` | Coleções |
 | `/tags` | Tags |
 | `/settings` | Preferências |
 | `/admin` | Administração |
@@ -81,12 +80,12 @@ Não existe paginação numerada em lugar nenhum da SPA — item removido do pro
 Componente de upload que, **antes** de enviar o `POST`, executa pdf.js no navegador para:
 
 1. Contar o número de páginas do PDF.
-2. Renderizar a página 1 em `<canvas>` e exportar dois PNGs: 400px de largura (thumbnail) e 1000px de largura (preview).
+2. Renderizar a página 1 em `<canvas>` e exportar um PNG de 1000px de largura — usado como preview na página de detalhes e como miniatura na biblioteca; não existe um asset de thumbnail separado.
 3. Concatenar o texto de todas as páginas via `getTextContent()` do pdf.js.
 
-O texto extraído é limitado a **2 MB**. Os três artefatos derivados (thumbnail PNG, preview PNG, texto) mais o PDF original são enviados num único `multipart/form-data` para `POST /api/pdfs` (payload completo em [API](05-api.md)).
+O texto extraído é limitado a **2 MB**. Os dois artefatos derivados (PNG de preview, texto) mais o PDF original são enviados num único `multipart/form-data` para `POST /api/pdfs` (payload completo em [API](05-api.md)).
 
-**Degradação graciosa**: se o pdf.js falhar no navegador (PDF corrompido ou protegido por senha), o componente envia somente o arquivo original — sem thumbnail e sem texto — e o servidor aceita o upload mesmo assim, gravando o PDF sem os artefatos derivados.
+**Degradação graciosa**: se o pdf.js falhar no navegador (PDF corrompido ou protegido por senha), o componente envia somente o arquivo original — sem preview e sem texto — e o servidor aceita o upload mesmo assim, gravando o PDF sem os artefatos derivados.
 
 ## Busca e filtros na biblioteca
 
@@ -95,7 +94,7 @@ A rota `/` traz, acima da grade de PDFs, uma caixa de busca única (léxica + se
 - **Busca**: `input` com debounce de 300ms; a cada digitação, reinicia o timer e só dispara `GET /api/pdfs?q=<termo>` quando o usuário para de digitar, evitando uma requisição por tecla.
 - **Tags**: cada pílula mostra o nome e a contagem de PDFs (`TagWithCount.count`). Clicar seleciona a tag como filtro (`?tag=<nome>`); clicar de novo na mesma pílula remove o filtro. Seleção única — não há combinação de múltiplas tags no filtro da biblioteca.
 - **Estado de embedding**: chips "Sem embedding", "Atualizado" e "Desatualizado", com os mesmos ícones da legenda, disparando `?embedding=none|current|stale` (contrato em [API](05-api.md)). Seleção única; clicar no chip ativo desliga o filtro.
-- Busca e filtros combinam-se livremente com os demais filtros da listagem (coleção, favoritos, arquivados) — mesma regra de composição descrita em [Busca híbrida](04-busca-hibrida.md), "Filtros combinados com a busca".
+- Busca e filtros combinam-se livremente com os demais filtros da listagem (favoritos, arquivados) — mesma regra de composição descrita em [Busca híbrida](04-busca-hibrida.md), "Filtros combinados com a busca".
 - Mensagem vazia diferenciada: "Nenhum PDF ainda. Envie um acima." só aparece sem nenhum filtro ativo; com busca, tag ou estado de embedding ativos e zero resultados, a mensagem passa a "Nenhum PDF encontrado.".
 
 ## TagPicker — combobox de tags
@@ -119,11 +118,10 @@ pdf.js é embutido como asset estático em `frontend/static/pdfjs/`: `viewer.htm
 | Salvar página atual | Mudança de página no viewer, com debounce de 2 s | `PATCH /api/pdfs/{id}` com `current_page` |
 | Criar comentário | Ação do usuário no viewer | `POST /api/pdfs/{id}/annotations` com `kind: "comment"` |
 | Criar destaque | Seleção de texto no viewer | `POST /api/pdfs/{id}/annotations` com `kind: "highlight"` |
-| Aplicar assinatura | Usuário escolhe assinatura salva | Insere a imagem da assinatura (data URL PNG) na página atual do viewer |
 | Modo invertido | Toggle na SPA | Aplica inversão de cores ao conteúdo renderizado pelo viewer |
 | Manter tela ligada | Toggle na SPA | Solicita `navigator.wakeLock` a partir do contexto que hospeda o iframe |
 
-No modo compartilhado (`/s/[share]`), a ponte é montada em **modo somente-leitura**: nenhuma das ações acima que grava estado (salvar página, criar anotação, aplicar assinatura) fica disponível.
+No modo compartilhado (`/s/[share]`), a ponte é montada em **modo somente-leitura**: nenhuma das ações acima que grava estado (salvar página, criar anotação) fica disponível.
 
 ### Backfill de texto na abertura
 
@@ -179,15 +177,14 @@ Tabela de mapeamento entre cada rota nova da SPA e as telas/views do produto atu
 
 | Rota nova | Arquivo de rota (SvelteKit) | View(s)/URL(s) Django equivalente(s) | Funcionalidades da tela |
 |---|---|---|---|
-| `/` | `frontend/src/routes/+page.svelte` | `pdf_overview` (`Overview`), `pdf_overview_query` (`OverviewQuery`), `get_next_pdf_overview_page`, `add_pdf` (`Add`), `bulk_add_pdfs` (`BulkAdd`), `bulk_actions` (`BulkActions`), `star` (`Star`), `archive` (`Archive`), `serve_thumbnail` (`ServeThumbnail`) | Biblioteca com 4 layouts (compact/list/grid/minimal), 7 ordenações, caixa de busca híbrida com debounce (ver [Busca e filtro por tag na biblioteca](#busca-e-filtro-por-tag-na-biblioteca)), pílulas de tag clicáveis para filtro, modo árvore de tags, upload individual e em lote, estrela, arquivar, ações em lote, rolagem infinita (substitui a paginação numerada) |
-| `/pdf/[id]` | `frontend/src/routes/pdf/[id]/+page.svelte` | `pdf_details` (`Details`), `edit_pdf` (`Edit`), `get_notes` (`GetNotes`), `show_preview` (`ShowPreview`), `serve_preview` (`ServePreview`), `download_pdf` (`Download`), `delete_pdf` (`Delete`), `share_pdf`/`unshare_pdf` (`SharePdf`/`UnsharePdf`) | Detalhes, notas em Markdown sanitizado (editadas em TipTap), descrição, renomear, mover de coleção, subdiretórios, baixar, excluir, criar/revogar link de compartilhamento, botão de embedding, tags via combobox `TagPicker` (ver [TagPicker — combobox de tags](#tagpicker--combobox-de-tags)), "Descrever com IA" e "Sugerir tags" (ver [Metadados gerados por IA](#metadados-gerados-por-ia)) |
-| `/viewer/[id]` | `frontend/src/routes/viewer/[id]/+page.svelte` | `view_pdf` (`ViewerView`), `serve_pdf` (`Serve`), `update_page` (`UpdatePage`), `update_pdf` (`UpdatePdf`) | Viewer pdf.js, progresso de leitura e página atual, barras de progresso, salvar PDF editado com incremento de `revision`, criar comentário/destaque, aplicar assinatura, modo invertido, manter tela ligada |
+| `/` | `frontend/src/routes/+page.svelte` | `pdf_overview` (`Overview`), `pdf_overview_query` (`OverviewQuery`), `get_next_pdf_overview_page`, `add_pdf` (`Add`), `bulk_add_pdfs` (`BulkAdd`), `bulk_actions` (`BulkActions`), `star` (`Star`), `archive` (`Archive`), `serve_thumbnail` (`ServeThumbnail`) | Biblioteca com 4 layouts (compact/list/grid/minimal), 7 ordenações, caixa de busca híbrida com debounce (ver [Busca e filtro por tag na biblioteca](#busca-e-filtro-por-tag-na-biblioteca)), pílulas de tag clicáveis para filtro, upload individual e em lote, estrela, arquivar, ações em lote, rolagem infinita (substitui a paginação numerada) |
+| `/pdf/[id]` | `frontend/src/routes/pdf/[id]/+page.svelte` | `pdf_details` (`Details`), `edit_pdf` (`Edit`), `get_notes` (`GetNotes`), `show_preview` (`ShowPreview`), `serve_preview` (`ServePreview`), `download_pdf` (`Download`), `delete_pdf` (`Delete`), `share_pdf`/`unshare_pdf` (`SharePdf`/`UnsharePdf`) | Detalhes, notas em Markdown sanitizado (editadas em TipTap), descrição, renomear, subdiretórios, baixar, excluir, criar/revogar link de compartilhamento, botão de embedding, tags via combobox `TagPicker` (ver [TagPicker — combobox de tags](#tagpicker--combobox-de-tags)), "Descrever com IA" e "Sugerir tags" (ver [Metadados gerados por IA](#metadados-gerados-por-ia)) |
+| `/viewer/[id]` | `frontend/src/routes/viewer/[id]/+page.svelte` | `view_pdf` (`ViewerView`), `serve_pdf` (`Serve`), `update_page` (`UpdatePage`), `update_pdf` (`UpdatePdf`) | Viewer pdf.js, progresso de leitura e página atual, barras de progresso, salvar PDF editado com incremento de `revision`, criar comentário/destaque, modo invertido, manter tela ligada |
 | `/highlights` | `frontend/src/routes/highlights/+page.svelte` | `pdf_highlight_overview` (`HighlightOverview`), `pdf_details_highlight_overview` (`DetailsHighlightOverview`), `export_annotations` (`ExportAnnotations`) | Visão geral de destaques com rolagem infinita, visão de destaques por PDF, exportação YAML/JSON, ordenação de anotações |
 | `/comments` | `frontend/src/routes/comments/+page.svelte` | `pdf_comment_overview` (`CommentOverview`), `pdf_details_comment_overview` (`DetailsCommentOverview`), `export_annotations` (`ExportAnnotations`) | Visão geral de comentários com rolagem infinita, visão de comentários por PDF, exportação YAML/JSON, ordenação de anotações |
-| `/collections` | `frontend/src/routes/collections/+page.svelte` | `create_collection` (`collection_views.Create`), `collection_details` (`workspace_views.CollectionDetails`), `edit_collection` (`collection_views.Edit`), `delete_collection` (`collection_views.Delete`) | CRUD de coleções; contagem de PDFs por coleção (`pdf_count`, ver [API](05-api.md)); coleção padrão protegida contra exclusão |
 | `/tags` | `frontend/src/routes/tags/+page.svelte` | `edit_tag` (`EditTag`), `delete_tag` (`DeleteTag`), `admin/views.py:RenameTag`, `:SubstituteTag` | Criar/editar/excluir tag, renomear e fundir tags (administração de tags) |
-| `/settings` | `frontend/src/routes/settings/+page.svelte` | Campos de `Profile` (`users/models.py`), `users/views.py:Signatures` | Tema claro/escuro/sistema, layout padrão, ordenação padrão de PDFs e de anotações, modo invertido, manter tela ligada, barras de progresso, modo árvore de tags, assinaturas, seção IA com seleção de modelo de embedding e de texto (chaves em [Modelo de dados](02-modelo-de-dados.md), ver [Metadados gerados por IA](#metadados-gerados-por-ia)) |
-| `/admin` | `frontend/src/routes/admin/+page.svelte` | `admin/views.py:Information`, `:RevokeShare` | Informações da instância (contagens, espaço em disco, agregado de `embedding_status`), revogação de compartilhamento, reindexação do FTS5 (`POST /api/admin/reindex`) — substitui `regenerate_thumbnails.py`, já que a geração de thumbnail passa a ocorrer no navegador |
+| `/settings` | `frontend/src/routes/settings/+page.svelte` | Campos de `Profile` (`users/models.py`) | Tema claro/escuro/sistema, layout padrão, ordenação padrão de PDFs e de anotações, modo invertido, manter tela ligada, barras de progresso, seção IA com seleção de modelo de texto (o modelo de embedding é fixo no binário — não aparece aqui) usado por "Descrever com IA" e "Sugerir tags" (chaves em [Modelo de dados](02-modelo-de-dados.md), ver [Metadados gerados por IA](#metadados-gerados-por-ia)) |
+| `/admin` | `frontend/src/routes/admin/+page.svelte` | `admin/views.py:Information`, `:RevokeShare` | Informações da instância (contagens, espaço em disco, agregado de `embedding_status`), revogação de compartilhamento, reindexação do FTS5 (`POST /api/admin/reindex`) — substitui `regenerate_thumbnails.py`, cuja função original (gerar miniatura) deixou de existir: não há mais um asset de thumbnail separado, o `reindex` de hoje só reconstrói o índice FTS5 |
 | `/login` | `frontend/src/routes/login/+page.svelte` | Login do `django-allauth` | Autenticação por senha única (`ADMIN_PASSWORD`), substitui o login multiusuário |
 | `/s/[share]` | `frontend/src/routes/s/[share]/+page.svelte` | `view_shared_pdf` (`ViewSharedPdf`), `serve_shared_pdf` (`ServeSharedPdf`) | Viewer público somente-leitura, contador de visualizações do compartilhamento |
 

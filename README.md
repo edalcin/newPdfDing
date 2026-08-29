@@ -27,13 +27,14 @@ Na prática: sua biblioteca de PDFs — contratos, manuais, receitas, artigos, r
 
 Funciona assim:
 
-1. Cada PDF tem um botão **"Embedar"** — sob demanda, um documento por vez, nunca automático (sem worker, sem fila, sem custo de API além do que você aciona explicitamente).
-2. Ao clicar, o servidor extrai nome + descrição + início do texto do PDF e chama a API Gemini (`batchEmbedContents`) uma única vez, guardando o vetor resultante (3072 dimensões) em SQLite.
-3. A partir daí, toda busca na biblioteca funde dois candidatos — o rank léxico do FTS5 e o rank semântico por similaridade de cosseno — via **Reciprocal Rank Fusion (RRF)** numa caixa única. Não há seletor de "modo léxico vs. semântico": é sempre os dois, fundidos.
-4. Documentos ainda não embedados continuam aparecendo normalmente nos resultados léxicos — a busca nunca fica pior por não ter embedding, só melhor com ele.
-5. Editar nome, descrição ou o texto do PDF marca o embedding como `stale` (desatualizado) até você reembedar — a interface avisa com o rótulo "Reembedar".
+1. Cada PDF tem um botão **"Embedar"** — sob demanda, um documento por vez, nunca automático (sem varredura, sem embedding no upload, sem lote).
+2. Ao clicar, o servidor responde `202` de imediato e apenas **enfileira** o pedido — o processamento em si roda num worker único de background que drena a fila em série, para nunca haver duas chamadas Gemini simultâneas. O job passa pelos estados `na fila` → `extraindo texto` → `embedando` → `concluído`: extrai nome + descrição + início do texto do PDF e chama a API Gemini (`batchEmbedContents`) uma única vez, guardando o vetor resultante (3072 dimensões) em SQLite.
+3. A interface acompanha o job ao vivo em `GET /api/embed/jobs`: o rótulo do botão muda de fase sozinho, em qualquer página que exiba aquele documento — inclusive se o job foi disparado antes de a página carregar, em outra aba ou em outro dispositivo — e o ícone vira "Embedado" assim que termina, sem precisar recarregar.
+4. A partir daí, toda busca na biblioteca funde dois candidatos — o rank léxico do FTS5 e o rank semântico por similaridade de cosseno — via **Reciprocal Rank Fusion (RRF)** numa caixa única. Não há seletor de "modo léxico vs. semântico": é sempre os dois, fundidos.
+5. Documentos ainda não embedados continuam aparecendo normalmente nos resultados léxicos — a busca nunca fica pior por não ter embedding, só melhor com ele. Três chips na biblioteca ("Sem embedding", "Atualizado", "Desatualizado") filtram pelo estado do embedding — útil para achar o que ainda falta embedar sem rolar a lista caçando ícone; clicar no chip ativo desliga o filtro.
+6. Editar nome, descrição ou o texto do PDF marca o embedding como `stale` (desatualizado) até você reembedar — a interface avisa com o rótulo "Reembedar".
 
-**PDFs importados de uma instância antiga (banco Django legado) ou trazidos pela watch-dir chegam sem texto extraído.** Para esses, o visualizador extrai o texto automaticamente na primeira vez que você abre o PDF (mesmo pdf.js do upload, rodando no navegador) e envia de volta ao servidor — depois disso o documento já pode ser embedado normalmente, sem precisar re-enviar o arquivo.
+**Documentos que chegam sem texto extraído** — pela watch-dir, ou herdados de uma importação antiga já concluída em produção — têm o texto extraído automaticamente pelo visualizador na primeira vez que você os abre (mesmo pdf.js do upload, rodando no navegador) e enviado de volta ao servidor; só depois disso podem ser embedados, sem precisar re-enviar o arquivo.
 
 Sem `GEMINI_API_KEY` configurada, nada disso quebra: o botão "Embedar" aparece desabilitado com um aviso, e a busca cai de volta para puramente léxica (FTS5 + fallback `LIKE`). Ver a mecânica completa — fórmula do texto embedado, fusão RRF, custo, tetos de escala — em [`refatoracao/04-busca-hibrida.md`](refatoracao/04-busca-hibrida.md).
 
@@ -48,14 +49,15 @@ O modelo usado em cada atalho é escolhido em **Configurações → IA**, numa l
 
 ## Funcionalidades
 
-- **Biblioteca**: 4 layouts (grade/lista/compacto/mínimo), 7 ordenações, rolagem infinita, upload individual e em lote com processamento no navegador (thumbnail, preview e texto via pdf.js) — nada de fila de processamento no servidor, o PDF já entra pronto para busca.
+- **Biblioteca**: 4 layouts (grade/lista/compacto/mínimo), 7 ordenações, rolagem infinita, upload individual e em lote com processamento no navegador (preview e texto via pdf.js) — nada de fila de processamento no servidor, o PDF já entra pronto para busca.
 - **Busca híbrida**: caixa única na biblioteca, léxica sempre ativa, semântica quando configurada (ver acima) — pesquise por conceito, não só por título exato.
 - **Metadados com IA**: descrição e sugestão de tags geradas sob demanda a partir do texto do PDF via Gemini (ver acima) — sem custo de API além do que você aciona explicitamente.
+- **Filtro por estado de embedding**: três chips na biblioteca ("Sem embedding", "Atualizado", "Desatualizado") isolam os PDFs em cada fase, combináveis com a busca — ache o que falta embedar sem procurar ícone por ícone.
 - **Tags**: autocompletar com sugestão das tags existentes e criação de tag nova inline, direto na página de detalhes do PDF; lista de tags clicável na biblioteca para filtrar por tag; administração (renomear/excluir/fundir) em `/tags` — organize contratos, manuais e receitas do seu jeito, sem taxonomia imposta.
-- **Coleções**: organização em coleções, com contagem de PDFs por coleção; coleção padrão protegida contra exclusão — separe clientes, projetos ou assuntos.
 - **Anotações**: comentários e destaques por página, com exportação em YAML/JSON — grife o que importa e leve as anotações para fora, sem lock-in.
 - **Compartilhamento público**: link sem senha/expiração, com contador de visualizações, revogável a qualquer momento — mande um documento pra alguém sem depender de e-mail com anexo de 40MB.
 - **Watch-dir opcional**: deixa cair PDFs numa pasta observada e eles entram sozinhos no acervo, com tags padrão configuráveis — sincronize com a pasta que você já usa hoje.
+- **Administração**: `/admin` mostra contagens do acervo (total de PDFs, tags, espaço em disco e quantos documentos em cada estado de embedding), reindexa o FTS5 sob demanda e faz backup/restauração completa do banco SQLite.
 
 ## Rodando com Docker (recomendado)
 
@@ -124,7 +126,7 @@ O modelo de texto usado por "Descrever com IA"/"Sugerir tags" pode ser escolhido
 
 ## Desenvolvimento
 
-Requer Go 1.25+ e Node 22+.
+Requer Go 1.27+ e Node 22+.
 
 ```bash
 # Backend
@@ -146,7 +148,7 @@ go run ./cmd/newpdfding
 
 ## Arquitetura
 
-Binário único: Go (chi, SQLite puro-Go, FTS5) servindo uma API REST e a SPA SvelteKit embutida via `go:embed`. Busca híbrida (FTS5 + embeddings Gemini sob demanda, fusão RRF), sem worker nem automação de embedding. Detalhes completos do plano de refatoração e da arquitetura alvo: [`refatoracao/`](refatoracao/README.md).
+Binário único: Go (chi, SQLite puro-Go, FTS5) servindo uma API REST e a SPA SvelteKit embutida via `go:embed`. Busca híbrida (FTS5 + embeddings Gemini sob demanda, fusão RRF), com um worker único de background que serializa o processamento de embedding — nunca automático, sempre disparado por um clique explícito. Detalhes completos do plano de refatoração e da arquitetura alvo: [`refatoracao/`](refatoracao/README.md).
 
 ## Atribuição
 

@@ -4,14 +4,14 @@ Contrato REST completo do backend. Todas as rotas ficam sob `/api`, com uma úni
 
 ## Convenções gerais
 
-- **Formato**: todas as respostas são JSON, com três exceções: rotas que servem binário (`.../file`, `.../thumbnail`, `.../preview`, `.../download`, `.../shared/{id}/file`), `GET /healthz` (texto puro `ok`) e `GET /s/{share_id}` (HTML da SPA).
+- **Formato**: todas as respostas são JSON, com três exceções: rotas que servem binário (`.../file`, `.../preview`, `.../download`, `.../shared/{id}/file`), `GET /healthz` (texto puro `ok`) e `GET /s/{share_id}` (HTML da SPA).
 - **Erros**: toda resposta de erro usa o envelope `{"error": "mensagem"}` com o status HTTP adequado (as rotas binárias e `/healthz` retornam apenas o status, sem corpo JSON). Ver [Legenda de status HTTP](#legenda-de-status-http).
 - **Sucesso**: criação → `201` com o recurso criado; atualização → `200` com o recurso atualizado; remoção → `204` sem corpo; listagens paginadas → `200` `{"items":[...], "next_cursor": "<cursor>|null"}`.
 - **Autenticação**: cookie de sessão (`HttpOnly; Secure; SameSite=Lax`). Mecanismo completo, expiração e rate limit de login em [Segurança](08-seguranca.md).
 - **CSRF**: todo método não idempotente (`POST`/`PUT`/`PATCH`/`DELETE`) exige o header `X-CSRF-Token` além do cookie, exceto as rotas públicas de compartilhamento (somente leitura). Mecanismo completo em [Segurança](08-seguranca.md).
-- **Paginação por cursor**: usada em `GET /api/pdfs` e `GET /api/annotations`. O `cursor` é uma string opaca; formato exato e regra de comparação documentados em [Frontend](06-frontend.md). As demais listagens (`tags`, `collections`, `signatures`, `shares`) não são paginadas — devolvem array completo.
+- **Paginação por cursor**: usada em `GET /api/pdfs` e `GET /api/annotations`. O `cursor` é uma string opaca; formato exato e regra de comparação documentados em [Frontend](06-frontend.md). As demais listagens (`tags`, `shares`) não são paginadas — devolvem array completo.
 - **Upload**: corpo limitado por `MAX_UPLOAD_MB` (ver [Docker/CI/Deploy](07-docker-ci-deploy.md)); tipo validado pelos magic bytes `%PDF-` lidos do próprio stream (ver [Segurança](08-seguranca.md)).
-- **Representação de PDF**: toda resposta que devolve um PDF traz as colunas de `pdfs` (ver [Modelo de dados](02-modelo-de-dados.md)) mais `tags: [{"id","name"}]`, `notes_html` (o Markdown bruto de `notes` renderizado por `goldmark` e sanitizado por `bluemonday.UGCPolicy()` antes de sair no JSON — ver [Segurança](08-seguranca.md)), `embedding_status: "none"|"current"|"stale"` (ver [Embedding sob demanda](#embedding-sob-demanda)) e `has_text: bool` (se existe linha em `pdf_text` para o documento — só populado em `GET /api/pdfs/{id}`, não na listagem `GET /api/pdfs`; usado pelo viewer para decidir se faz o backfill de texto, ver [PDFs](#pdfs), nota sobre `POST .../text`). `storage_key`, `thumbnail_key` e `preview_key` são detalhes internos e não são expostos — o cliente obtém conteúdo pelas rotas dedicadas (`.../file`, `.../thumbnail`, `.../preview`, `.../download`).
+- **Representação de PDF**: toda resposta que devolve um PDF traz as colunas de `pdfs` (ver [Modelo de dados](02-modelo-de-dados.md)) mais `tags: [{"id","name"}]`, `notes_html` (o Markdown bruto de `notes` renderizado por `goldmark` e sanitizado por `bluemonday.UGCPolicy()` antes de sair no JSON — ver [Segurança](08-seguranca.md)), `embedding_status: "none"|"current"|"stale"` (ver [Embedding sob demanda](#embedding-sob-demanda)) e `has_text: bool` (se existe linha em `pdf_text` para o documento — só populado em `GET /api/pdfs/{id}`, não na listagem `GET /api/pdfs`; usado pelo viewer para decidir se faz o backfill de texto, ver [PDFs](#pdfs), nota sobre `POST .../text`). `storage_key` e `preview_key` são detalhes internos e não são expostos — a URL de arquivo/preview é sempre relativa à rota (`/api/pdfs/{id}/file`, `/api/pdfs/{id}/preview`), nunca a chave crua de storage.
 - **"Admin"** nas rotas abaixo é um rótulo funcional (tela de administração), não uma permissão distinta — o produto tem um único usuário (ver [Visão geral](00-visao-geral.md)).
 
 ## Legenda de status HTTP
@@ -21,7 +21,7 @@ Contrato REST completo do backend. Todas as rotas ficam sob `/api`, com uma úni
 | `400` | Validação de payload ou parâmetros falhou |
 | `401` | Sem sessão válida (cookie ausente, inválido ou expirado) |
 | `404` | Recurso inexistente |
-| `409` | Conflito (duplicata, nome em uso, coleção padrão protegida, embedding já atualizado ou em curso) |
+| `409` | Conflito (duplicata, nome em uso, embedding já em curso) |
 | `413` | Corpo da requisição acima de `MAX_UPLOAD_MB` |
 | `415` | Tipo de conteúdo inválido (ex.: arquivo sem assinatura `%PDF-`) |
 | `429` | Limite de tentativas excedido (rate limit) |
@@ -49,16 +49,14 @@ Erros: `POST /login` → `400` (payload malformado), `401` (senha incorreta), `4
 
 | Método | Caminho | Payload | Resposta |
 |---|---|---|---|
-| `GET` | `/api/pdfs` | Query: `q, tag, collection, starred, archived, embedding, sort, cursor, limit` | `200` `{"items":[<PDF>...], "next_cursor"}` |
-| `POST` | `/api/pdfs` | Multipart: `file` (obrigatório), `thumbnail`, `preview`, `text` (opcionais), `name`, `description`, `tags`, `collection_id` | `201` PDF criado |
+| `GET` | `/api/pdfs` | Query: `q, tag, starred, archived, embedding, sort, cursor, limit` | `200` `{"items":[<PDF>...], "next_cursor"}` |
+| `POST` | `/api/pdfs` | Multipart: `file` (obrigatório), `preview`, `text` (opcionais), `name`, `description`, `tags` | `201` PDF criado |
 | `POST` | `/api/pdfs/bulk` | Multipart com múltiplos `file` (um conjunto de metadados por arquivo) | `201` `{"results":[{"status":"created","pdf_id"}\|{"status":"duplicate","pdf_id","name"}, ...]}` |
 | `GET` | `/api/pdfs/{id}` | — | `200` PDF completo |
-| `PATCH` | `/api/pdfs/{id}` | JSON parcial: `name, description, notes, tags, collection_id, starred, archived, current_page` | `200` PDF atualizado |
+| `PATCH` | `/api/pdfs/{id}` | JSON parcial: `name, description, notes, tags, starred, archived, current_page` | `200` PDF atualizado |
 | `DELETE` | `/api/pdfs/{id}` | — | `204` |
 | `GET` | `/api/pdfs/{id}/file` | Header `Range` opcional | `200`/`206`, `application/pdf`, `Accept-Ranges: bytes` |
-| `GET` | `/api/pdfs/{id}/thumbnail` | — | `200` `image/png` |
 | `GET` | `/api/pdfs/{id}/preview` | — | `200` `image/png` |
-| `POST` | `/api/pdfs/{id}/thumbnail` | Multipart: PNG gerado tardiamente pelo browser | `200` `{"thumbnail":"ok"}` |
 | `POST` | `/api/pdfs/{id}/text` | `{"text": "string"}` | `200` `{"text":"ok"}` |
 | `PUT` | `/api/pdfs/{id}/file` | Corpo: PDF editado | `200` `{"revision": <n>}` |
 | `GET` | `/api/pdfs/{id}/download` | — | `200`, `Content-Disposition: attachment; filename="<name>.pdf"` |
@@ -75,8 +73,7 @@ Erros por rota:
 - `GET /api/pdfs/{id}` → `401`, `404`, `500`.
 - `PATCH /api/pdfs/{id}` → `400`, `401`, `404`, `500`.
 - `DELETE /api/pdfs/{id}` → `401`, `404`, `500`.
-- `GET .../file`, `.../thumbnail`, `.../preview`, `.../download` → `401`, `404` (PDF inexistente no banco, **ou** arquivo ausente em disco — log de aviso citando `pdf_id` e chave, ver [Storage](03-storage.md)), `500`.
-- `POST .../thumbnail` → `400`, `401`, `404`, `413`, `415`, `500`, `507`.
+- `GET .../file`, `.../preview`, `.../download` → `401`, `404` (PDF inexistente no banco, **ou** arquivo ausente em disco — log de aviso citando `pdf_id` e chave, ver [Storage](03-storage.md)), `500`.
 - `POST .../text` → `400` (`text` vazio ou payload malformado), `401`, `404`, `413`, `500`.
 - `PUT .../file` → `400`, `401`, `404`, `413`, `415`, `500`, `507`.
 - `POST /api/pdfs/bulk-actions` → `400` (`action` inválida), `401`, `500`.
@@ -84,30 +81,44 @@ Erros por rota:
 Notas:
 - `sort` aceita `newest|oldest|name_asc|name_desc|most_viewed|least_viewed|recently_viewed` — mesma lista fechada de `pdf.sorting`, default `newest` (ver [Modelo de dados](02-modelo-de-dados.md)).
 - `tags` no upload é uma string com tags separadas por espaço, normalizada como em `Tag.parse_tag_string` (ver [Modelo de dados](02-modelo-de-dados.md)).
-- `DELETE /api/pdfs/{id}` remove em cascata `pdf_tags`, `pdf_annotations`, `shares` e `pdf_embeddings` (todos `ON DELETE CASCADE`) e apaga PDF/thumbnail/preview do storage (ver [Storage](03-storage.md)).
+- `DELETE /api/pdfs/{id}` remove em cascata `pdf_tags`, `pdf_annotations`, `shares` e `pdf_embeddings` (todos `ON DELETE CASCADE`) e apaga PDF/preview do storage (ver [Storage](03-storage.md)).
 - Editar `name`, `description` ou o texto extraído pode tornar `embedding_status` igual a `stale` (ver [Embedding sob demanda](#embedding-sob-demanda)).
 - `PATCH` alterando `current_page` é o mecanismo usado pelo viewer para salvar a página atual, com debounce no cliente (ver [Frontend](06-frontend.md)).
-- `POST .../text` backfila `pdf_text` para documentos que chegaram sem texto extraído (import do banco legado — ver `ETAPA-12-IMPORTACAO` em [ETAPAS.md](ETAPAS.md) —, ou watch-dir), reindexando FTS5 na mesma transação (ver [Busca híbrida](04-busca-hibrida.md), "Reindexação"). O viewer chama essa rota automaticamente ao abrir um PDF cujo `has_text` é `false`, extraindo o texto no navegador com o mesmo pdf.js do upload (ver [Frontend](06-frontend.md)). Também pode tornar `embedding_status` igual a `stale` se o documento já tivesse um embedding com hash calculado sobre o corpo vazio.
+- `POST .../text` backfila `pdf_text` para documentos que chegaram sem texto extraído (histórico: import do banco legado — comando `-import-legacy`, executado uma vez e depois removido do binário nesta sessão — ou watch-dir, que continua ativa). O viewer chama essa rota automaticamente ao abrir um PDF cujo `has_text` é `false`, extraindo o texto no navegador com o mesmo pdf.js do upload (ver [Frontend](06-frontend.md)). Também pode tornar `embedding_status` igual a `stale` se o documento já tivesse um embedding com hash calculado sobre o corpo vazio.
 
 ## Embedding sob demanda
 
-| Método | Caminho | Auth | Payload | Resposta de sucesso |
-|---|---|---|---|---|
-| `POST` | `/api/pdfs/{id}/embed` | Sessão | — (sem corpo) | `200` `{"embedding_status":"current","dimensions":<n>}` |
+| Método | Caminho | Payload | Resposta de sucesso |
+|---|---|---|---|
+| `POST` | `/api/pdfs/{id}/embed` | — (sem corpo) | `202` `{"state":"queued"}` |
+| `GET` | `/api/embed/jobs` | — | `200` `{"jobs": {"<pdf_id>": {"state","error"}}}` — mapa só com os documentos que têm job rastreado |
 
-Embeda **apenas** o documento `{id}`, de forma síncrona. Não existe endpoint de embedding em lote — embedar é sempre um documento por acionamento, e não existe worker, `time.Ticker` ou varredura automática (ver [Busca híbrida](04-busca-hibrida.md)). Um `sync.Mutex` no servidor serializa acionamentos concorrentes para nunca haver duas chamadas simultâneas à API Gemini.
+Todas exigem **Sessão**.
 
-Erros:
+`POST .../embed` **apenas enfileira** o documento `{id}` (`202`) — a extração de texto e a chamada à API Gemini rodam depois, num worker único em background que drena a fila em série (`internal/server/embedqueue.go`, `StartEmbedWorker`), garantindo que nunca haja duas chamadas Gemini simultâneas. Não existe endpoint de embedding em lote nem "embedar todos": embedar é sempre um documento por acionamento explícito do usuário; a fila só serializa acionamentos concorrentes, não os cria sozinha — não existe worker de varredura do acervo nem `time.Ticker` que enfileire nada por conta própria (ver [Frontend](06-frontend.md), "Botão de embedding — máquina de estados").
+
+Estados do job, expostos em `GET /api/embed/jobs` como `{"state", "error"}` por `pdf_id`:
+
+| Estado | Significado |
+|---|---|
+| `queued` | Na fila, aguardando o worker. |
+| `extracting` | Worker extraindo o texto do documento. |
+| `embedding` | Worker chamando a API Gemini. |
+| `done` | Embedding gravado com sucesso — a linha some do mapa 60s depois. |
+| `failed` | Falhou (texto não extraível, chamada Gemini falhou, erro interno); a mensagem vem em `error` e a linha permanece no mapa até ser reenfileirada. |
+
+Erros de `POST .../embed`, validados de forma síncrona antes de enfileirar — falhas depois disso viram job `failed`, nunca um código HTTP:
 
 | Código | Motivo |
 |---|---|
 | `401` | Sem sessão |
 | `404` | Documento inexistente |
-| `409` | Já está `current` (o botão não deveria estar clicável — o servidor recusa mesmo assim), ou há outro embedding em curso no processo |
+| `409` | Já existe um job não terminal (`queued`/`extracting`/`embedding`) para este documento |
 | `412` | `GEMINI_API_KEY` ausente — corpo `{"error":"busca semântica desabilitada"}` |
-| `422` | Documento sem texto extraído (`pdf_text` vazio) — não há o que embedar |
-| `502` | A API Gemini falhou — mensagem sanitizada no corpo, **nada é gravado** |
+| `503` | Fila cheia (buffer de 256 jobs pendentes) |
 | `500` | Erro interno |
+
+Erros de `GET /api/embed/jobs`: `401`, `500`.
 
 `GET /api/pdfs` e `GET /api/pdfs/{id}` devolvem o campo derivado `embedding_status` (`none`, `current` ou `stale`) que habilita/desabilita o botão na interface — ver [PDFs](#pdfs) e [Busca híbrida](04-busca-hibrida.md).
 
@@ -165,28 +176,7 @@ Erros por rota:
 - `DELETE /api/tags/{id}` → `401`, `404`, `500`.
 - `POST /api/tags/substitute` → `400` (`from_id == to_id`), `401`, `404` (algum dos dois ids inexistente), `500`.
 
-Notas: nomes de tag podem conter `/` para hierarquia (modo árvore); a árvore é construída no cliente (ver [Frontend](06-frontend.md)). `POST /api/tags/substitute` move todas as associações de `from_id` para `to_id` sem duplicar linha em `pdf_tags` (chave composta `pdf_id, tag_id`) e remove `from_id`. Toda mutação que afeta PDFs (renomear, excluir, fundir) dispara reindexação FTS5 dos documentos afetados, na mesma transação (ver [Busca híbrida](04-busca-hibrida.md)).
-
-## Coleções
-
-| Método | Caminho | Payload | Resposta |
-|---|---|---|---|
-| `GET` | `/api/collections` | — | `200` `[<Coleção>...]` — cada item traz `pdf_count: <n>`, contagem atual de PDFs na coleção |
-| `POST` | `/api/collections` | `{"name": "string", "description": "string"}` | `201` coleção criada |
-| `PATCH` | `/api/collections/{id}` | `{"name"?, "description"?}` | `200` coleção atualizada |
-| `DELETE` | `/api/collections/{id}` | — | `204` |
-
-Todas exigem **Sessão**.
-
-Erros por rota:
-- `GET /api/collections` → `401`, `500`.
-- `POST /api/collections` → `400`, `401`, `409` (nome já em uso — `idx_collections_name`), `500`.
-- `PATCH /api/collections/{id}` → `400`, `401`, `404`, `409`, `500`.
-- `DELETE /api/collections/{id}` → `401`, `404`, `409` (rejeita a coleção padrão, `is_default=1`), `500`.
-
-Atenção: `pdfs.collection_id` tem `ON DELETE CASCADE` (ver [Modelo de dados](02-modelo-de-dados.md)) — excluir uma coleção não padrão exclui em cascata todos os seus PDFs, tags associadas, anotações e embeddings. A proteção `409` na coleção padrão existe justamente para o acervo nunca ficar sem coleção de destino.
-
-`pdf_count` só sai em `GET /api/collections` (calculado por `LEFT JOIN` + `COUNT` sobre `pdfs`, ver [Modelo de dados](02-modelo-de-dados.md)) — as respostas de `POST`/`PATCH` (`collectionResponse` sem contagem recalculada) não o incluem; o cliente mantém o valor já exibido ao atualizar nome/descrição em vez de sobrescrevê-lo com o zero-value da resposta.
+Notas: nomes de tag podem conter `/`; a normalização preserva esse separador para uma futura hierarquia (ver [Modelo de dados](02-modelo-de-dados.md), "Regra de normalização de tags") — o modo árvore que a exploraria nunca foi implementado, a lista de tags na SPA é sempre plana. `POST /api/tags/substitute` move todas as associações de `from_id` para `to_id` sem duplicar linha em `pdf_tags` (chave composta `pdf_id, tag_id`) e remove `from_id`. Toda mutação que afeta PDFs (renomear, excluir, fundir) dispara reindexação FTS5 dos documentos afetados, na mesma transação (ver [Busca híbrida](04-busca-hibrida.md)).
 
 ## Compartilhamento
 
@@ -209,21 +199,6 @@ Erros por rota:
 
 O compartilhamento público não tem senha nem expiração — mesmo comportamento do produto atual; é adição de escopo posterior, não parte desta refatoração.
 
-## Assinaturas
-
-| Método | Caminho | Payload | Resposta |
-|---|---|---|---|
-| `GET` | `/api/signatures` | — | `200` `[{"id","name","data","created_at"}]` |
-| `POST` | `/api/signatures` | `{"name": "string", "data": "data URL PNG"}` | `201` assinatura criada |
-| `DELETE` | `/api/signatures/{id}` | — | `204` |
-
-Todas exigem **Sessão**.
-
-Erros por rota:
-- `GET /api/signatures` → `401`, `500`.
-- `POST /api/signatures` → `400` (`data` não é uma data URL PNG válida), `401`, `500`.
-- `DELETE /api/signatures/{id}` → `401`, `404`, `500`.
-
 ## Preferências
 
 | Método | Caminho | Payload | Resposta |
@@ -241,7 +216,7 @@ Erros por rota:
 
 | Método | Caminho | Payload | Resposta |
 |---|---|---|---|
-| `GET` | `/api/admin/info` | — | `200` `{"version","pdfs_count","tags_count","collections_count","files_bytes","embed_model":"models/gemini-embedding-2","embedding_status_counts":{"none","current","stale"}}` |
+| `GET` | `/api/admin/info` | — | `200` `{"pdfs_count","tags_count","files_bytes","embed_model":"models/gemini-embedding-2","embedding_status_counts":{"none","current","stale"}}` |
 | `POST` | `/api/admin/reindex` | — | `200` `{"reindexed": true}` |
 | `GET` | `/api/admin/backup` | — | `200` binário `application/vnd.sqlite3`, `Content-Disposition: attachment` |
 | `POST` | `/api/admin/restore` | corpo bruto: arquivo `.db`/`.sqlite3` | `200` `{"restored": true, "restarting": true}` |

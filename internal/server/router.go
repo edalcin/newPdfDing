@@ -10,8 +10,8 @@ import (
 )
 
 // buildRouter wires the chi router: global middleware (security headers,
-// CSRF), public auth routes, and the session-protected route group. API
-// routes land per their owning etapa (ver refatoracao/ETAPAS.md).
+// CSRF), public auth routes, and the session-protected route group. The
+// full route contract lives in refatoracao/05-api.md.
 func (s *Server) buildRouter() http.Handler {
 	r := chi.NewRouter()
 

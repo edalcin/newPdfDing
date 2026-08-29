@@ -55,18 +55,6 @@ func (s *AnnotationStore) Create(pdfID, kind string, page int, text, note, color
 	return s.Get(id.String())
 }
 
-// Import inserts an annotation with a caller-controlled id and created_at,
-// for the one-shot legacy database import (ver ETAPA-12-IMPORTACAO).
-func (s *AnnotationStore) Import(id, pdfID, kind string, page int, text, createdAt string) (Annotation, error) {
-	if _, err := s.db.Exec(
-		`INSERT INTO pdf_annotations (id, pdf_id, kind, page, text, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-		id, pdfID, kind, page, text, createdAt,
-	); err != nil {
-		return Annotation{}, err
-	}
-	return s.Get(id)
-}
-
 // Get returns one annotation by id, or ErrNotFound.
 func (s *AnnotationStore) Get(id string) (Annotation, error) {
 	var a Annotation

@@ -11,12 +11,12 @@ Esta é a estrutura decidida — o implementador não escolhe uma estrutura alte
 ```
 cmd/newpdfding/main.go
 internal/config/config.go
-internal/store/            migrate.go schema.sql pdfs.go tags.go collections.go
+internal/store/            migrate.go schema.sql pdfs.go tags.go
                            annotations.go shares.go search.go semantic.go
                            settings.go sessions.go
 internal/storage/          storage.go local.go
 internal/server/           server.go router.go middleware.go
-                           handlers_pdfs.go handlers_tags.go handlers_collections.go
+                           handlers_pdfs.go handlers_tags.go
                            handlers_annotations.go handlers_search.go handlers_share.go
                            handlers_settings.go handlers_admin.go handlers_auth.go
                            consumer.go

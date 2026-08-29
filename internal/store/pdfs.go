@@ -152,102 +152,6 @@ func (s *PDFStore) Create(p CreateParams) (PDF, error) {
 	return s.GetByID(p.ID)
 }
 
-// ImportParams is the input to Import — like CreateParams but with every
-// field the legacy Django import needs to preserve verbatim (ver
-// refatoracao/ETAPAS.md, ETAPA-12-IMPORTACAO): original id, timestamps,
-// counters and flags, instead of the fresh-upload defaults Create hardcodes.
-type ImportParams struct {
-	ID            string
-	Name          string
-	Description   string
-	Notes         string
-	StorageKey    string
-	PreviewKey    string
-	SHA256        string
-	SizeBytes     int64
-	NumPages      int
-	CurrentPage   int
-	Views         int
-	Revision      int
-	Starred       bool
-	Archived      bool
-	TagNames      []string
-	Text          string
-	CreatedAt     string // RFC3339Nano, required
-	LastViewedAt  string // RFC3339Nano, empty = NULL (never viewed)
-}
-
-// Import inserts a PDF row with caller-controlled id/timestamps/counters,
-// for the one-shot legacy database import (ver ETAPA-12-IMPORTACAO). Tag
-// association, pdf_text and FTS indexing follow the same rules as Create.
-// Returns ErrConflict on a duplicate sha256, exactly like Create.
-func (s *PDFStore) Import(p ImportParams) (PDF, error) {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return PDF{}, err
-	}
-
-	var lastViewedAt sql.NullString
-	if p.LastViewedAt != "" {
-		lastViewedAt = sql.NullString{String: p.LastViewedAt, Valid: true}
-	}
-
-	_, err = tx.Exec(`INSERT INTO pdfs (
-		id, name, description, notes,
-		storage_key, preview_key, sha256, size_bytes, num_pages,
-		current_page, views, revision, starred, archived, created_at, last_viewed_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		p.ID, p.Name, p.Description, p.Notes,
-		p.StorageKey, p.PreviewKey, p.SHA256, p.SizeBytes, p.NumPages,
-		p.CurrentPage, p.Views, p.Revision, boolToInt(p.Starred), boolToInt(p.Archived), p.CreatedAt, lastViewedAt,
-	)
-	if err != nil {
-		tx.Rollback()
-		if isUniqueViolation(err) {
-			return PDF{}, ErrConflict
-		}
-		return PDF{}, err
-	}
-
-	if len(p.TagNames) > 0 {
-		tagIDs, err := ensureTags(tx, p.TagNames)
-		if err != nil {
-			tx.Rollback()
-			return PDF{}, err
-		}
-		for _, tagID := range tagIDs {
-			if _, err := tx.Exec(`INSERT INTO pdf_tags (pdf_id, tag_id) VALUES (?, ?)`, p.ID, tagID); err != nil {
-				tx.Rollback()
-				return PDF{}, err
-			}
-		}
-	}
-
-	if p.Text != "" {
-		if _, err := tx.Exec(`INSERT INTO pdf_text (pdf_id, body) VALUES (?, ?)`, p.ID, p.Text); err != nil {
-			tx.Rollback()
-			return PDF{}, err
-		}
-	}
-
-	fresh, ok, err := loadFTSRow(tx, p.ID)
-	if err != nil {
-		tx.Rollback()
-		return PDF{}, err
-	}
-	if ok {
-		if err := insertFTSRow(tx, fresh); err != nil {
-			tx.Rollback()
-			return PDF{}, err
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return PDF{}, err
-	}
-	return s.GetByID(p.ID)
-}
-
 // GetByID returns one PDF with its tags loaded, or ErrNotFound.
 func (s *PDFStore) GetByID(id string) (PDF, error) {
 	row := s.db.QueryRow(`SELECT `+pdfColumns+` FROM pdfs WHERE id = ?`, id)
@@ -815,8 +719,9 @@ func (s *PDFStore) SetPreviewKey(id, key string) error {
 // SetText upserts the extracted text body for a PDF and reindexes FTS5 in
 // the same transaction (ver 05-api.md, "POST .../text" — the viewer
 // backfills text on first open for documents that arrived without it:
-// legacy import, ETAPA-12-IMPORTACAO, or the watch-dir consumer's pure-Go
-// extraction gap). Returns ErrNotFound if the PDF does not exist.
+// documents migrated from the legacy Django database (one-time import,
+// since removed) or the watch-dir consumer's pure-Go extraction gap).
+// Returns ErrNotFound if the PDF does not exist.
 func (s *PDFStore) SetText(id, text string) error {
 	tx, err := s.db.Begin()
 	if err != nil {

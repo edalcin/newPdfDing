@@ -2,14 +2,14 @@
 
 Este documento fixa o conteúdo alvo de empacotamento e entrega: o `Dockerfile` de três estágios, o `.dockerignore`, o workflow de CI/CD (`.github/workflows/docker-publish.yaml`), o `.github/dependabot.yml`, a lista fechada de variáveis de ambiente — incluindo as eliminadas na migração —, o `.env.example` e o conteúdo alvo de `UNRAID.md`. É o dono de todo `nome | obrigatória | default | significado` de configuração do produto; nenhum outro documento define uma variável de ambiente nova.
 
-Para a árvore de diretórios e as dependências Go fixadas, ver [Arquitetura](01-arquitetura.md). Para o detalhamento dos headers de segurança, rate limiting e o checklist de segurança que cita a imagem `nonroot`, ver [Segurança](08-seguranca.md). Para a lista do que é apagado/reescrito no repositório atual, ver [Limpeza do repositório](09-limpeza-repositorio.md).
+Para a árvore de diretórios e as dependências Go fixadas, ver [Arquitetura](01-arquitetura.md). Para o detalhamento dos headers de segurança, rate limiting e o checklist de segurança que cita a imagem `nonroot`, ver [Segurança](08-seguranca.md).
 
 ## Dockerfile de três estágios
 
 Três estágios, na ordem:
 
 1. **`node:22-alpine`** — `npm ci` (inclui `pdfjs-dist` 5.5.207, já fixado em `frontend/package.json`), depois `npm run build` → executa `frontend/scripts/copy-pdfjs.mjs` (copia só o necessário de `node_modules/pdfjs-dist` — motor, `cmaps/`, `standard_fonts/` — para `frontend/static/pdfjs/`; `viewer.html`/`viewer.mjs`/`viewer.css` já são código do repositório, não baixados) e então `vite build` → `frontend/build`.
-2. **`golang:1.25-alpine`** — copia o build do frontend para `internal/server/web/dist`, compila com `CGO_ENABLED=0`, `-trimpath`, `-ldflags="-s -w"`.
+2. **`golang:1.27-alpine`** — copia o build do frontend para `internal/server/web/dist`, compila com `CGO_ENABLED=0`, `-trimpath`, `-ldflags="-s -w"`.
 3. **`gcr.io/distroless/static-debian12:nonroot`** — copia só o binário; `USER nonroot`; `EXPOSE 8000`; `ENTRYPOINT ["/newpdfding"]`; `HEALTHCHECK` via flag `-healthcheck` do próprio binário (a imagem distroless não tem shell nem `curl`/`wget`, então o healthcheck não pode ser um comando de shell).
 
 **Meta de tamanho declarada: < 60 MB** (o stack Django atual gera ~400 MB). O principal peso da imagem final passa a ser o pdf.js embutido, não o runtime — daí a limpeza de `web/locale` e `web/standard_fonts` no estágio 1.
@@ -36,7 +36,7 @@ RUN npm run build
 
 
 # ── Stage 2: Go build ────────────────────────────────────────────────────────
-FROM golang:1.25-alpine AS build
+FROM golang:1.27-alpine AS build
 
 WORKDIR /src
 
@@ -124,7 +124,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version: "1.27"
           cache: true
 
       - name: go vet
@@ -224,7 +224,7 @@ Lista final e fechada — nenhuma variável fora desta tabela é lida pelo biná
 |---|---|---|---|
 | `ADMIN_PASSWORD` | Sim | — | Senha única do usuário administrador; comparada em tempo constante ([Segurança](08-seguranca.md)). |
 | `DB_PATH` | Sim | — | Caminho do arquivo SQLite. |
-| `FILES` | Sim | — | Diretório raiz do acervo de PDFs — arquivo, thumbnail e preview ([Storage](03-storage.md)). |
+| `FILES` | Sim | — | Diretório raiz do acervo de PDFs — arquivo e preview ([Storage](03-storage.md)). |
 | `LISTEN_ADDR` | Não | `:8000` | Endereço e porta em que o servidor HTTP escuta. |
 | `BASE_URL` | Não | derivado da requisição | URL pública usada para montar links absolutos (ex.: link de compartilhamento). |
 | `SESSION_IDLE_MINUTES` | Não | `43200` | Minutos de inatividade até a sessão expirar (30 dias). |
@@ -242,7 +242,7 @@ O modelo de embedding não é uma variável de ambiente: é a constante `config.
 
 ## Variáveis eliminadas
 
-Variáveis do produto Django atual que **não têm equivalente** na versão Go — não devem ser lidas por nenhum handler, nenhum `config.go`, nenhum `docker-compose`, nenhuma etapa de `ETAPAS.md`.
+Variáveis do produto Django atual que **não têm equivalente** na versão Go — não devem ser lidas por nenhum handler, nenhum `config.go`, nenhum `docker-compose`.
 
 | Variável | Motivo da eliminação |
 |---|---|
@@ -303,7 +303,7 @@ CONSUME_SKIP_EXISTING=true
 
 ## `compose.yaml`
 
-Compose de desenvolvimento/self-host de instância única, na raiz do repositório — substitui os antigos `compose/postgres.docker-compose.yaml` e `compose/sqlite.docker-compose.yaml` do stack Django (ver [Limpeza do repositório](09-limpeza-repositorio.md)); não há mais escolha de banco, só SQLite. `docker compose up --build` sobe o serviço a partir do `Dockerfile` local, lendo `.env` (copiado de `.env.example`) e persistindo banco e acervo em volumes nomeados.
+Compose de desenvolvimento/self-host de instância única, na raiz do repositório — substitui os antigos `compose/postgres.docker-compose.yaml` e `compose/sqlite.docker-compose.yaml` do stack Django; não há mais escolha de banco, só SQLite. `docker compose up --build` sobe o serviço a partir do `Dockerfile` local, lendo `.env` (copiado de `.env.example`) e persistindo banco e acervo em volumes nomeados.
 
 ```yaml
 services:
@@ -333,7 +333,7 @@ volumes:
 
 ## Conteúdo de UNRAID.md
 
-`UNRAID.md` é um arquivo próprio na raiz do repositório (ver árvore em [Arquitetura](01-arquitetura.md)), não dentro de `refatoracao/`. Este documento é o dono do seu conteúdo alvo — a ETAPA-11 copia a seção abaixo quase literalmente para lá.
+`UNRAID.md` é um arquivo próprio na raiz do repositório (ver árvore em [Arquitetura](01-arquitetura.md)), não dentro de `refatoracao/`: é o guia de instalação. Este documento é o dono do conteúdo alvo dessa seção.
 
 ### Docker → Add Container
 

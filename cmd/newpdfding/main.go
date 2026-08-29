@@ -20,7 +20,6 @@ import (
 
 func main() {
 	healthcheck := flag.Bool("healthcheck", false, "run a health check and exit")
-	importLegacy := flag.Bool("import-legacy", false, "import a legacy Django database and media directory, then exit: -import-legacy <db.sqlite3> <media dir>")
 	flag.Parse()
 
 	cfg, err := config.Load()
@@ -50,24 +49,8 @@ func main() {
 
 	srv := server.New(cfg, db)
 
-	if *importLegacy {
-		if flag.NArg() != 2 {
-			fmt.Fprintln(os.Stderr, "newpdfding: -import-legacy requires exactly two arguments: <legacy db.sqlite3 path> <legacy media dir>")
-			os.Exit(1)
-		}
-		report, err := srv.ImportLegacy(context.Background(), flag.Arg(0), flag.Arg(1))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "newpdfding: import failed: %v\n", err)
-			os.Exit(1)
-		}
-		log.Printf(
-			"import complete: %d tags, %d pdfs (%d skipped), %d annotations, %d shares",
-			report.Tags, report.PDFs, report.Skipped, report.Annotations, report.Shares,
-		)
-		return
-	}
-
 	httpSrv := &http.Server{
+
 		Addr:         cfg.ListenAddr,
 		Handler:      srv.Handler(),
 		ReadTimeout:  15 * time.Second,

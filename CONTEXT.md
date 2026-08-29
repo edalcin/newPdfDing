@@ -49,6 +49,17 @@ Em que situação está o vetor de um documento. Três valores, derivados na lei
 
 _Avoid_: "pendente" como termo do domínio — junta `nenhum` e `desatualizado` em um só nome e esconde que são situações diferentes.
 
+**Job de embedding**:
+O acompanhamento de uma chamada a `embedar` enquanto ela está em curso, com estado próprio e independente do estado de embedding do documento. Passa por três fases não terminais — `queued` (na fila, aguardando o worker), `extracting` (lendo o texto extraído), `embedding` (chamando a API do modelo) — até terminar em `done` ou `failed`. Exposto por `GET /api/embed/jobs` como um mapa `pdf_id -> {state, error}`; um job `done` some do mapa 60s depois, um `failed` fica até ser reenfileirado.
+_Avoid_: tarefa, processo, task
+
+**Fila de embedding**:
+O worker único de background que drena os jobs de embedding em série — nunca duas chamadas ao modelo rodam ao mesmo tempo, mesmo que vários documentos sejam acionados em sequência. `POST /api/pdfs/{id}/embed` apenas enfileira (responde `202`); quem embeda de fato é o worker.
+_Avoid_: fila de processamento, background job (sozinho, sem dizer que é serial)
+
+**Filtro por estado de embedding**:
+O parâmetro `embedding=none|current|stale` de `GET /api/pdfs`, e os três chips correspondentes na biblioteca. Filtra pelo estado de embedding definido acima — não pelo estado do job.
+
 **Reindexar FTS5**:
 Reconstruir o índice léxico a partir dos dados já guardados. Operação local, sem chamada externa, sem relação com embedding.
 _Avoid_: reindexar (sozinho, é ambíguo com embedar)

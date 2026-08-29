@@ -83,7 +83,7 @@ Esse fallback substitui o RapidFuzz (fuzzy matching em Python) do produto atual.
 
 ## Backfill de texto (`pdf_text` ausente)
 
-`pdf_text` só é preenchido no momento em que o texto é conhecido: upload pelo navegador (pdf.js extrai e envia junto no `multipart`) ou watch-dir (extração pura-Go, ver [Arquitetura](01-arquitetura.md)). Um PDF pode chegar **sem** essa linha por dois caminhos: a importação do banco Django legado (`ETAPA-12-IMPORTACAO`, que não tenta OCR/parsing) e um upload cujo pdf.js falhou no navegador (degradação graciosa, ver [Frontend](06-frontend.md)).
+`pdf_text` só é preenchido no momento em que o texto é conhecido: upload pelo navegador (pdf.js extrai e envia junto no `multipart`) ou watch-dir (extração pura-Go, ver [Arquitetura](01-arquitetura.md)). Um PDF pode chegar **sem** essa linha por dois caminhos: documentos herdados da importação única do banco Django legado (já concluída, com o importador removido do binário depois da migração — que não tentava OCR/parsing) e um upload cujo pdf.js falhou no navegador (degradação graciosa, ver [Frontend](06-frontend.md)).
 
 Para esses casos, `POST /api/pdfs/{id}/text` (contrato em [API](05-api.md)) faz o *upsert* de `pdf_text` e reindexa `pdfs_fts` na mesma transação — mesma mecânica de reindexação descrita acima, só que disparada fora do fluxo de criação/edição do PDF. O visualizador chama essa rota automaticamente na primeira abertura de um documento cujo `has_text` (campo derivado em `GET /api/pdfs/{id}`) é `false`, extraindo o texto no navegador com o mesmo pdf.js do upload. Enquanto isso não acontece, o documento continua pesquisável por nome/descrição/tags (a busca nunca falha por falta de corpo de texto) e o botão de embedding devolve `422` (ver [Embedding sob demanda](#embeddings-sob-demanda)) até o backfill ocorrer.
 
@@ -258,13 +258,12 @@ O cálculo de cosseno para a busca semântica é uma varredura completa em memó
 
 ## Filtros combinados com a busca
 
-Filtros de `tag`, `collection`, `starred` e `archived` aplicam-se como `WHERE` **depois** da fusão RRF (ou depois da ordenação simples por FTS5/LIKE, quando não há termo de busca), sobre a lista de IDs já ordenada:
+Filtros de `tag`, `starred`, `archived` e `embedding` (estado de embedding, ver [Estado de embedding](#estado-de-embedding-embedding_status)) aplicam-se como `WHERE` **depois** da fusão RRF (ou depois da ordenação simples por FTS5/LIKE, quando não há termo de busca), sobre a lista de IDs já ordenada:
 
 ```sql
 SELECT * FROM pdfs
 WHERE id IN (/* IDs na ordem produzida pela fusão */)
   AND (:tag = '' OR id IN (SELECT pdf_id FROM pdf_tags WHERE tag_id = :tag))
-  AND (:collection = '' OR collection_id = :collection)
   AND (:starred_only = 0 OR starred = 1)
   AND archived = :archived;
 ```

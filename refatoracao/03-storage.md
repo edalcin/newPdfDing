@@ -40,7 +40,7 @@ Isso rejeita, antes de tocar o disco: chaves contendo `..`, chaves absolutas, e 
 
 ## Entrega de arquivos ao browser
 
-Toda rota de download/stream (`GET /api/pdfs/{id}/file`, `/thumbnail`, `/preview`, `/download`, e as equivalentes públicas de compartilhamento em [API](05-api.md)) usa `http.ServeContent` sobre o `io.ReadSeekCloser` devolvido por `OpenSeek`. Isso dá suporte a `Range` e resposta `206 Partial Content` de graça, via a biblioteca padrão — sem código de range manual.
+Toda rota de download/stream (`GET /api/pdfs/{id}/file`, `/preview`, `/download`, e as equivalentes públicas de compartilhamento em [API](05-api.md)) usa `http.ServeContent` sobre o `io.ReadSeekCloser` devolvido por `OpenSeek`. Isso dá suporte a `Range` e resposta `206 Partial Content` de graça, via a biblioteca padrão — sem código de range manual.
 
 Isso **não é opcional**: o viewer pdf.js depende de requisições parciais para abrir PDFs grandes sem baixar o arquivo inteiro de uma vez.
 

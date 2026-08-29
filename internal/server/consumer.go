@@ -17,8 +17,8 @@ import (
 
 // StartConsumer runs the watch-dir import loop — the single periodic
 // background process in the product (ver refatoracao/00-visao-geral.md,
-// decisão 8; refatoracao/ETAPAS.md, ETAPA-8-BACKGROUND). It does nothing if
-// CONSUME_ENABLE is not set. Runs until ctx is cancelled.
+// decisão 8). It does nothing if CONSUME_ENABLE is not set. Runs until ctx
+// is cancelled.
 func (s *Server) StartConsumer(ctx context.Context) {
 	if !s.cfg.ConsumeEnable {
 		return

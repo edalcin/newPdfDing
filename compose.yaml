@@ -1,8 +1,8 @@
 # newPdfDing — compose de desenvolvimento/self-host de instância única.
 # Substitui os antigos compose/postgres.docker-compose.yaml e
-# compose/sqlite.docker-compose.yaml do stack Django (ver
-# refatoracao/09-limpeza-repositorio.md) — não há mais escolha de banco,
-# só SQLite (ver refatoracao/07-docker-ci-deploy.md, "Variáveis eliminadas").
+# compose/sqlite.docker-compose.yaml do stack Django — não há mais escolha
+# de banco, só SQLite (ver refatoracao/07-docker-ci-deploy.md, "Variáveis
+# eliminadas").
 #
 # Uso:
 #   cp .env.example .env   # preencher ADMIN_PASSWORD e ajustar o resto
