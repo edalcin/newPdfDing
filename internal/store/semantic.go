@@ -165,9 +165,14 @@ func ContentHash(embedModel, text string) string { return contentHash(embedModel
 // attachEmbeddingStatus derives embedding_status for each PDF in items (ver
 // 04-busca-hibrida.md, "Estado de embedding") and sets p.EmbeddingStatus.
 // The hash is recomputed on every read, never cached — an accepted cost.
-// Only the first embedBodyChars characters of the body travel from SQLite:
-// buildEmbedText truncates to the same cap anyway, and a handful of ids at
-// a time (paginated listing) makes the IN (...) clause legitimate here.
+// Only the first embedBodyChars BYTES of the body travel from SQLite:
+// substr() over CAST(body AS BLOB) counts bytes, matching buildEmbedText's
+// byte truncation exactly. Counting characters instead would diverge on any
+// body holding a NUL, because SQLite's TEXT substr()/length() stop at the
+// first NUL while Go's do not — the vector would be written from 2000 bytes
+// and verified against a shorter prefix, leaving the PDF forever "stale".
+// A handful of ids at a time (paginated listing) makes the IN (...) clause
+// legitimate here.
 func (s *PDFStore) attachEmbeddingStatus(items []PDF) error {
 	if len(items) == 0 {
 		return nil
@@ -180,17 +185,18 @@ func (s *PDFStore) attachEmbeddingStatus(items []PDF) error {
 
 	bodies := make(map[string]string, len(ids))
 	bodyArgs := append([]any{embedBodyChars}, args...)
-	rows, err := s.db.Query(fmt.Sprintf(`SELECT pdf_id, substr(body, 1, ?) FROM pdf_text WHERE pdf_id IN (%s)`, placeholders), bodyArgs...)
+	rows, err := s.db.Query(fmt.Sprintf(`SELECT pdf_id, substr(CAST(body AS BLOB), 1, ?) FROM pdf_text WHERE pdf_id IN (%s)`, placeholders), bodyArgs...)
 	if err != nil {
 		return err
 	}
 	for rows.Next() {
-		var id, body string
+		var id string
+		var body []byte
 		if err := rows.Scan(&id, &body); err != nil {
 			rows.Close()
 			return err
 		}
-		bodies[id] = body
+		bodies[id] = string(body)
 	}
 	if err := rows.Err(); err != nil {
 		rows.Close()
@@ -249,7 +255,7 @@ type PDFStats struct {
 // held in memory at once (ver docs/proximosPassos.md, OOM em ~160 PDFs).
 func (s *PDFStore) Stats() (PDFStats, error) {
 	rows, err := s.db.Query(`
-		SELECT p.name, p.description, substr(t.body, 1, ?) AS body, e.content_hash
+		SELECT p.name, p.description, substr(CAST(t.body AS BLOB), 1, ?) AS body, e.content_hash
 		FROM pdfs p
 		LEFT JOIN pdf_text t ON t.pdf_id = p.id
 		LEFT JOIN pdf_embeddings e ON e.pdf_id = p.id`, embedBodyChars)
@@ -263,7 +269,8 @@ func (s *PDFStore) Stats() (PDFStats, error) {
 	total := 0
 	for rows.Next() {
 		var name, description string
-		var body, storedHash sql.NullString
+		var body []byte
+		var storedHash sql.NullString
 		if err := rows.Scan(&name, &description, &body, &storedHash); err != nil {
 			return PDFStats{}, err
 		}
@@ -272,7 +279,7 @@ func (s *PDFStore) Stats() (PDFStats, error) {
 			counts["none"]++
 			continue
 		}
-		if storedHash.String == contentHash(model, buildEmbedText(name, description, body.String)) {
+		if storedHash.String == contentHash(model, buildEmbedText(name, description, string(body))) {
 			counts["current"]++
 		} else {
 			counts["stale"]++
