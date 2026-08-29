@@ -11,6 +11,7 @@
 	import { apiJSON, apiRequest, ApiError } from '$lib/api';
 	import { AnnotationListStore, deleteAnnotation } from '$lib/annotations.svelte';
 	import EmbedButton from '$lib/components/embed-button.svelte';
+	import { embedJobs } from '$lib/embed-jobs.svelte';
 	import TagPicker from '$lib/components/tag-picker.svelte';
 	import ScrollSentinel from '$lib/components/scroll-sentinel.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
@@ -63,6 +64,19 @@
 	$effect(() => {
 		loadAll(id);
 	});
+
+	// Recarrega os metadados quando o job de embedding deste documento
+	// termina, venha o job desta página ou de qualquer outro lugar.
+	$effect(() =>
+		embedJobs.onSettled(async (pdfId) => {
+			if (pdfId !== id) return;
+			try {
+				pdf = await apiJSON<PDF>(`/pdfs/${pdfId}`);
+			} catch {
+				// melhor-esforço — a página mantém o estado anterior
+			}
+		})
+	);
 
 	onDestroy(() => {
 		editor?.destroy();
@@ -379,7 +393,7 @@
 						<i class="bx bx-archive"></i>
 						{currentPdf.archived ? 'Arquivado' : 'Arquivar'}
 					</Button>
-					<EmbedButton pdf={currentPdf} onUpdated={(updated) => (pdf = updated)} showLabel={true} />
+					<EmbedButton pdf={currentPdf} showLabel={true} />
 					<Button variant="outline" size="sm" onclick={regeneratePreview} disabled={previewBusy}>
 						<i class="bx bx-refresh"></i>
 						{previewBusy ? 'Gerando…' : 'Regenerar preview'}

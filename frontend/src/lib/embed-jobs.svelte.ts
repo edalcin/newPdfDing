@@ -1,8 +1,15 @@
-// Polling store for the async embedding queue (ver refatoracao Fase F.4):
-// while any pdf_id has a non-terminal job, polls GET /api/embed/jobs every
-// 1500ms. Components register a callback to refresh their own PDF once its
-// job disappears from the map (done) — the queue itself is a plain object
-// keyed by pdf_id -> { state, error }.
+// Polling store for the async embedding queue (ver refatoracao Fase F.4).
+//
+// Quem exibe ícone de embedding se inscreve com onSettled(); a inscrição é
+// que liga o polling. Isso vale para qualquer página e para qualquer job,
+// inclusive um enfileirado antes do carregamento da página, por outra aba
+// ou por outro dispositivo — não só para o job que o próprio componente
+// acabou de clicar (era esse acoplamento que obrigava a recarregar a página
+// para ver o processo terminar).
+//
+// Duas cadências: rápida enquanto existe job no mapa, lenta como batimento
+// quando o mapa está vazio (é o batimento que descobre um job de fora).
+// Aba oculta não gera requisição; ao voltar a ficar visível, poleia na hora.
 import { apiJSON } from './api';
 
 export interface EmbedJob {
@@ -10,51 +17,81 @@ export interface EmbedJob {
 	error?: string;
 }
 
+const ACTIVE_MS = 1500;
+const IDLE_MS = 10000;
+
 class EmbedJobsStore {
 	jobs = $state<Record<string, EmbedJob>>({});
 
 	private timer: number | null = null;
-	private callbacks = new Map<string, () => void>();
+	private listeners = new Set<(pdfId: string) => void>();
+	private visibilityBound = false;
 
-	/** Registers pdfId so its callback fires once the job leaves the map
-	 * (settled as done — a failed job stays visible until retried). */
-	watch(pdfId: string, onSettled: () => void) {
-		this.callbacks.set(pdfId, onSettled);
-		this.start();
-	}
-
-	unwatch(pdfId: string) {
-		this.callbacks.delete(pdfId);
-	}
-
-	start() {
-		if (this.timer) return;
-		this.poll();
-		this.timer = setInterval(() => this.poll(), 1500);
+	/** Registra um ouvinte chamado com o pdf_id de cada job que sai do mapa
+	 * (concluído — um job falho permanece visível até ser reenfileirado).
+	 * Retorna a função de cancelamento, para chamar no onDestroy da página. */
+	onSettled(listener: (pdfId: string) => void): () => void {
+		this.listeners.add(listener);
+		this.bindVisibility();
+		this.schedule(0);
+		return () => {
+			this.listeners.delete(listener);
+			if (this.listeners.size === 0) this.stop();
+		};
 	}
 
 	stop() {
 		if (this.timer) {
-			clearInterval(this.timer);
+			clearTimeout(this.timer);
 			this.timer = null;
 		}
 	}
 
-	private async poll() {
+	private bindVisibility() {
+		if (this.visibilityBound || typeof document === 'undefined') return;
+		this.visibilityBound = true;
+		document.addEventListener('visibilitychange', () => {
+			if (!document.hidden && this.listeners.size > 0) this.schedule(0);
+		});
+	}
+
+	private schedule(delay: number) {
+		this.stop();
+		this.timer = window.setTimeout(() => this.tick(), delay);
+	}
+
+	private async tick() {
+		if (typeof document === 'undefined' || !document.hidden) await this.poll();
+		if (this.listeners.size === 0) {
+			this.timer = null;
+			return;
+		}
+		this.schedule(this.hasRunningJob() ? ACTIVE_MS : IDLE_MS);
+	}
+
+	/** Cadência rápida só enquanto há trabalho em curso. Um job 'failed'
+	 * fica no mapa do servidor até ser reenfileirado, e 'done' fica 60s —
+	 * nenhum dos dois justifica poleio de 1,5s indefinidamente. */
+	private hasRunningJob(): boolean {
+		return Object.values(this.jobs).some(
+			(job) => job.state === 'queued' || job.state === 'extracting' || job.state === 'embedding'
+		);
+	}
+
+	/** Uma varredura imediata, fora da cadência — usada logo após enfileirar,
+	 * para o rótulo sair de "Embedar" sem esperar o próximo tique. */
+	async poll() {
 		try {
 			const res = await apiJSON<{ jobs: Record<string, EmbedJob> }>('/embed/jobs');
 			const previous = this.jobs;
 			this.jobs = res.jobs;
-			for (const [pdfId, callback] of this.callbacks) {
-				if (previous[pdfId] && !res.jobs[pdfId]) {
-					callback();
-					this.callbacks.delete(pdfId);
+			for (const pdfId of Object.keys(previous)) {
+				if (!res.jobs[pdfId]) {
+					for (const listener of this.listeners) listener(pdfId);
 				}
 			}
-			const hasNonTerminal = Object.keys(res.jobs).length > 0;
-			if (!hasNonTerminal && this.callbacks.size === 0) this.stop();
 		} catch {
-			// best-effort — a failed poll just retries on the next tick
+			// best-effort — o mapa anterior permanece até o próximo tique
 		}
 	}
 }

@@ -119,6 +119,15 @@ func (s *Server) handleListPDFs(w http.ResponseWriter, r *http.Request) {
 		params.Starred = &b
 	}
 
+	// Estados válidos: os mesmos três que attachEmbeddingStatus deriva.
+	if v := q.Get("embedding"); v != "" {
+		if v != "none" && v != "current" && v != "stale" {
+			writeJSONError(w, http.StatusBadRequest, "invalid embedding")
+			return
+		}
+		params.Embedding = v
+	}
+
 	// Default view excludes archived PDFs unless the caller explicitly asks
 	// for archived=true|false.
 	archived := false

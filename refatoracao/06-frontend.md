@@ -88,14 +88,15 @@ O texto extraído é limitado a **2 MB**. Os três artefatos derivados (thumbnai
 
 **Degradação graciosa**: se o pdf.js falhar no navegador (PDF corrompido ou protegido por senha), o componente envia somente o arquivo original — sem thumbnail e sem texto — e o servidor aceita o upload mesmo assim, gravando o PDF sem os artefatos derivados.
 
-## Busca e filtro por tag na biblioteca
+## Busca e filtros na biblioteca
 
-A rota `/` traz, acima da grade de PDFs, uma caixa de busca única (léxica + semântica, mesma caixa da [Busca híbrida](04-busca-hibrida.md) — sem seletor de modo) e a lista completa de tags (`GET /api/tags`) como pílulas clicáveis.
+A rota `/` traz, acima da grade de PDFs, uma caixa de busca única (léxica + semântica, mesma caixa da [Busca híbrida](04-busca-hibrida.md) — sem seletor de modo), a lista completa de tags (`GET /api/tags`) como pílulas clicáveis e três chips de estado de embedding.
 
 - **Busca**: `input` com debounce de 300ms; a cada digitação, reinicia o timer e só dispara `GET /api/pdfs?q=<termo>` quando o usuário para de digitar, evitando uma requisição por tecla.
 - **Tags**: cada pílula mostra o nome e a contagem de PDFs (`TagWithCount.count`). Clicar seleciona a tag como filtro (`?tag=<nome>`); clicar de novo na mesma pílula remove o filtro. Seleção única — não há combinação de múltiplas tags no filtro da biblioteca.
-- Busca e filtro de tag combinam-se livremente com os demais filtros da listagem (coleção, favoritos, arquivados) — mesma regra de composição descrita em [Busca híbrida](04-busca-hibrida.md), "Filtros combinados com a busca".
-- Mensagem vazia diferenciada: "Nenhum PDF ainda. Envie um acima." só aparece sem nenhum filtro ativo; com busca ou tag ativos e zero resultados, a mensagem passa a "Nenhum PDF encontrado.".
+- **Estado de embedding**: chips "Sem embedding", "Atualizado" e "Desatualizado", com os mesmos ícones da legenda, disparando `?embedding=none|current|stale` (contrato em [API](05-api.md)). Seleção única; clicar no chip ativo desliga o filtro.
+- Busca e filtros combinam-se livremente com os demais filtros da listagem (coleção, favoritos, arquivados) — mesma regra de composição descrita em [Busca híbrida](04-busca-hibrida.md), "Filtros combinados com a busca".
+- Mensagem vazia diferenciada: "Nenhum PDF ainda. Envie um acima." só aparece sem nenhum filtro ativo; com busca, tag ou estado de embedding ativos e zero resultados, a mensagem passa a "Nenhum PDF encontrado.".
 
 ## TagPicker — combobox de tags
 
@@ -140,20 +141,26 @@ Um botão por documento, presente em dois lugares: no card da biblioteca (ícone
 | `current` | **Não** | "Embedado" | Data de `pdf_embeddings.created_at` |
 | `stale` | Sim | "Reembedar" | "o conteúdo mudou desde o último embedding" |
 
-### Estado transitório (durante a requisição)
+### Estado transitório (job na fila do servidor)
 
-Enquanto `POST /api/pdfs/{id}/embed` está em curso, o botão entra em estado de carregamento e fica desabilitado, independentemente do estado persistido que o antecedeu.
+`POST /api/pdfs/{id}/embed` só **enfileira** (`202`); o trabalho corre num worker único no servidor (ver Fase F). O estado transitório vem de `GET /api/embed/jobs`, um mapa `pdf_id -> {state, error}` com os estados `queued`, `extracting`, `embedding`, `done`, `failed`. Enquanto o `pdf_id` está no mapa em estado não terminal, o botão fica desabilitado e o rótulo mostra a fase ("Na fila…", "Extraindo texto…", "Embedando…").
+
+**Quem observa é a página, não o botão.** O botão apenas enfileira; quem exibe ícone se inscreve na store (`embedJobs.onSettled`), e é a inscrição que liga o polling. Consequência exigida: um job aparece e conclui na interface mesmo que **não** tenha sido clicado naquela página — enfileirado antes de ela carregar, em outra aba ou em outro dispositivo. Amarrar o polling ao clique obrigava a recarregar a página para ver o fim do processo.
+
+Cadência: 1,5 s enquanto há job em estado não terminal; 10 s de batimento caso contrário (é o batimento que descobre um job de fora). Um `failed` fica no mapa do servidor até ser reenfileirado e um `done` fica 60 s — nenhum dos dois sustenta cadência rápida. Aba oculta não gera requisição; ao voltar a ficar visível, poleia na hora. Página sem ícone de embedding não tem inscrito e não poleia.
+
+Quando o `pdf_id` sai do mapa, a página refaz o `GET /api/pdfs/{id}` daquele documento e substitui o item na lista — sem recarregar a página nem a listagem inteira.
 
 ### Tratamento da resposta
 
 | Resposta HTTP | Comportamento da UI |
 |---|---|
-| `200` | Atualiza o estado local do documento para `current`, sem recarregar a lista |
+| `202` | O job passa a aparecer no mapa; o botão entra em estado de fase |
 | `412` (`GEMINI_API_KEY` ausente) | Mostra aviso persistente de que a busca semântica não está configurada; desabilita o botão em **todos** os documentos da sessão |
-| `422` (documento sem texto extraído) | Mostra toast com a mensagem de erro; deixa o botão habilitado para nova tentativa |
-| `502` (falha da API Gemini) | Mostra toast com a mensagem de erro; deixa o botão habilitado para nova tentativa |
+| `503` (fila cheia) | Mostra toast pedindo nova tentativa em instantes |
+| job `failed` | Mostra a mensagem do job junto ao botão; o botão volta a ficar clicável |
 
-`404` e `409` (ver [API](05-api.md)) não deveriam ocorrer a partir de um clique legítimo — o botão só fica clicável quando `embedding_status` é `none` ou `stale`, e o estado de carregamento impede um segundo clique no mesmo documento enquanto o primeiro está em curso.
+`404` e `409` (ver [API](05-api.md)) não deveriam ocorrer a partir de um clique legítimo — o botão só fica clicável quando `embedding_status` é `none` ou `stale` e não há job em curso para o documento.
 
 **Não existe ação de "embedar todos"** — nem na biblioteca, nem na tela de administração (`/admin`). Embedar é sempre uma ação de um documento por vez, disparada por um clique explícito (decisão 5 em [Visão geral](00-visao-geral.md)).
 

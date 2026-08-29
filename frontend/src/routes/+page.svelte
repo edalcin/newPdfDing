@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { PDFListStore } from '$lib/pdfs.svelte';
 	import { apiJSON } from '$lib/api';
+	import { embedJobs } from '$lib/embed-jobs.svelte';
 	import PdfCard from '$lib/components/pdf-card.svelte';
 	import PdfUpload from '$lib/components/pdf-upload.svelte';
 	import ScrollSentinel from '$lib/components/scroll-sentinel.svelte';
@@ -20,6 +21,38 @@
 		{ value: 'list', icon: 'bx-list-ul', label: 'Lista' },
 		{ value: 'compact', icon: 'bx-menu', label: 'Compacto' },
 		{ value: 'minimal', icon: 'bx-minus', label: 'Mínimo' }
+	];
+
+	// Os três estados que o servidor deriva (ver semantic.go,
+	// attachEmbeddingStatus); clicar no filtro ativo o desliga.
+	const EMBEDDING_FILTERS: {
+		value: 'none' | 'current' | 'stale';
+		label: string;
+		icon: string;
+		iconColor: string;
+		title: string;
+	}[] = [
+		{
+			value: 'none',
+			label: 'Sem embedding',
+			icon: 'bx-brain',
+			iconColor: 'text-muted-foreground/60',
+			title: 'Mostrar apenas os PDFs que ainda não têm embedding'
+		},
+		{
+			value: 'current',
+			label: 'Atualizado',
+			icon: 'bxs-brain',
+			iconColor: 'text-primary',
+			title: 'Mostrar apenas os PDFs com embedding atualizado'
+		},
+		{
+			value: 'stale',
+			label: 'Desatualizado',
+			icon: 'bxs-brain',
+			iconColor: 'text-amber-500',
+			title: 'Mostrar apenas os PDFs cujo conteúdo mudou desde o último embedding'
+		}
 	];
 
 	onMount(async () => {
@@ -78,6 +111,11 @@
 		list.reset();
 	}
 
+	function selectEmbedding(value: 'none' | 'current' | 'stale') {
+		list.embedding = list.embedding === value ? '' : value;
+		list.reset();
+	}
+
 	async function unarchivePdf(pdf: PDF) {
 		await apiJSON<PDF>(`/pdfs/${pdf.id}`, { method: 'PATCH', body: { archived: false } });
 		list.remove(pdf.id);
@@ -102,9 +140,20 @@
 		list.prepend(pdf);
 	}
 
-	function handleEmbedUpdated(pdf: PDF) {
-		list.replace(pdf);
-	}
+	// Enquanto esta página estiver montada, qualquer job que termine atualiza
+	// o card correspondente — inclusive um job enfileirado antes de a página
+	// carregar, em outra aba ou em outro dispositivo. Sem isso, o ícone só
+	// mudava depois de recarregar a página.
+	$effect(() =>
+		embedJobs.onSettled(async (pdfId) => {
+			if (!list.items.some((item) => item.id === pdfId)) return;
+			try {
+				list.replace(await apiJSON<PDF>(`/pdfs/${pdfId}`));
+			} catch {
+				// melhor-esforço — o card mantém o estado anterior
+			}
+		})
+	);
 </script>
 
 <div class="mx-auto max-w-6xl p-4">
@@ -190,6 +239,26 @@
 		</div>
 	{/if}
 
+	<div class="mt-2 flex flex-wrap items-center gap-1.5">
+		<span class="text-xs text-muted-foreground">Embedding:</span>
+		{#each EMBEDDING_FILTERS as opt (opt.value)}
+			<button
+				type="button"
+				onclick={() => selectEmbedding(opt.value)}
+				title={opt.title}
+				aria-pressed={list.embedding === opt.value}
+				class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
+					list.embedding === opt.value
+						? 'border-primary bg-primary text-primary-foreground'
+						: 'border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+				}`}
+			>
+				<i class={`bx ${opt.icon} ${list.embedding === opt.value ? '' : opt.iconColor}`}></i>
+				{opt.label}
+			</button>
+		{/each}
+	</div>
+
 	<details class="mt-3 text-xs text-muted-foreground">
 		<summary class="cursor-pointer select-none">Legenda dos ícones de embedding</summary>
 		<ul class="mt-2 space-y-1">
@@ -213,7 +282,9 @@
 
 	{#if list.items.length === 0 && !list.loading}
 		<p class="mt-8 text-center text-sm text-muted-foreground">
-			{list.query || list.tags.length > 0 || list.starred ? 'Nenhum PDF encontrado.' : 'Nenhum PDF ainda. Envie um acima.'}
+			{list.query || list.tags.length > 0 || list.starred || list.embedding
+				? 'Nenhum PDF encontrado.'
+				: 'Nenhum PDF ainda. Envie um acima.'}
 		</p>
 	{:else}
 		<div
@@ -222,7 +293,7 @@
 				: 'mt-4 flex flex-col gap-2'}
 		>
 			{#each list.items as pdf (pdf.id)}
-				<PdfCard {pdf} {layout} onStarToggle={toggleStar} onEmbedUpdated={handleEmbedUpdated} onUnarchive={unarchivePdf} onDelete={deletePdf} />
+				<PdfCard {pdf} {layout} onStarToggle={toggleStar} onUnarchive={unarchivePdf} onDelete={deletePdf} />
 			{/each}
 		</div>
 	{/if}

@@ -49,7 +49,7 @@ Erros: `POST /login` → `400` (payload malformado), `401` (senha incorreta), `4
 
 | Método | Caminho | Payload | Resposta |
 |---|---|---|---|
-| `GET` | `/api/pdfs` | Query: `q, tag, collection, starred, archived, sort, cursor, limit` | `200` `{"items":[<PDF>...], "next_cursor"}` |
+| `GET` | `/api/pdfs` | Query: `q, tag, collection, starred, archived, embedding, sort, cursor, limit` | `200` `{"items":[<PDF>...], "next_cursor"}` |
 | `POST` | `/api/pdfs` | Multipart: `file` (obrigatório), `thumbnail`, `preview`, `text` (opcionais), `name`, `description`, `tags`, `collection_id` | `201` PDF criado |
 | `POST` | `/api/pdfs/bulk` | Multipart com múltiplos `file` (um conjunto de metadados por arquivo) | `201` `{"results":[{"status":"created","pdf_id"}\|{"status":"duplicate","pdf_id","name"}, ...]}` |
 | `GET` | `/api/pdfs/{id}` | — | `200` PDF completo |
@@ -66,8 +66,10 @@ Erros: `POST /login` → `400` (payload malformado), `401` (senha incorreta), `4
 
 Todas exigem **Sessão**.
 
+`embedding=none|current|stale` mantém só os PDFs naquele estado de embedding (ver [Busca híbrida](04-busca-hibrida.md), "Estado de embedding"). É o único filtro sem coluna correspondente: o estado é derivado de um hash de conteúdo a cada leitura, então a listagem varre a sequência ordenada em lotes e devolve como cursor o cursor da última linha mantida — a paginação por cursor continua valendo. Combinado com `q`, é aplicado sobre a página única já fundida por RRF.
+
 Erros por rota:
-- `GET /api/pdfs` → `400` (parâmetro inválido, ex. `sort`/`cursor` malformado), `401`, `500`.
+- `GET /api/pdfs` → `400` (parâmetro inválido, ex. `sort`/`cursor` malformado, ou `embedding` fora de `none\|current\|stale`), `401`, `500`.
 - `POST /api/pdfs` → `400`, `401`, `409` (SHA-256 duplicado — ver [Comportamento de duplicidade](#comportamento-de-duplicidade)), `413`, `415`, `500`, `507`.
 - `POST /api/pdfs/bulk` → `400`, `401`, `413`, `415`, `500`, `507` (duplicatas por item **não** geram `409` de requisição — ficam no array `results`, ver abaixo).
 - `GET /api/pdfs/{id}` → `401`, `404`, `500`.

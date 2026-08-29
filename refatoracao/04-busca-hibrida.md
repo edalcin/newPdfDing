@@ -92,12 +92,14 @@ Para esses casos, `POST /api/pdfs/{id}/text` (contrato em [API](05-api.md)) faz 
 Texto embutido para cada PDF, fórmula fixada:
 
 ```go
-const embedBodyChars = 2000
+const embedBodyChars = 2000 // BYTES, nao caracteres
 
-text := pdf.Name + "\n" + pdf.Description + "\n" + firstNChars(pdfText.Body, embedBodyChars)
+text := pdf.Name + "\n" + pdf.Description + "\n" + firstNBytes(pdfText.Body, embedBodyChars)
 ```
 
 `embedBodyChars = 2000` é maior que o equivalente em `pkd` porque aqui o corpo é o texto extraído de um PDF inteiro, não uma nota curta.
+
+**O corte é em bytes, e essa unidade é obrigatória nos dois lados.** O hash é gravado na escrita e recomputado a cada leitura para derivar `embedding_status`; se um lado cortar em caracteres, os hashes divergem e o documento fica eternamente `stale`. Em SQL isso significa `substr(CAST(body AS BLOB), 1, embedBodyChars)`: `substr` sobre TEXT conta caracteres **e para no primeiro NUL**, e texto extraído de PDF carrega NUL. Guardado por `TestAttachEmbeddingStatusHashSurvivesSQLCharTruncation`, que inclui um corpo com NUL.
 
 Hash de conteúdo, gravado junto com o vetor em `pdf_embeddings.content_hash`:
 

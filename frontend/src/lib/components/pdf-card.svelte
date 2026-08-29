@@ -7,14 +7,12 @@
 		pdf,
 		layout,
 		onStarToggle,
-		onEmbedUpdated,
 		onUnarchive,
 		onDelete
 	}: {
 		pdf: PDF;
 		layout: Layout;
 		onStarToggle: (pdf: PDF) => void;
-		onEmbedUpdated: (pdf: PDF) => void;
 		onUnarchive?: (pdf: PDF) => void;
 		onDelete?: (pdf: PDF) => void;
 	} = $props();
@@ -60,7 +58,7 @@
 	<a href={`/pdf/${pdf.id}`} class="flex items-center gap-3 border-b border-border px-3 py-2 text-sm hover:bg-accent">
 		<span class="flex-1 truncate">{pdf.name}</span>
 		<span class="text-xs text-muted-foreground">{pdf.num_pages || '—'}p</span>
-		<EmbedButton {pdf} onUpdated={onEmbedUpdated} />
+		<EmbedButton {pdf} />
 		<Button variant="ghost" size="icon" onclick={(e: Event) => { e.preventDefault(); onStarToggle(pdf); }} aria-label="Estrela">
 			<i class={`bx ${pdf.starred ? 'bxs-star text-yellow-500' : 'bx-star'}`}></i>
 		</Button>
@@ -80,7 +78,7 @@
 				{/each}
 			</div>
 		</div>
-		<EmbedButton {pdf} onUpdated={onEmbedUpdated} />
+		<EmbedButton {pdf} />
 		<Button variant="ghost" size="icon" onclick={(e: Event) => { e.preventDefault(); onStarToggle(pdf); }} aria-label="Estrela">
 			<i class={`bx ${pdf.starred ? 'bxs-star text-yellow-500' : 'bx-star'}`}></i>
 		</Button>
@@ -108,7 +106,7 @@
 				{/each}
 			</div>
 			<div class="mt-1 flex items-center justify-between" onclick={(e: Event) => e.preventDefault()} role="presentation">
-				<EmbedButton {pdf} onUpdated={onEmbedUpdated} />
+				<EmbedButton {pdf} />
 				{@render archivedActions()}
 			</div>
 		</div>

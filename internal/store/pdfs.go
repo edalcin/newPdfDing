@@ -342,12 +342,20 @@ var sortSpecs = map[string]sortSpec{
 // Archived defaults to false at the handler layer (ver handlers_pdfs.go) so
 // the default library view excludes archived PDFs.
 type ListParams struct {
-	Tags         []string
-	Starred      *bool
-	Archived     *bool
-	Sort         string
-	Cursor       string
-	Limit        int
+	Tags     []string
+	Starred  *bool
+	Archived *bool
+	Sort     string
+	Cursor   string
+	Limit    int
+
+	// Embedding, quando não vazio ("none"|"current"|"stale"), mantém só os
+	// PDFs naquele estado de embedding. É o único filtro que não vira
+	// cláusula WHERE: o estado é derivado a cada leitura de um hash de
+	// conteúdo (ver semantic.go, attachEmbeddingStatus), não existe coluna
+	// para filtrar. Por isso List varre a sequência ordenada em lotes e
+	// descarta o que não casa (ver listFilteredByEmbedding).
+	Embedding string
 
 	// Query, when non-empty, switches List into hybrid-search mode (ver
 	// 04-busca-hibrida.md): Sort/Cursor are ignored, results are ranked by
@@ -367,6 +375,60 @@ func (s *PDFStore) List(p ListParams) ([]PDF, string, error) {
 	if p.Query != "" {
 		return s.searchList(p)
 	}
+	if p.Embedding != "" {
+		return s.listFilteredByEmbedding(p)
+	}
+	return s.listPage(p)
+}
+
+// embeddingBatch is how many rows listFilteredByEmbedding reads per pass
+// while looking for enough matches to fill the caller's page.
+const embeddingBatch = 200
+
+// listFilteredByEmbedding walks the same ordered sequence listPage
+// paginates, in batches, keeping only the rows whose derived
+// embedding_status matches p.Embedding. The cursor it returns is the cursor
+// of the last row it kept, so the next page resumes exactly after it and
+// the infinite scroll contract is unchanged.
+func (s *PDFStore) listFilteredByEmbedding(p ListParams) ([]PDF, string, error) {
+	spec, ok := sortSpecs[p.Sort]
+	if !ok {
+		spec = sortSpecs["newest"]
+	}
+	limit := p.Limit
+	if limit <= 0 {
+		limit = 25
+	}
+
+	batch := p
+	batch.Embedding = ""
+	batch.Limit = embeddingBatch
+	batch.Cursor = p.Cursor
+
+	out := make([]PDF, 0, limit)
+	for {
+		items, next, err := s.listPage(batch)
+		if err != nil {
+			return nil, "", err
+		}
+		for _, item := range items {
+			if item.EmbeddingStatus != p.Embedding {
+				continue
+			}
+			out = append(out, item)
+			if len(out) == limit {
+				return out, encodeCursor(cursorValue(spec, item), item.ID), nil
+			}
+		}
+		if next == "" {
+			return out, "", nil
+		}
+		batch.Cursor = next
+	}
+}
+
+// listPage is the unfiltered browse page: one SQL query, one cursor.
+func (s *PDFStore) listPage(p ListParams) ([]PDF, string, error) {
 	spec, ok := sortSpecs[p.Sort]
 	if !ok {
 		spec = sortSpecs["newest"]
@@ -513,6 +575,17 @@ func (s *PDFStore) searchList(p ListParams) ([]PDF, string, error) {
 	}
 	if err := s.attachEmbeddingStatus(items); err != nil {
 		return nil, "", err
+	}
+	// O filtro de embedding é aplicado depois do status derivado, sobre a
+	// página única já fundida — mesma semântica de browse, sem cursor.
+	if p.Embedding != "" {
+		kept := make([]PDF, 0, len(items))
+		for _, item := range items {
+			if item.EmbeddingStatus == p.Embedding {
+				kept = append(kept, item)
+			}
+		}
+		items = kept
 	}
 
 	return items, "", nil

@@ -15,6 +15,8 @@ export class PDFListStore {
 	tags = $state<string[]>([]);
 	archived = $state(false);
 	starred = $state(false);
+	/** '' = sem filtro; senão só os PDFs naquele estado de embedding. */
+	embedding = $state<'' | 'none' | 'current' | 'stale'>('');
 
 	async reset() {
 		this.items = [];
@@ -32,6 +34,7 @@ export class PDFListStore {
 			if (this.query) params.set('q', this.query);
 			params.set('archived', this.archived ? 'true' : 'false');
 			if (this.starred) params.set('starred', 'true');
+			if (this.embedding) params.set('embedding', this.embedding);
 			for (const t of this.tags) params.append('tag', t);
 			const page = await apiJSON<PDFListPage>(`/pdfs?${params.toString()}`);
 			this.items = [...this.items, ...page.items];

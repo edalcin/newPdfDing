@@ -1,18 +1,16 @@
 <script lang="ts">
 	// Botão de embedding assíncrono — o clique só enfileira o job (202); o
-	// rótulo e o ícone acompanham o estado do job (fila em memória do
-	// servidor, ver refatoracao Fase F) até ele desaparecer do mapa (done),
-	// quando o PDF é recarregado e o card atualizado via onUpdated.
+	// rótulo e o ícone acompanham o estado do job pelo mapa global da store
+	// (ver refatoracao Fase F), que a página mantém atualizado por polling.
+	// O botão não observa nada por conta própria: a atualização do PDF ao
+	// final do job é responsabilidade de quem exibe a lista, para que ela
+	// aconteça mesmo se este botão nunca tiver sido clicado nesta página.
 	import { apiJSON, ApiError } from '$lib/api';
 	import { embedSession } from '$lib/embed.svelte';
 	import { embedJobs } from '$lib/embed-jobs.svelte';
 	import type { PDF } from '$lib/types';
 
-	let {
-		pdf,
-		onUpdated,
-		showLabel = false
-	}: { pdf: PDF; onUpdated: (pdf: PDF) => void; showLabel?: boolean } = $props();
+	let { pdf, showLabel = false }: { pdf: PDF; showLabel?: boolean } = $props();
 
 	let toast = $state('');
 
@@ -54,14 +52,7 @@
 		toast = '';
 		try {
 			await apiJSON<{ state: string }>(`/pdfs/${pdf.id}/embed`, { method: 'POST' });
-			embedJobs.watch(pdf.id, async () => {
-				try {
-					const updated = await apiJSON<PDF>(`/pdfs/${pdf.id}`);
-					onUpdated(updated);
-				} catch {
-					// melhor-esforço — o card mantém o estado anterior até a próxima atualização
-				}
-			});
+			await embedJobs.poll();
 		} catch (err) {
 			if (err instanceof ApiError && err.status === 412) {
 				embedSession.disabledGlobally = true;
