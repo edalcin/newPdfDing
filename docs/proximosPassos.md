@@ -78,13 +78,13 @@ Só o snapshot `/api/embed/jobs` foi faturado (fica no lugar do worker, que exig
 
 ## 5. O que fica em aberto
 
-- **Reindexação FTS5 dos 5 PDFs com NUL.** `pdfs_fts` indexa `body` como TEXT, então o índice léxico desses documentos também para no primeiro NUL: o texto depois do NUL não é buscável por palavra. Não é o defeito relatado e não afeta embedding nem status. **Correção certa:** sanitizar NUL na extração (`textFor`/`SetText`). **Custo que a torna uma decisão, não uma tarefa:** muda o hash de todo documento com NUL e força reembedar — e o embedding em massa é justamente o que derrubou o host. Fazer junto com um mecanismo de lote com throttle, nunca antes.
+- **Nada de código.** Uma suspeita levantada e **descartada por medição**: se o índice FTS5 dos 5 PDFs com NUL também paravam no primeiro NUL. Não param. No PDF `019fa385` a palavra "restritos", que fica no byte ~3000 (o NUL está no 937), casa em `pdfs_fts MATCH` para exatamente esse documento. O tokenizador `unicode61` trata o NUL como separador; só as funções escalares (`length`, `substr`) sobre TEXT param nele — que é o defeito da seção 1, já corrigido. O texto extraído continua com NUL, o que é feio no que vai para a API, mas não quebra busca léxica, embedding nem status. **Sanitizar NUL na extração fica recusado:** mudaria o hash desses documentos e forçaria reembedar sem consertar nada observável.
 - **`extractPDFTextFromStorage` continua sem prova de produção** (mesma pendência do handoff anterior; ver o `watch` da seção 7).
 - **Rotacionar `ADMIN_PASSWORD` e `GEMINI_API_KEY`**, expostas em texto puro em sessão anterior. Pendência operacional, não de código.
 
 ## 6. Decisões que não devem ser relitigadas
 
-- **Truncagem por bytes, não sanitização de NUL** (seção 1). Sanitizar seria "mais correto" no conteúdo enviado à API, mas invalidaria 117 vetores. A correção escolhida é a que conserta a verificação sem custo de reembedding.
+- **Truncagem por bytes, não sanitização de NUL** (seção 1). Sanitizar invalidaria os vetores dos documentos com NUL e forçaria reembedar, e a medição da seção 5 mostra que não haveria ganho observável: a busca léxica já alcança o texto depois do NUL. A correção escolhida conserta a verificação com custo zero de reembedding.
 - **Filtro de embedding é derivado em Go, não SQL** (seção 3). Só `none` caberia em SQL puro; ter dois mecanismos para o mesmo filtro seria pior que um lote de 200 linhas.
 - **Sem rótulo textual de embedding nos cards.** O ícone com tooltip basta.
 - **`MAX_UPLOAD_MB` fica em 200.** `mem_limit` fica em `1g` até haver medição do pico de extração.
