@@ -40,18 +40,19 @@ Sem `GEMINI_API_KEY` configurada, nada disso quebra: o botão "Embedar" aparece 
 
 ## Metadados com IA
 
-Com `GEMINI_API_KEY` configurada, a página de detalhes de cada PDF ganha dois atalhos que reaproveitam o texto já extraído do documento (o mesmo usado pela busca):
+Com `GEMINI_API_KEY` configurada, a página de detalhes de cada PDF ganha três recursos que reaproveitam o texto já extraído do documento (o mesmo usado pela busca):
 
 - **Descrever com IA**: gera um parágrafo de até 60 palavras a partir do conteúdo e preenche/salva o campo Descrição — útil para os PDFs escaneados/importados que chegam sem descrição nenhuma.
 - **Sugerir tags**: lê o mesmo texto e sugere, como chips clicáveis, apenas tags que **já existem** no seu acervo — nunca inventa uma tag nova; um clique aplica a sugestão.
+- **Chat do documento**: um card entre Descrição/Tags e Notas onde você faz perguntas sobre o conteúdo do PDF — "qual o prazo de rescisão?", "resuma o capítulo 3", "que temperatura o manual recomenda?". O modelo recebe o texto extraído inteiro (até 400 mil caracteres, com aviso quando corta) e responde **só com base no documento**, dizendo quando o assunto não está nele. A conversa não fica guardada: **"Copiar para Notas"** leva perguntas e respostas para o editor de Notas, onde você edita e salva quando quiser (a página avisa antes de sair com Notas não salvas). Não aparece em links de compartilhamento — ninguém gasta sua chave de API por você.
 
-O modelo usado em cada atalho é escolhido em **Configurações → IA**, numa lista alimentada em tempo real pela `models.list` da própria chave configurada. O modelo de embedding da busca semântica, por sua vez, é fixo no binário (`models/gemini-embedding-2`, ver [`refatoracao/04-busca-hibrida.md`](refatoracao/04-busca-hibrida.md)) — trocá-lo exigiria recompilar, porque mudaria o `content_hash` e invalidaria todo vetor já gravado. Sem `GEMINI_API_KEY`, os dois botões continuam visíveis mas respondem com uma mensagem clara pedindo a chave, em vez de falhar em silêncio.
+O modelo usado nesses recursos é escolhido em **Configurações → IA** ("Modelo para descrição e sugestão de tags"), numa lista alimentada em tempo real pela `models.list` da própria chave configurada. O modelo de embedding da busca semântica, por sua vez, é fixo no binário (`models/gemini-embedding-2`, ver [`refatoracao/04-busca-hibrida.md`](refatoracao/04-busca-hibrida.md)) — trocá-lo exigiria recompilar, porque mudaria o `content_hash` e invalidaria todo vetor já gravado. Sem `GEMINI_API_KEY` ou sem modelo escolhido, os botões e o chat continuam visíveis mas respondem com uma mensagem clara pedindo a configuração, em vez de falhar em silêncio. PDFs escaneados sem texto extraível não têm chat.
 
 ## Funcionalidades
 
 - **Biblioteca**: 4 layouts (grade/lista/compacto/mínimo), 7 ordenações, rolagem infinita, upload individual e em lote com processamento no navegador (preview e texto via pdf.js) — nada de fila de processamento no servidor, o PDF já entra pronto para busca.
 - **Busca híbrida**: caixa única na biblioteca, léxica sempre ativa, semântica quando configurada (ver acima) — pesquise por conceito, não só por título exato.
-- **Metadados com IA**: descrição e sugestão de tags geradas sob demanda a partir do texto do PDF via Gemini (ver acima) — sem custo de API além do que você aciona explicitamente.
+- **Metadados com IA**: descrição, sugestão de tags e chat sobre o conteúdo gerados sob demanda a partir do texto do PDF via Gemini (ver acima) — sem custo de API além do que você aciona explicitamente.
 - **Filtro por estado de embedding**: três chips na biblioteca ("Sem embedding", "Atualizado", "Desatualizado") isolam os PDFs em cada fase, combináveis com a busca — ache o que falta embedar sem procurar ícone por ícone.
 - **Tags**: autocompletar com sugestão das tags existentes e criação de tag nova inline, direto na página de detalhes do PDF; lista de tags clicável na biblioteca para filtrar por tag; administração (renomear/excluir/fundir) em `/tags` — organize contratos, manuais e receitas do seu jeito, sem taxonomia imposta.
 - **Anotações**: comentários e destaques por página, com exportação em YAML/JSON — grife o que importa e leve as anotações para fora, sem lock-in.
@@ -122,7 +123,7 @@ Lista fechada — nenhuma variável fora dela é lida pelo binário. Ver [`.env.
 | `CONSUME_TAGS` | Não | `""` |
 | `CONSUME_SKIP_EXISTING` | Não | `true` |
 
-O modelo de texto usado por "Descrever com IA"/"Sugerir tags" pode ser escolhido em **Configurações → IA**, numa lista populada pela sua própria chave. O modelo de embedding não é configurável: é fixo em `models/gemini-embedding-2` (ver [`refatoracao/04-busca-hibrida.md`](refatoracao/04-busca-hibrida.md)).
+O modelo de texto usado por "Descrever com IA", "Sugerir tags" e pelo Chat do documento pode ser escolhido em **Configurações → IA**, numa lista populada pela sua própria chave. O modelo de embedding não é configurável: é fixo em `models/gemini-embedding-2` (ver [`refatoracao/04-busca-hibrida.md`](refatoracao/04-busca-hibrida.md)).
 
 ## Desenvolvimento
 
