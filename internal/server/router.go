@@ -57,6 +57,7 @@ func (s *Server) buildRouter() http.Handler {
 		protected.Get("/api/embed/jobs", s.handleEmbedJobs)
 		protected.Post("/api/pdfs/{id}/describe", s.handleAIDescribe)
 		protected.Post("/api/pdfs/{id}/suggest-tags", s.handleAISuggestTags)
+		protected.Post("/api/pdfs/{id}/chat", s.handleAIChat)
 
 		protected.Get("/api/annotations", s.handleListAnnotations)
 		protected.Get("/api/annotations/export", s.handleExportAnnotations)

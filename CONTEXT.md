@@ -18,6 +18,14 @@ _Avoid_: OCR, corpo, body
 Um comentário do usuário ancorado em uma página de um PDF.
 _Avoid_: nota, highlight, marcação
 
+**Notas**:
+O texto livre do usuário sobre o PDF inteiro, sem ligação com página nenhuma. Um por documento, editado no card "Notas" da ficha do PDF.
+_Avoid_: anotação (é outra coisa: fica presa a uma página), comentário
+
+**Chat do documento**:
+Perguntas e respostas sobre o conteúdo de um PDF, feitas ao modelo de texto escolhido em Configurações → IA. Fica no card entre Descrição/Tags e Notas da ficha do PDF. É efêmero: some ao recarregar ou sair da página. O único jeito de guardá-lo é copiá-lo inteiro para Notas, onde o usuário edita e decide quando salvar.
+_Avoid_: conversa, pergunte ao PDF
+
 ### Busca
 
 **Busca léxica**:

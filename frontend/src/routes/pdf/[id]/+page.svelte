@@ -6,13 +6,14 @@
 	// progresso de leitura", "Anotações", "Compartilhamento e
 	// administração").
 	import { onDestroy, tick } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { apiJSON, apiRequest, ApiError } from '$lib/api';
 	import { AnnotationListStore, deleteAnnotation } from '$lib/annotations.svelte';
 	import EmbedButton from '$lib/components/embed-button.svelte';
 	import { embedJobs } from '$lib/embed-jobs.svelte';
 	import TagPicker from '$lib/components/tag-picker.svelte';
+	import DocumentChat from '$lib/components/document-chat.svelte';
 	import ScrollSentinel from '$lib/components/scroll-sentinel.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -48,6 +49,20 @@
 	let notesSaving = $state(false);
 	let notesMessage = $state('');
 	let notesIsError = $state(false);
+	// Notas editadas (à mão ou pelo "Copiar para Notas" do chat) e não salvas.
+	let notesDirty = $state(false);
+
+	const LEAVE_WARNING = 'As Notas têm alterações não salvas. Sair mesmo assim?';
+	beforeNavigate((nav) => {
+		// "leave" (fechar/recarregar) é tratado pelo onbeforeunload do navegador.
+		if (notesDirty && nav.type !== 'leave' && !confirm(LEAVE_WARNING)) nav.cancel();
+	});
+
+	function copyChatToNotes(html: string) {
+		if (!editor) return;
+		editor.chain().insertContentAt(editor.state.doc.content.size, html).focus('end').run();
+		editorEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
 
 	let shareUrl = $state<string | null>(null);
 	let shareBusy = $state(false);
@@ -109,6 +124,7 @@
 		deleteError = '';
 		shareError = '';
 		notesMessage = '';
+		notesDirty = false;
 		annotationsError = '';
 		tagSuggestions = [];
 
@@ -137,6 +153,7 @@
 		await tick();
 		if (editorEl) {
 			editor = new Editor({ element: editorEl, extensions: [StarterKit], content: fetched.notes_html });
+			editor.on('update', () => (notesDirty = true));
 		}
 
 
@@ -278,6 +295,7 @@
 			const updated = await apiJSON<PDF>(`/pdfs/${current.id}`, { method: 'PATCH', body: { notes: markdown } });
 			pdf = updated;
 			editor.commands.setContent(updated.notes_html);
+			notesDirty = false;
 			notesMessage = 'Notas salvas.';
 			notesIsError = false;
 		} catch (err) {
@@ -352,6 +370,12 @@
 		}
 	}
 </script>
+
+<svelte:window
+	onbeforeunload={(e) => {
+		if (notesDirty) e.preventDefault();
+	}}
+/>
 
 {#if notFound}
 	<div class="mx-auto max-w-2xl p-8 text-center">
@@ -473,11 +497,15 @@
 			</div>
 		</div>
 
+		{#key pdf.id}
+			<DocumentChat pdfId={pdf.id} onCopyToNotes={copyChatToNotes} />
+		{/key}
+
 		<div class="space-y-2 rounded-lg border border-border p-4">
 			<div class="flex items-center justify-between">
 				<h2 class="text-sm font-medium">Notas</h2>
 				<Button size="sm" onclick={saveNotes} disabled={notesSaving}>
-					{notesSaving ? 'Salvando…' : 'Salvar notas'}
+					{notesSaving ? 'Salvando…' : notesDirty ? 'Salvar notas •' : 'Salvar notas'}
 				</Button>
 			</div>
 			<div

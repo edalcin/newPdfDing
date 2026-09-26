@@ -549,6 +549,7 @@ type geminiPart struct {
 	Text string `json:"text"`
 }
 type geminiContent struct {
+	Role  string       `json:"role,omitempty"`
 	Parts []geminiPart `json:"parts"`
 }
 type geminiGenerationConfig struct {
@@ -567,17 +568,35 @@ type geminiGenerateResponse struct {
 	} `json:"candidates"`
 }
 
+// ChatTurn is one message of a multi-turn exchange: Role is "user" or
+// "model", como a API do Gemini espera.
+type ChatTurn struct {
+	Role string
+	Text string
+}
+
 // GenerateText runs model:generateContent with one system instruction and
 // one user prompt, returning the concatenated text of the first candidate.
+func (c *GeminiClient) GenerateText(ctx context.Context, model, system, prompt string) (string, error) {
+	return c.GenerateChat(ctx, model, system, []ChatTurn{{Role: "user", Text: prompt}})
+}
+
+// GenerateChat runs model:generateContent over a multi-turn conversation.
 // Não envia thinkingConfig nem responseMimeType: a API rejeita ambos em
 // modelos que não os suportam, e o modelo aqui é escolha livre do usuário.
-func (c *GeminiClient) GenerateText(ctx context.Context, model, system, prompt string) (string, error) {
+// MaxOutputTokens folgado porque, em modelos com raciocínio, os tokens de
+// pensamento consomem o mesmo teto.
+func (c *GeminiClient) GenerateChat(ctx context.Context, model, system string, turns []ChatTurn) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
+	contents := make([]geminiContent, len(turns))
+	for i, t := range turns {
+		contents[i] = geminiContent{Role: t.Role, Parts: []geminiPart{{Text: t.Text}}}
+	}
 	reqBody := geminiGenerateRequest{
 		SystemInstruction: &geminiContent{Parts: []geminiPart{{Text: system}}},
-		Contents:          []geminiContent{{Parts: []geminiPart{{Text: prompt}}}},
-		GenerationConfig:  geminiGenerationConfig{Temperature: 0.2, MaxOutputTokens: 2048},
+		Contents:          contents,
+		GenerationConfig:  geminiGenerationConfig{Temperature: 0.2, MaxOutputTokens: 8192},
 	}
 	body, err := c.do(ctx, http.MethodPost, "/v1beta/"+model+":generateContent", reqBody)
 	if err != nil {

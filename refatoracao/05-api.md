@@ -131,6 +131,7 @@ Três rotas usadas pela área "Configurações → IA" e pelos botões "Descreve
 | `GET` | `/api/ai/models` | — | `200` `{"text":[{"name","display_name"}...]}` — lista nunca `null`, sempre `[]` quando vazia |
 | `POST` | `/api/pdfs/{id}/describe` | — | `200` `{"description":"<texto>"}` — não persiste; o frontend salva pelo `PATCH /api/pdfs/{id}` já existente |
 | `POST` | `/api/pdfs/{id}/suggest-tags` | — | `200` `{"tags":["..."]}` — sempre um array, nunca `null`; contém **apenas** nomes de tags já existentes no acervo (filtro determinístico no servidor, não confiança no prompt) |
+| `POST` | `/api/pdfs/{id}/chat` | `{"question":"...","history":[{"question":"...","answer":"..."}]}` | `200` `{"answer":"<markdown>","answer_html":"<html sanitizado>","truncated":bool}` — Chat do documento; o servidor não guarda a conversa, o navegador reenvia o histórico a cada pergunta. O texto extraído inteiro vai ao modelo até 400 000 caracteres (`truncated` indica corte) |
 
 Todas exigem **Sessão**.
 
@@ -139,6 +140,8 @@ Erros por rota:
 - `POST /api/pdfs/{id}/describe` e `POST /api/pdfs/{id}/suggest-tags` → `401`; `404` PDF inexistente; `412` `GEMINI_API_KEY` ausente, ou nenhum modelo de texto escolhido em Configurações → IA (`settings['ai.text_model']` vazio); `422` documento sem texto extraído (mesma extração sob demanda do backfill do viewer — ver [Busca Híbrida](04-busca-hibrida.md#backfill-de-texto-pdf_text-ausente)); `502` a chamada generativa falhou na API Gemini; `500` erro interno.
 
 `suggest-tags` nunca inventa uma tag: a resposta do modelo é normalizada (minúsculas, sem espaços nas bordas) e cruzada contra `GET /api/tags`, descartando qualquer linha que não bata com uma tag existente, cortada em 5 sugestões.
+
+`chat` valida a entrada antes de chamar o modelo: pergunta com 1–2000 caracteres, no máximo 20 trocas no histórico, corpo até 200 KB → `400` (ou `413` para o corpo) com mensagem legível; demais códigos iguais aos de `describe`. O prompt restringe a resposta ao conteúdo do documento, em português do Brasil.
 
 ## Anotações
 

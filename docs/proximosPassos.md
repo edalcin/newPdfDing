@@ -1,7 +1,26 @@
 # Próximos passos
 
-> Handoff de 2026-08-29. Estado: `main` em `2a84400` + as mudanças desta sessão, CI verde, produção em operação no UNRAID.
-> A sessão anterior fechou todas as pendências de código. Esta abriu e fechou três: um defeito de dados que travava o embedding, ícones que só atualizavam com recarga de página, e o filtro por estado de embedding — este último **revertendo uma decisão** registrada no handoff anterior.
+> Handoff de 2026-09-26. Estado: `main` em `2a84400` + o Chat do documento (seção 0, não commitado ao escrever isto), produção em operação no UNRAID.
+> Sessão de 2026-09-26: nova funcionalidade **Chat do documento**, desenhada em entrevista (decisões na seção 0). Seções 1–8 são o handoff de 2026-08-29, ainda válido.
+
+---
+
+## 0. Chat do documento (2026-09-26)
+
+Card na ficha do PDF, entre Descrição/Tags e Notas: perguntas sobre o conteúdo ao modelo de Configurações → IA. Termos **Chat do documento** e **Notas** no [`CONTEXT.md`](../CONTEXT.md); contrato em `refatoracao/05-api.md` e `06-frontend.md`.
+
+Decisões (não relitigar sem motivo novo):
+
+- **Efêmero, sem estado no servidor.** O navegador reenvia o histórico a cada pergunta; guardar = "Copiar para Notas", que só insere no editor — o usuário edita e salva.
+- **Texto extraído inteiro até 400 000 caracteres** a cada pergunta, com aviso de corte. Rejeitados: RAG (exigiria vetores por trecho; o vetor atual é um por documento, dos primeiros 2000 bytes — não serve para achar trechos) e mandar o arquivo PDF ao Gemini (limites de tamanho, File API). **Mandar o PDF só para os escaneados** é a extensão natural se fizer falta.
+- **Sem streaming**; resposta em markdown renderizada/sanitizada no servidor (`security.RenderNotes`, mesmo caminho de `notes_html`).
+- **Só o conteúdo do documento**, em português; nunca no link de compartilhamento.
+- **Limites:** pergunta ≤ 2000 caracteres, ≤ 20 trocas, corpo ≤ 200 KB, com erro explícito (sem descartar histórico em silêncio).
+- **Aviso de Notas não salvas** (`beforeNavigate` + `beforeunload`) — protege também a edição manual, que antes se perdia sem aviso.
+
+Mudança colateral: `GeminiClient.GenerateText` virou atalho de `GenerateChat` (multi-turn), e `MaxOutputTokens` subiu de 2048 para 8192 para todos — em modelos com raciocínio os tokens de pensamento consomem o mesmo teto.
+
+Verificado: `TestAIChat` (turnos alternados chegam ao modelo, HTML sanitizado, limites barram antes de qualquer chamada); `go test ./internal/...` e `npm run check` limpos; UI no navegador contra instância local com Gemini falso — card na posição certa, duas perguntas com histórico, cópia para Notas, confirmação ao sair, markdown salvo, PDF sem texto mostra o motivo. **Não verificado com o Gemini real** (sem chave local): qualidade das respostas e latência com documentos longos ficam para o primeiro uso em produção.
 
 ---
 

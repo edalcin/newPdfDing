@@ -1,11 +1,14 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
+	"github.com/edalcin/newpdfding/internal/security"
 	"github.com/edalcin/newpdfding/internal/store"
 	"github.com/go-chi/chi/v5"
 )
@@ -197,4 +200,100 @@ func (s *Server) handleAISuggestTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"tags": tags})
+}
+
+// ---------------------------------------------------------------------
+// POST /api/pdfs/{id}/chat
+// ---------------------------------------------------------------------
+
+// Limites do Chat do documento. O servidor não guarda a conversa: o
+// navegador reenvia o histórico a cada pergunta, então tudo aqui é entrada
+// não confiável.
+const (
+	chatBodyChars    = 400000 // texto extraído enviado ao modelo por pergunta
+	chatQuestionMax  = 2000
+	chatMaxExchanges = 20
+	chatMaxBodyBytes = 200 << 10
+)
+
+func (s *Server) handleAIChat(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, chatMaxBodyBytes)
+	var req struct {
+		History []struct {
+			Question string `json:"question"`
+			Answer   string `json:"answer"`
+		} `json:"history"`
+		Question string `json:"question"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeJSONError(w, http.StatusRequestEntityTooLarge, "conversa longa demais — copie para Notas e recomece")
+			return
+		}
+		writeJSONError(w, http.StatusBadRequest, "malformed payload")
+		return
+	}
+	question := strings.TrimSpace(req.Question)
+	if question == "" || utf8.RuneCountInString(question) > chatQuestionMax {
+		writeJSONError(w, http.StatusBadRequest, "a pergunta deve ter entre 1 e 2000 caracteres")
+		return
+	}
+	if len(req.History) >= chatMaxExchanges {
+		writeJSONError(w, http.StatusBadRequest, "conversa longa demais — copie para Notas e recomece")
+		return
+	}
+	turns := make([]store.ChatTurn, 0, 2*len(req.History)+1)
+	for _, h := range req.History {
+		if strings.TrimSpace(h.Question) == "" || strings.TrimSpace(h.Answer) == "" {
+			writeJSONError(w, http.StatusBadRequest, "malformed payload")
+			return
+		}
+		turns = append(turns, store.ChatTurn{Role: "user", Text: h.Question}, store.ChatTurn{Role: "model", Text: h.Answer})
+	}
+	turns = append(turns, store.ChatTurn{Role: "user", Text: question})
+
+	model := s.requireTextModel(w)
+	if model == "" {
+		return
+	}
+	pdf, err := s.pdfs.GetByID(chi.URLParam(r, "id"))
+	if errors.Is(err, store.ErrNotFound) {
+		writeJSONError(w, http.StatusNotFound, "pdf not found")
+		return
+	}
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	body, err := s.textFor(r.Context(), pdf)
+	if errors.Is(err, errNoText) {
+		writeJSONError(w, http.StatusUnprocessableEntity, "este PDF não tem texto extraível")
+		return
+	}
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	truncated := utf8.RuneCountInString(body) > chatBodyChars
+	body = truncateChars(body, chatBodyChars)
+
+	system := "Você responde perguntas sobre um único documento PDF, usando somente o conteúdo dele, reproduzido abaixo. " +
+		"Se a resposta não estiver no documento, diga que o documento não trata disso — não complete com conhecimento externo. " +
+		"Responda sempre em português do Brasil, de forma direta. Pode usar markdown (listas, negrito, tabelas).\n\n" +
+		"Título do documento: " + pdf.Name + "\n\nConteúdo do documento:\n" + body
+
+	answer, err := s.gemini.GenerateChat(r.Context(), model, system, turns)
+	if err != nil {
+		log.Printf("warning: gemini chat pdf_id=%s: %v", pdf.ID, err)
+		writeJSONError(w, http.StatusBadGateway, "falha ao gerar a resposta")
+		return
+	}
+	answer = strings.TrimSpace(answer)
+	html, err := security.RenderNotes(answer)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"answer": answer, "answer_html": html, "truncated": truncated})
 }
