@@ -1,6 +1,6 @@
 # Próximos passos
 
-> Handoff de 2026-09-26. Estado: `main` em `2a84400` + o Chat do documento (seção 0, não commitado ao escrever isto), produção em operação no UNRAID.
+> Handoff de 2026-09-26. Estado: `main` em `2b03937` (Chat do documento, seção 0), produção em operação no UNRAID.
 > Sessão de 2026-09-26: nova funcionalidade **Chat do documento**, desenhada em entrevista (decisões na seção 0). Seções 1–8 são o handoff de 2026-08-29, ainda válido.
 
 ---
