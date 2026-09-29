@@ -12,7 +12,7 @@
 
 Todas as afirmações abaixo foram verificadas em fonte primária:
 
-- Código da aplicação em `D:/git/newPdfDing`.
+- Código da aplicação em `S:/git/newPdfDing`.
 - Pacote **instalado** em `frontend/node_modules/@embedpdf/*` (v2.14.4) — não a documentação de marketing.
 - Banco e arquivos **de produção** (UNRAID, `/mnt/user/Storage/appsdata/newpdfding`), inspecionados por SSH.
 

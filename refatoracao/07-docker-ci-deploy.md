@@ -14,7 +14,7 @@ Três estágios, na ordem:
 
 **Meta de tamanho declarada: < 60 MB** (o stack Django atual gera ~400 MB). O principal peso da imagem final passa a ser o pdf.js embutido, não o runtime — daí a limpeza de `web/locale` e `web/standard_fonts` no estágio 1.
 
-Estrutura de comentário de seção (`# ── Stage N: … ──`), `WORKDIR` e `COPY --from=` seguem o estilo do `Dockerfile` de referência de `pkd` (`D:/git/pkd/Dockerfile`, somente leitura). Divergências deliberadas em relação a essa referência: nome do binário `newpdfding` (não `pkd`), porta `8000` exposta (não `8080`), tag final `:nonroot` explícita e diretiva `USER nonroot` declarada (a referência usa a tag sem `:nonroot` e não declara `USER` — aqui é obrigatório por ser requisito de segurança, ver [Segurança](08-seguranca.md)).
+Estrutura de comentário de seção (`# ── Stage N: … ──`), `WORKDIR` e `COPY --from=` seguem o estilo do `Dockerfile` de referência de `pkd` (`S:/git/pkd/Dockerfile`, somente leitura). Divergências deliberadas em relação a essa referência: nome do binário `newpdfding` (não `pkd`), porta `8000` exposta (não `8080`), tag final `:nonroot` explícita e diretiva `USER nonroot` declarada (a referência usa a tag sem `:nonroot` e não declara `USER` — aqui é obrigatório por ser requisito de segurança, ver [Segurança](08-seguranca.md)).
 
 ```dockerfile
 # ── Stage 1: Frontend build (Node + pdf.js) ─────────────────────────────────
@@ -85,7 +85,7 @@ refatoracao/
 - **Gatilho**: `push` em `main` e `workflow_dispatch` (disparo manual). Sem gatilho `pull_request` — o repositório mantém um único branch, `main` (ver regra do projeto); não há branch de feature para validar antes do merge.
 - **Job `test`**: Node (`actions/setup-node`, `npm ci` + `npm run build` do frontend, para garantir que o build do SvelteKit não quebrou) seguido de Go (`actions/setup-go`, `go vet ./...`, `go test ./...`, `govulncheck`).
 - **Job `publish`**: depende de `test` (`needs: test`); usa `docker/setup-buildx-action`, `docker/login-action` em `ghcr.io`, `docker/metadata-action` para gerar as tags `latest` e `sha-<short>`, e `docker/build-push-action` para `linux/amd64`, publicando em `ghcr.io/edalcin/newpdfding`. `permissions` do workflow: `contents: read`, `packages: write`.
-- **Scan Trivy**: roda depois do push da imagem, `exit-code: 1` para severidade `CRITICAL,HIGH` — **falha o pipeline** se encontrar vulnerabilidade dessa severidade. Mais rígido que a referência `pkd` (`D:/git/pkd/.github/workflows/build-and-publish.yml`, somente leitura), que roda o mesmo `aquasecurity/trivy-action` mas com `exit-code: 0` (só reporta, nunca falha o job).
+- **Scan Trivy**: roda depois do push da imagem, `exit-code: 1` para severidade `CRITICAL,HIGH` — **falha o pipeline** se encontrar vulnerabilidade dessa severidade. Mais rígido que a referência `pkd` (`S:/git/pkd/.github/workflows/build-and-publish.yml`, somente leitura), que roda o mesmo `aquasecurity/trivy-action` mas com `exit-code: 0` (só reporta, nunca falha o job).
 
 Estrutura de referência (`pkd`): job `test` roda `actions/setup-node` + `npm install`/`npm run build` do frontend antes de `actions/setup-go` + `go test ./... -timeout 120s` + `go vet ./...` + `govulncheck`; job de publicação usa `docker/setup-buildx-action`, `docker/login-action` em `ghcr.io`, `docker/metadata-action` para tags, `docker/build-push-action` com `cache-from`/`cache-to type=gha`, e por fim `aquasecurity/trivy-action@master` sobre a imagem publicada.
 
