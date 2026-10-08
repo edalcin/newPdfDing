@@ -114,6 +114,7 @@ Só o snapshot `/api/embed/jobs` foi faturado (fica no lugar do worker, que exig
 - **Funcionalidades que a especificação prometia e o código nunca teve** foram marcadas como "nunca implementado" no inventário e removidas dos contratos: **Coleções**, **thumbnail** (só existe preview), **assinaturas salvas** e **modo árvore de tags**. Não são pendências: são ficção documental corrigida. Reintroduzir qualquer uma é decisão nova, não dívida.
 - **A pasta `refatoracao/` mantém o nome**, apesar de a refatoração estar concluída: renomear invalidaria ~120 citações a `refatoracao/NN-*.md` em comentários de código, churn sem ganho. Os documentos `00`–`08`, `10`, `11` são hoje a especificação do produto, não um plano.
 - **Apagados nesta sessão, com aprovação:** `ETAPAS.md` e `09-limpeza-repositorio.md` (plano de execução cumprido), `12-achatamento-cartografia-vetorial.md` (estudo datado; achados pendentes resgatados na seção 5), `instrucoesFinais.md` (runbook de migração Django→Go, executado), e o importador legado inteiro (`import_legacy.go`, `-import-legacy`, `PDFStore.Import`, `AnnotationStore.Import`, `ShareStore.Import`). História no git.
+- **Sem `temperature`/`topP`/`topK` no `generateContent`** (2026-10-08). Aviso do Google AI Studio: sem efeito desde o Gemini 3.6 Flash, e os próximos modelos respondem 400. Como o modelo de texto é escolha livre do usuário, enviar esses campos quebraria o primeiro modelo novo escolhido. `GenerateChat` manda só `maxOutputTokens`.
 
 ## 7. Ambiente — incantações que funcionam aqui
 

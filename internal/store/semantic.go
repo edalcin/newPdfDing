@@ -552,9 +552,10 @@ type geminiContent struct {
 	Role  string       `json:"role,omitempty"`
 	Parts []geminiPart `json:"parts"`
 }
+// geminiGenerationConfig carries no sampling fields (temperature, topP,
+// topK): Gemini 3.6+ ignores them and newer models reject them with 400.
 type geminiGenerationConfig struct {
-	Temperature     float64 `json:"temperature"`
-	MaxOutputTokens int     `json:"maxOutputTokens"`
+	MaxOutputTokens int `json:"maxOutputTokens"`
 }
 type geminiGenerateRequest struct {
 	SystemInstruction *geminiContent         `json:"systemInstruction,omitempty"`
@@ -596,7 +597,7 @@ func (c *GeminiClient) GenerateChat(ctx context.Context, model, system string, t
 	reqBody := geminiGenerateRequest{
 		SystemInstruction: &geminiContent{Parts: []geminiPart{{Text: system}}},
 		Contents:          contents,
-		GenerationConfig:  geminiGenerationConfig{Temperature: 0.2, MaxOutputTokens: 8192},
+		GenerationConfig:  geminiGenerationConfig{MaxOutputTokens: 8192},
 	}
 	body, err := c.do(ctx, http.MethodPost, "/v1beta/"+model+":generateContent", reqBody)
 	if err != nil {
