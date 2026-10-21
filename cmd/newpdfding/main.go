@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -46,6 +47,17 @@ func main() {
 		fmt.Fprintf(os.Stderr, "newpdfding: failed to create FILES directory: %v\n", err)
 		os.Exit(1)
 	}
+
+	// net/http spills multipart uploads above maxMemory (32 MB) to
+	// os.TempDir(). The container runs --read-only, so /tmp is not
+	// writable, and on UNRAID /tmp is RAM anyway: send those files to the
+	// disk-backed <FILES>/tmp that text extraction already uses.
+	tmpDir := filepath.Join(cfg.Files, "tmp")
+	if err := os.MkdirAll(tmpDir, 0o750); err != nil {
+		fmt.Fprintf(os.Stderr, "newpdfding: failed to create temp directory: %v\n", err)
+		os.Exit(1)
+	}
+	os.Setenv("TMPDIR", tmpDir)
 
 	srv := server.New(cfg, db)
 

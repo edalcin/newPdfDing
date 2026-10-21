@@ -344,7 +344,7 @@ volumes:
 | Port | Container `8000` → Host `8000` (ou outra porta livre do host) | Porta HTTP do binário — variável `LISTEN_ADDR`, default `:8000`. |
 | Path | Container `/data` → Host `/mnt/user/appdata/newpdfding` | Contém o arquivo SQLite (`DB_PATH`). Precisa ser gravável pelo container. |
 | Path | Container `/files` → Host `<share de PDFs escolhido pelo usuário>` | Acervo de PDFs (`FILES`). Precisa ser gravável pelo container. |
-| Path | Container `/files/tmp` → Host `/mnt/user/Storage/appsdata/newpdfding/temp` | Diretório temporário usado pela extração de texto de PDF. Precisa ficar num volume de disco: no Unraid, `/tmp` é RAM, e gravar ali um arquivo temporário de um PDF grande esgotaria a memória do host. Precisa ser gravável pelo container. |
+| Path | Container `/files/tmp` → Host `/mnt/user/Storage/appsdata/newpdfding/temp` | Diretório temporário (`TMPDIR`) usado pela extração de texto de PDF e pelos uploads acima de 32 MB. Precisa ficar num volume de disco: no Unraid, `/tmp` é RAM, e gravar ali um arquivo temporário de um PDF grande esgotaria a memória do host. Precisa ser gravável pelo container. |
 | Extra Parameters | `--read-only --cap-drop=ALL --memory=1g` | `--read-only --cap-drop=ALL`: a imagem é distroless e só escreve nos volumes `/data`, `/files` e `/files/tmp` acima. `--memory=1g`: limite de memória do container — um processo descontrolado vira reinício do container, não um travamento do host. |
 
 ### Variáveis de ambiente obrigatórias

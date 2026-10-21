@@ -349,6 +349,7 @@ func (s *Server) handleCreatePDF(w http.ResponseWriter, r *http.Request) {
 			writeJSONError(w, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_MB")
 			return
 		}
+		log.Printf("upload: parse multipart: %v", err)
 		writeJSONError(w, http.StatusBadRequest, "malformed multipart payload")
 		return
 	}
@@ -399,6 +400,7 @@ func (s *Server) handleBulkCreatePDFs(w http.ResponseWriter, r *http.Request) {
 			writeJSONError(w, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_MB")
 			return
 		}
+		log.Printf("bulk upload: parse multipart: %v", err)
 		writeJSONError(w, http.StatusBadRequest, "malformed multipart payload")
 		return
 	}
@@ -657,6 +659,7 @@ func (s *Server) handleUploadPreview(w http.ResponseWriter, r *http.Request) {
 			writeJSONError(w, http.StatusRequestEntityTooLarge, "upload exceeds MAX_UPLOAD_MB")
 			return
 		}
+		log.Printf("preview upload: parse multipart: %v", err)
 		writeJSONError(w, http.StatusBadRequest, "malformed multipart payload")
 		return
 	}
