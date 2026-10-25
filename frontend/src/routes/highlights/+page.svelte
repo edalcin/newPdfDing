@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { AnnotationListStore, deleteAnnotation, exportAnnotationsUrl } from '$lib/annotations.svelte';
-	import { apiJSON } from '$lib/api';
-	import ScrollSentinel from '$lib/components/scroll-sentinel.svelte';
-	import { LEGACY_HEX } from '$lib/embedpdf';
-	import { formatDate } from '$lib/utils';
-	import type { PDF } from '$lib/types';
+	import { AnnotationListStore, deleteAnnotation, exportAnnotationsUrl } from '#lib/annotations.svelte.ts';
+	import { apiJSON } from '#lib/api.ts';
+	import ScrollSentinel from '#lib/components/scroll-sentinel.svelte';
+	import { LEGACY_HEX } from '#lib/embedpdf.ts';
+	import { formatDate } from '#lib/utils.ts';
+	import type { PDF } from '#lib/types.ts';
 
 	const store = new AnnotationListStore();
 	store.kind = 'highlight';

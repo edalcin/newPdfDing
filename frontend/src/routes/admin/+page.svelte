@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { apiJSON, ApiError } from '$lib/api';
-	import { formatBytes, formatDate } from '$lib/utils';
-	import { Button, buttonVariants } from '$lib/components/ui/button';
-	import type { AdminInfo, Share } from '$lib/types';
+	import { apiJSON, ApiError } from '#lib/api.ts';
+	import { formatBytes, formatDate } from '#lib/utils.ts';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
+	import type { AdminInfo, Share } from '#lib/types.ts';
 
 	let info = $state<AdminInfo | null>(null);
 	let shares = $state<Share[]>([]);

@@ -5,10 +5,10 @@
 	// O botão não observa nada por conta própria: a atualização do PDF ao
 	// final do job é responsabilidade de quem exibe a lista, para que ela
 	// aconteça mesmo se este botão nunca tiver sido clicado nesta página.
-	import { apiJSON, ApiError } from '$lib/api';
-	import { embedSession } from '$lib/embed.svelte';
-	import { embedJobs } from '$lib/embed-jobs.svelte';
-	import type { PDF } from '$lib/types';
+	import { apiJSON, ApiError } from '#lib/api.ts';
+	import { embedSession } from '#lib/embed.svelte.ts';
+	import { embedJobs } from '#lib/embed-jobs.svelte.ts';
+	import type { PDF } from '#lib/types.ts';
 
 	let { pdf, showLabel = false }: { pdf: PDF; showLabel?: boolean } = $props();
 

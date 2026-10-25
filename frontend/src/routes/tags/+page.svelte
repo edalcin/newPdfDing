@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { apiJSON, ApiError } from '$lib/api';
-	import type { TagWithCount } from '$lib/types';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
+	import { apiJSON, ApiError } from '#lib/api.ts';
+	import type { TagWithCount } from '#lib/types.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
 
 	let tags = $state<TagWithCount[]>([]);
 	let loading = $state(true);

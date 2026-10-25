@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { PDFListStore } from '$lib/pdfs.svelte';
-	import { apiJSON } from '$lib/api';
-	import { embedJobs } from '$lib/embed-jobs.svelte';
-	import PdfCard from '$lib/components/pdf-card.svelte';
-	import PdfUpload from '$lib/components/pdf-upload.svelte';
-	import ScrollSentinel from '$lib/components/scroll-sentinel.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import type { Layout, PDF, TagWithCount } from '$lib/types';
+	import { PDFListStore } from '#lib/pdfs.svelte.ts';
+	import { apiJSON } from '#lib/api.ts';
+	import { embedJobs } from '#lib/embed-jobs.svelte.ts';
+	import PdfCard from '#lib/components/pdf-card.svelte';
+	import PdfUpload from '#lib/components/pdf-upload.svelte';
+	import ScrollSentinel from '#lib/components/scroll-sentinel.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import type { Layout, PDF, TagWithCount } from '#lib/types.ts';
 
 	const list = new PDFListStore();
 	let layout = $state<Layout>('grid');

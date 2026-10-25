@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { apiJSON, ApiError } from '$lib/api';
-	import { processPDF } from '$lib/pdf-process';
-	import type { PDF } from '$lib/types';
+	import { apiJSON, ApiError } from '#lib/api.ts';
+	import { processPDF } from '#lib/pdf-process.ts';
+	import type { PDF } from '#lib/types.ts';
 
 	let { onUploaded }: { onUploaded: (pdf: PDF) => void } = $props();
 

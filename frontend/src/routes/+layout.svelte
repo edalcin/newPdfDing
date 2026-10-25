@@ -1,13 +1,13 @@
 <script lang="ts">
 	import '../app.css';
 	import 'boxicons/css/boxicons.min.css';
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '#lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
-	import { auth } from '$lib/auth.svelte';
-	import { theme } from '$lib/theme.svelte';
+	import { auth } from '#lib/auth.svelte.ts';
+	import { theme } from '#lib/theme.svelte.ts';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import TopBar from '$lib/components/top-bar.svelte';
+	import TopBar from '#lib/components/top-bar.svelte';
 
 	let { children } = $props();
 

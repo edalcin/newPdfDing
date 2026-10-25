@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { auth } from '$lib/auth.svelte';
+	import { auth } from '#lib/auth.svelte.ts';
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
 
 	let password = $state('');
 	let error = $state('');

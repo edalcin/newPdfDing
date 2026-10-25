@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { apiJSON, ApiError } from '$lib/api';
-	import PdfViewer from '$lib/components/pdf-viewer.svelte';
-	import type { PDF } from '$lib/types';
+	import { apiJSON, ApiError } from '#lib/api.ts';
+	import PdfViewer from '#lib/components/pdf-viewer.svelte';
+	import type { PDF } from '#lib/types.ts';
 
 	const shareId = page.params.share;
 

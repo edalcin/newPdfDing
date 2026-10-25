@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Layout, PDF } from '$lib/types';
-	import { Button } from '$lib/components/ui/button';
+	import type { Layout, PDF } from '#lib/types.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import EmbedButton from './embed-button.svelte';
 
 	let {

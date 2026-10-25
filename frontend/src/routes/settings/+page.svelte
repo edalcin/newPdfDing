@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { apiJSON, ApiError } from '$lib/api';
-	import { theme, type ThemeSetting } from '$lib/theme.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import type { AIModel, AIModels, Layout, PDFSort, Settings } from '$lib/types';
+	import { apiJSON, ApiError } from '#lib/api.ts';
+	import { theme, type ThemeSetting } from '#lib/theme.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import type { AIModel, AIModels, Layout, PDFSort, Settings } from '#lib/types.ts';
 
 	const SORT_OPTIONS: { value: PDFSort; label: string }[] = [
 		{ value: 'newest', label: 'Mais recentes' },

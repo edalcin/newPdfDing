@@ -3,8 +3,8 @@
 	// ao modelo de Configurações → IA. Efêmero — o histórico vive só aqui e
 	// é reenviado inteiro a cada pergunta (POST /api/pdfs/{id}/chat); o único
 	// jeito de guardá-lo é copiá-lo para as Notas.
-	import { apiJSON, ApiError } from '$lib/api';
-	import { Button } from '$lib/components/ui/button';
+	import { apiJSON, ApiError } from '#lib/api.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 
 	type Exchange = { question: string; answer: string; answer_html: string };
 

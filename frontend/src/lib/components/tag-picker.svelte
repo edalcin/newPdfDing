@@ -4,8 +4,8 @@
 	// cria qualquer tag inexistente ao salvar — ver internal/store/tags.go,
 	// ensureTags — então "criar" aqui é só UX, sem chamada extra à API).
 	import { onMount } from 'svelte';
-	import { apiJSON } from '$lib/api';
-	import type { TagWithCount } from '$lib/types';
+	import { apiJSON } from '#lib/api.ts';
+	import type { TagWithCount } from '#lib/types.ts';
 
 	let { value, onChange, id }: { value: string; onChange: (names: string[]) => void; id?: string } = $props();
 

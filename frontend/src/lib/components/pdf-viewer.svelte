@@ -6,7 +6,7 @@
 	// cujo #pagesContainer já isolava isso), e restaura a página inicial
 	// assim que o layout do scroll estiver pronto.
 	import { PDFViewer, type PluginRegistry, ScrollPlugin } from '@embedpdf/svelte-pdf-viewer';
-	import { viewerConfig } from '$lib/embedpdf';
+	import { viewerConfig } from '#lib/embedpdf.ts';
 
 	let {
 		src,

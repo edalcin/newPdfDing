@@ -5,12 +5,12 @@
 	// de modo invertido e "manter tela ligada", e a persistência
 	// bidirecional de anotações via AnnotationCapability.onAnnotationEvent.
 	import { page } from '$app/state';
-	import { apiJSON, apiRequest } from '$lib/api';
-	import { extractAssetsFromUrl } from '$lib/pdf-process';
-	import { createAnnotation, patchAnnotation, deleteAnnotation } from '$lib/annotations.svelte';
-	import { legacyToTransferItem, toAnnotationPayload } from '$lib/embedpdf';
-	import PdfViewer from '$lib/components/pdf-viewer.svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { apiJSON, apiRequest } from '#lib/api.ts';
+	import { extractAssetsFromUrl } from '#lib/pdf-process.ts';
+	import { createAnnotation, patchAnnotation, deleteAnnotation } from '#lib/annotations.svelte.ts';
+	import { legacyToTransferItem, toAnnotationPayload } from '#lib/embedpdf.ts';
+	import PdfViewer from '#lib/components/pdf-viewer.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import type {
 		AnnotationEvent,
 		AnnotationPlugin,
@@ -20,7 +20,7 @@
 		PluginRegistry,
 		SelectionPlugin
 	} from '@embedpdf/svelte-pdf-viewer';
-	import type { Annotation, PDF } from '$lib/types';
+	import type { Annotation, PDF } from '#lib/types.ts';
 
 	// page.params tipa como `string | undefined` porque LayoutParams é
 	// compartilhado entre todas as rotas de '/' — nesta rota o segmento

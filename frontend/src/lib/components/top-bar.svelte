@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { theme, type ThemeSetting } from '$lib/theme.svelte';
-	import { auth } from '$lib/auth.svelte';
+	import { theme, type ThemeSetting } from '#lib/theme.svelte.ts';
+	import { auth } from '#lib/auth.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 
 	const themeIcon: Record<ThemeSetting, string> = {
 		system: 'bx-desktop',
