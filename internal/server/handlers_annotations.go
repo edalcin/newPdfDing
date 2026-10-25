@@ -179,6 +179,14 @@ func (s *Server) handlePatchAnnotation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Color != nil && !isValidAnnotationColor(*req.Color) {
+		writeJSONError(w, http.StatusBadRequest, "invalid color")
+		return
+	}
+	if req.Data != nil && len(*req.Data) > maxAnnotationDataBytes {
+		writeJSONError(w, http.StatusBadRequest, "data excede 2 MiB")
+		return
+	}
 	if req.Rects != nil {
 		if !validateRects(*req.Rects) {
 			writeJSONError(w, http.StatusBadRequest, "rects inválido")
@@ -201,14 +209,6 @@ func (s *Server) handlePatchAnnotation(w http.ResponseWriter, r *http.Request) {
 			writeJSONError(w, http.StatusInternalServerError, "internal error")
 			return
 		}
-	}
-	if req.Color != nil && !isValidAnnotationColor(*req.Color) {
-		writeJSONError(w, http.StatusBadRequest, "invalid color")
-		return
-	}
-	if req.Data != nil && len(*req.Data) > maxAnnotationDataBytes {
-		writeJSONError(w, http.StatusBadRequest, "data excede 2 MiB")
-		return
 	}
 
 	a, err := s.annotations.Update(id, req.Text, req.Note, req.Data, req.Color)
