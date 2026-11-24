@@ -5,6 +5,20 @@
 
 ---
 
+## 00. "Offline" ao usar a IA (2026-11-24)
+
+**Sintoma:** "Descrever com IA" mostrava `offline` com a rede boa. Atingia também Sugerir tags, Chat do documento, uploads e qualquer mutação acima de 8 s.
+
+**Causa:** `frontend/static/sw.js` abortava toda mutação em 8 s e respondia `503 {"error":"offline"}`; o Gemini com raciocínio passa disso facilmente.
+
+**Correção:** timeout de 8 s só em `GET` e `/api/auth/*`; as demais mutações só viram `offline` quando a rede falha. `WriteTimeout` do servidor de 60 s para 120 s, porque o cliente Gemini espera até 90 s.
+
+**Verificado:** `sw.js` executado em Node contra servidor de 12 s — antes 503 aos 8 s, depois 200; login continua limitado a 8 s e conexão derrubada continua `offline`. **Não verificado** em navegador nem com o Gemini real.
+
+**Pendente:** `ReadTimeout` de 15 s no servidor ainda limita uploads lentos; corpo que leva mais que isso para chegar é cortado.
+
+---
+
 ## 0. Chat do documento (2026-09-26)
 
 Card na ficha do PDF, entre Descrição/Tags e Notas: perguntas sobre o conteúdo ao modelo de Configurações → IA. Termos **Chat do documento** e **Notas** no [`CONTEXT.md`](../CONTEXT.md); contrato em `refatoracao/05-api.md` e `06-frontend.md`.

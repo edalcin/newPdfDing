@@ -41,10 +41,10 @@ function isStaticAsset(url) {
 	);
 }
 
-// fetchWithTimeout guards every network attempt below: a stalled connection
-// (or a fetch that never settles for any reason) must fail over to cache —
-// or to the offline response for mutations — instead of hanging the page
-// forever. AbortController.abort() rejects the fetch even if it's stuck at
+// fetchWithTimeout guards GETs and the login calls below: a stalled
+// connection (or a fetch that never settles for any reason) must fail over
+// to cache — or to the offline response for login — instead of hanging the
+// page forever. Other mutations must NOT use it: see the fetch handler. AbortController.abort() rejects the fetch even if it's stuck at
 // the browser/network layer, not just on a genuine slow response.
 const NETWORK_TIMEOUT_MS = 8000;
 
@@ -94,11 +94,15 @@ self.addEventListener('fetch', (event) => {
 
 	if (url.origin !== self.location.origin) return;
 
-	// Mutações: network-only, 503 explícito quando offline ou a rede trava
-	// (ver 06-frontend.md).
+	// Mutações: network-only, 503 explícito quando a rede falha (ver
+	// 06-frontend.md). Sem timeout fora de /api/auth/: chamadas de IA e
+	// uploads passam de 8s em uso normal, e abortar aqui mostrava "offline"
+	// enquanto o servidor seguia processando a requisição. O limite delas é
+	// o do servidor.
 	if (isMutation(request)) {
+		const send = url.pathname.startsWith('/api/auth/') ? fetchWithTimeout : fetch;
 		event.respondWith(
-			fetchWithTimeout(request).catch(
+			send(request).catch(
 				() => new Response(JSON.stringify({ error: 'offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } })
 			)
 		);

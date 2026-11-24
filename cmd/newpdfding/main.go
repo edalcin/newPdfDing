@@ -66,7 +66,10 @@ func main() {
 		Addr:         cfg.ListenAddr,
 		Handler:      srv.Handler(),
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 60 * time.Second,
+		// Must exceed the 90s Gemini generate timeout plus text extraction:
+		// past WriteTimeout the handler still finishes, but its response is
+		// dropped and the client sees a broken connection.
+		WriteTimeout: 120 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 

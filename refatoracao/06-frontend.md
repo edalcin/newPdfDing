@@ -70,10 +70,10 @@ Não existe paginação numerada em lugar nenhum da SPA — item removido do pro
 | `index.html` | Network-first |
 | `GET /api/pdfs` | Network-first, com cache de fallback para uso offline |
 | Assets estáticos (JS, CSS, ícones, pdf.js) | Cache-first |
-| Mutações (`POST` / `PATCH` / `PUT` / `DELETE`) | Network-only — responde `503` quando offline |
+| Mutações (`POST` / `PATCH` / `PUT` / `DELETE`) | Network-only — responde `503` quando a rede falha; sem timeout, exceto `/api/auth/*` |
 
 - Dois caches versionados, permitindo invalidação independente do shell da aplicação e das respostas de API a cada deploy.
-- **Timeout de rede fixo em 8s** (`AbortController`) em toda chamada de `fetch` feita pelo service worker — tanto no `network-first` quanto no `network-only` das mutações. Sem isso, uma conexão que trava (não falha, só nunca resolve) deixa a página pendurada indefinidamente em vez de cair no fallback de cache/offline; o abort força a rejeição da promise mesmo quando o `fetch` está preso na camada de rede/navegador, não só numa resposta lenta. Bug real encontrado e corrigido em produção — reproduzido com login nunca completando enquanto o SW estava sem esse guard.
+- **Timeout de rede fixo em 8s** (`AbortController`) nos `fetch` de `GET` interceptados pelo service worker (`network-first` e `cache-first`) e nas mutações de `/api/auth/*`. **As demais mutações não têm timeout no service worker**: IA e uploads passam de 8s em uso normal, e o abort devolvia `offline` com o servidor ainda processando; quem as limita é o servidor (`WriteTimeout` de 120s, acima dos 90s do cliente Gemini). Nos casos com timeout: sem ele, uma conexão que trava (não falha, só nunca resolve) deixa a página pendurada indefinidamente em vez de cair no fallback de cache/offline; o abort força a rejeição da promise mesmo quando o `fetch` está preso na camada de rede/navegador, não só numa resposta lenta. Bug real encontrado e corrigido em produção — reproduzido com login nunca completando enquanto o SW estava sem esse guard.
 
 ## Upload — processamento no navegador
 
